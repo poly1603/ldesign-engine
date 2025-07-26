@@ -1,0 +1,29 @@
+{
+  "name": "@ldesign/engine-examples",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@ldesign/engine": "^1.0.0",
+    "lucide-vue-next": "^0.468.0",
+    "recharts": "^2.15.4",
+    "sonner": "^1.7.4",
+    "vue": "^3.5.18",
+    "vue-router": "^4.5.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.9",
+    "@vitejs/plugin-vue": "^6.0.0",
+    "@vitejs/plugin-vue-jsx": "^5.0.1",
+    "less": "^4.4.0",
+    "typescript": "^5.8.3",
+    "vite": "^7.0.6"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

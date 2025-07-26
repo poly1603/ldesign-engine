@@ -365,17 +365,17 @@ engine.defineDerivedAsync('user.recommendations', {
 const userSelectors = {
   // 基本选择器
   getCurrentUser: (state) => state.user,
-  
+
   // 计算选择器
   getAuthenticatedUser: (state) => {
     return state.user.isAuthenticated ? state.user : null
   },
-  
+
   // 参数化选择器
   getUserById: (state, userId) => {
     return state.users.find(user => user.id === userId)
   },
-  
+
   // 复合选择器
   getUserWithPermissions: (state) => {
     const user = state.user
@@ -411,7 +411,7 @@ const engine = new Engine({
     enabled: true,
     storage: 'localStorage', // 'localStorage' | 'sessionStorage' | 'indexedDB'
     key: 'my-app-state',
-    
+
     // 包含的状态路径
     include: [
       'user.preferences',
@@ -419,17 +419,17 @@ const engine = new Engine({
       'ui.language',
       'app.settings'
     ],
-    
+
     // 排除的状态路径
     exclude: [
       'user.tempData',
       'ui.modal',
       'app.cache'
     ],
-    
+
     // 自动保存间隔（毫秒）
     autoSaveInterval: 5000,
-    
+
     // 序列化配置
     serializer: {
       serialize: (state) => JSON.stringify(state),
@@ -449,17 +449,17 @@ class CustomStorageAdapter {
     const data = await customStorage.getItem(key)
     return data ? JSON.parse(data) : null
   }
-  
+
   async set(key: string, value: any): Promise<void> {
     // 保存到自定义存储
     await customStorage.setItem(key, JSON.stringify(value))
   }
-  
+
   async remove(key: string): Promise<void> {
     // 从自定义存储删除
     await customStorage.removeItem(key)
   }
-  
+
   async clear(): Promise<void> {
     // 清空自定义存储
     await customStorage.clear()
@@ -475,7 +475,7 @@ engine.setPersistenceCondition((path, value, oldValue) => {
   if (path.startsWith('user.temp')) return false
   if (path === 'ui.scrollPosition') return false
   if (typeof value === 'function') return false
-  
+
   return true
 })
 
@@ -564,11 +564,11 @@ engine.registerStateValidator('user.email', (email) => {
   if (!email.includes('@')) {
     throw new Error('邮箱格式无效')
   }
-  
+
   if (email.endsWith('@temp.com')) {
     throw new Error('不允许使用临时邮箱')
   }
-  
+
   return true
 })
 ```
@@ -745,23 +745,23 @@ class UserStateMachine {
     },
     'deleted': {}
   }
-  
+
   constructor(private engine: Engine) {
     this.engine.setState('user.state', 'guest')
     this.setupTransitions()
   }
-  
+
   private setupTransitions() {
     this.engine.onStateChange('user.state', (newState, oldState) => {
       console.log(`用户状态从 ${oldState} 转换到 ${newState}`)
       this.engine.emit('user:state-changed', { from: oldState, to: newState })
     })
   }
-  
+
   transition(action: string) {
     const currentState = this.engine.getState('user.state')
     const nextState = this.states[currentState]?.[action]
-    
+
     if (nextState) {
       this.engine.setState('user.state', nextState)
       return true
@@ -770,7 +770,7 @@ class UserStateMachine {
       return false
     }
   }
-  
+
   canTransition(action: string): boolean {
     const currentState = this.engine.getState('user.state')
     return !!this.states[currentState]?.[action]
@@ -792,13 +792,13 @@ userStateMachine.transition('logout') // authenticated -> guest
 class StateSync {
   private engines: Engine[] = []
   private syncPaths: string[] = []
-  
+
   constructor(engines: Engine[], syncPaths: string[]) {
     this.engines = engines
     this.syncPaths = syncPaths
     this.setupSync()
   }
-  
+
   private setupSync() {
     this.engines.forEach((engine, index) => {
       this.syncPaths.forEach(path => {
@@ -813,7 +813,7 @@ class StateSync {
       })
     })
   }
-  
+
   syncState(path: string, value: any) {
     this.engines.forEach(engine => {
       engine.setState(path, value, { sync: false })
@@ -856,7 +856,7 @@ const goodState = {
       expiresAt: 1234567890
     }
   },
-  
+
   ui: {
     layout: {
       sidebarCollapsed: false,
@@ -871,7 +871,7 @@ const goodState = {
       profileForm: { dirty: false, errors: {} }
     }
   },
-  
+
   data: {
     users: { items: [], loading: false, error: null },
     products: { items: [], loading: false, error: null }
@@ -977,7 +977,7 @@ try {
 // ✅ 状态恢复
 engine.on('state:error', (error, context) => {
   console.error('状态错误:', error)
-  
+
   // 恢复到上一个有效状态
   if (context.path) {
     engine.undoState(context.path)

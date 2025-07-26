@@ -4,7 +4,7 @@ layout: home
 hero:
   name: "@ldesign/engine"
   text: "强大的插件化引擎"
-  tagline: 构建可扩展、高性能的应用程序架构
+  tagline: "构建可扩展、高性能的应用程序架构"
   image:
     src: /logo.svg
     alt: LDesign Engine
@@ -16,53 +16,121 @@ hero:
       text: 查看示例
       link: /examples/
     - theme: alt
-      text: API 文档
-      link: /api/
+      text: GitHub
+      link: https://github.com/ldesign/engine
 
 features:
   - icon: 🔌
     title: 插件化架构
-    details: 基于插件的模块化设计，支持动态加载和热插拔，让您的应用程序具备无限扩展能力。
-  - icon: ⚡
+    details: 真正的插件化设计，支持热插拔、依赖管理和生命周期控制，让您的应用具备无限扩展能力。
+  
+  - icon: 🚀
     title: 高性能
-    details: 优化的事件系统和中间件机制，确保在复杂场景下依然保持出色的性能表现。
-  - icon: 🛡️
-    title: 类型安全
-    details: 完整的 TypeScript 支持，提供强类型约束和智能代码提示，减少运行时错误。
-  - icon: 🎯
-    title: 事件驱动
-    details: 强大的事件系统支持异步处理、事件拦截和自定义事件，构建响应式应用架构。
-  - icon: 🔧
-    title: 中间件支持
-    details: 灵活的中间件机制，支持请求拦截、数据转换和业务逻辑处理。
+    details: 优化的状态管理和事件系统，最小化重渲染，提供卓越的运行时性能。
+  
   - icon: 📦
     title: 轻量级
-    details: 核心库体积小巧，按需加载，不会给您的项目带来额外的负担。
-  - icon: 🔄
-    title: 状态管理
-    details: 内置状态管理系统，支持状态持久化、时间旅行调试和状态同步。
-  - icon: 🧩
-    title: 可组合
-    details: 模块化设计让您可以自由组合不同功能，构建符合业务需求的定制化解决方案。
-  - icon: 📚
-    title: 丰富文档
-    details: 详细的文档和示例，帮助您快速上手并深入了解引擎的各项功能。
+    details: 核心库小于 50KB，按需加载，不会给您的应用增加不必要的负担。
+  
+  - icon: 🔧
+    title: TypeScript 优先
+    details: 完整的 TypeScript 类型定义，提供出色的开发体验和类型安全保障。
+  
+  - icon: 🌐
+    title: 框架无关
+    details: 可与 React、Vue、Angular 等任何前端框架无缝集成，也支持 Node.js 环境。
+  
+  - icon: 🛠️
+    title: 开发友好
+    details: 简洁的 API 设计、丰富的调试工具和详尽的文档，让开发变得更加轻松。
 ---
+
+## 为什么选择 @ldesign/engine？
+
+在现代应用开发中，我们经常面临以下挑战：
+
+- **功能模块化**：如何将复杂的应用拆分成可管理的模块？
+- **代码复用**：如何在不同项目间复用业务逻辑？
+- **团队协作**：如何让多个团队并行开发而不相互干扰？
+- **动态扩展**：如何在运行时动态加载和卸载功能？
+
+@ldesign/engine 正是为解决这些问题而生。
+
+## 核心特性
+
+### 🔌 强大的插件系统
+
+```typescript
+// 创建插件
+class MyPlugin implements Plugin {
+  name = 'my-plugin'
+  version = '1.0.0'
+  
+  async install(engine: Engine) {
+    // 插件安装逻辑
+    engine.addMethod('hello', () => 'Hello World!')
+  }
+}
+
+// 使用插件
+const engine = new Engine({ name: 'app', version: '1.0.0' })
+await engine.use(new MyPlugin())
+
+console.log(engine.hello()) // "Hello World!"
+```
+
+### 📊 响应式状态管理
+
+```typescript
+// 设置状态
+engine.setState('user.profile.name', 'John Doe')
+
+// 订阅状态变化
+engine.subscribe('user.profile', (profile) => {
+  console.log('Profile updated:', profile)
+})
+
+// 获取状态
+const userName = engine.getState('user.profile.name')
+```
+
+### 📡 事件驱动架构
+
+```typescript
+// 监听事件
+engine.on('user:login', (user) => {
+  console.log('User logged in:', user.name)
+})
+
+// 触发事件
+engine.emit('user:login', { id: 1, name: 'John' })
+```
+
+### 🔧 服务注册与依赖注入
+
+```typescript
+// 注册服务
+engine.registerService('httpClient', new HttpClient())
+
+// 在插件中使用服务
+class ApiPlugin implements Plugin {
+  async install(engine: Engine) {
+    const http = engine.getService('httpClient')
+    
+    engine.addMethod('fetchUser', (id) => {
+      return http.get(`/users/${id}`)
+    })
+  }
+}
+```
 
 ## 快速体验
 
-```bash
-# 安装
-npm install @ldesign/engine
+只需几行代码，就能体验 @ldesign/engine 的强大功能：
 
-# 或使用 yarn
-yarn add @ldesign/engine
+::: code-group
 
-# 或使用 pnpm
-pnpm add @ldesign/engine
-```
-
-```typescript
+```typescript [基础用法]
 import { Engine } from '@ldesign/engine'
 
 // 创建引擎实例
@@ -71,76 +139,150 @@ const engine = new Engine({
   version: '1.0.0'
 })
 
-// 注册插件
-engine.use({
-  name: 'hello-plugin',
-  install(engine) {
-    engine.on('app:start', () => {
-      console.log('Hello from plugin!')
-    })
-  }
+// 添加方法
+engine.addMethod('greet', (name: string) => {
+  return `Hello, ${name}!`
 })
 
-// 启动引擎
-engine.start()
+// 调用方法
+console.log(engine.greet('World')) // "Hello, World!"
 ```
 
-## 核心特性
+```typescript [插件开发]
+import { Plugin, Engine } from '@ldesign/engine'
 
-### 🔌 插件系统
+class CounterPlugin implements Plugin {
+  name = 'counter'
+  version = '1.0.0'
+  
+  async install(engine: Engine) {
+    // 初始化状态
+    engine.setState('counter', 0)
+    
+    // 添加方法
+    engine.addMethod('increment', () => {
+      const current = engine.getState('counter')
+      engine.setState('counter', current + 1)
+      engine.emit('counter:changed', current + 1)
+    })
+    
+    engine.addMethod('getCount', () => {
+      return engine.getState('counter')
+    })
+  }
+}
 
-@ldesign/engine 采用插件化架构，让您可以轻松扩展应用功能：
+// 使用插件
+const engine = new Engine({ name: 'app', version: '1.0.0' })
+await engine.use(new CounterPlugin())
 
-- **动态加载**：支持运行时动态加载和卸载插件
-- **依赖管理**：自动处理插件间的依赖关系
-- **生命周期**：完整的插件生命周期管理
-- **热重载**：开发环境下支持插件热重载
+engine.on('counter:changed', (count) => {
+  console.log('Count:', count)
+})
 
-### ⚡ 事件系统
+engine.increment() // Count: 1
+engine.increment() // Count: 2
+console.log(engine.getCount()) // 2
+```
 
-强大的事件驱动架构，支持复杂的业务场景：
+```typescript [React 集成]
+import React, { useEffect, useState } from 'react'
+import { Engine } from '@ldesign/engine'
 
-- **异步事件**：支持异步事件处理和 Promise 链式调用
-- **事件拦截**：可以拦截和修改事件数据
-- **优先级控制**：支持事件监听器优先级设置
-- **错误处理**：完善的错误处理和恢复机制
+function useEngine() {
+  const [engine] = useState(() => 
+    new Engine({ name: 'react-app', version: '1.0.0' })
+  )
+  
+  const [count, setCount] = useState(0)
+  
+  useEffect(() => {
+    // 订阅状态变化
+    return engine.subscribe('counter', setCount)
+  }, [engine])
+  
+  return { engine, count }
+}
 
-### 🔧 中间件机制
+function Counter() {
+  const { engine, count } = useEngine()
+  
+  useEffect(() => {
+    // 初始化计数器插件
+    engine.use(new CounterPlugin())
+  }, [engine])
+  
+  return (
+    <div>
+      <p>Count: {count}</p>
+      <button onClick={() => engine.increment()}>
+        Increment
+      </button>
+    </div>
+  )
+}
+```
 
-灵活的中间件系统，让您可以在关键节点插入自定义逻辑：
+:::
 
-- **请求拦截**：拦截和处理各种请求
-- **数据转换**：在数据流转过程中进行转换
-- **权限控制**：实现细粒度的权限控制
-- **日志记录**：自动记录关键操作日志
+## 适用场景
 
-## 使用场景
+@ldesign/engine 适用于各种应用场景：
 
-@ldesign/engine 适用于多种应用场景：
+### 🏢 企业级应用
+- **微前端架构**：将大型应用拆分为独立的功能模块
+- **多团队协作**：不同团队开发独立的插件模块
+- **功能开关**：动态启用或禁用特定功能
 
-- **微前端架构**：作为微前端的基础框架
-- **插件化应用**：构建支持插件扩展的应用程序
-- **工具链开发**：开发可扩展的开发工具
-- **游戏引擎**：构建模块化的游戏引擎
-- **IoT 平台**：物联网设备管理平台
-- **数据处理**：构建数据处理管道
+### 🎮 游戏开发
+- **模组系统**：支持用户自定义游戏内容
+- **功能扩展**：动态加载游戏功能和资源
+- **插件生态**：构建丰富的插件生态系统
+
+### 🛠️ 开发工具
+- **IDE 插件**：为开发工具添加自定义功能
+- **构建工具**：创建可扩展的构建流水线
+- **脚手架工具**：构建模块化的项目生成器
+
+### 📱 移动应用
+- **功能模块**：按需加载应用功能
+- **主题系统**：动态切换应用主题和样式
+- **A/B 测试**：动态切换不同的功能实现
 
 ## 生态系统
 
-@ldesign/engine 是 LDesign 生态系统的核心组件：
+@ldesign/engine 是 LDesign 生态系统的核心，与其他工具完美集成：
 
-- **[@ldesign/store](/packages/store)**：状态管理库
-- **[@ldesign/router](/packages/router)**：路由管理
-- **[@ldesign/ui](/packages/ui)**：UI 组件库
-- **[@ldesign/utils](/packages/utils)**：工具函数库
+- **[@ldesign/store](./ecosystem/store)**：增强的状态管理解决方案
+- **[@ldesign/router](./ecosystem/router)**：插件化路由系统
+- **[@ldesign/ui](./ecosystem/ui)**：可扩展的 UI 组件库
+- **[@ldesign/utils](./ecosystem/utils)**：实用工具集合
 
-## 社区支持
+## 社区与支持
+
+加入我们的社区，获取帮助和分享经验：
 
 - **GitHub**：[https://github.com/ldesign/engine](https://github.com/ldesign/engine)
-- **文档**：[https://engine.ldesign.dev](https://engine.ldesign.dev)
-- **问题反馈**：[GitHub Issues](https://github.com/ldesign/engine/issues)
-- **讨论区**：[GitHub Discussions](https://github.com/ldesign/engine/discussions)
+- **NPM**：[https://www.npmjs.com/package/@ldesign/engine](https://www.npmjs.com/package/@ldesign/engine)
+- **文档**：您正在阅读的这份文档
+- **示例**：[查看更多示例](/examples/)
 
-## 许可证
+## 开始使用
 
-@ldesign/engine 采用 [MIT 许可证](https
+准备好开始您的插件化之旅了吗？
+
+<div class="vp-doc" style="text-align: center; margin: 2rem 0;">
+  <a href="/guide/getting-started" class="vp-button vp-button-brand vp-button-medium">
+    🚀 立即开始
+  </a>
+  <a href="/examples/" class="vp-button vp-button-alt vp-button-medium" style="margin-left: 1rem;">
+    📚 查看示例
+  </a>
+</div>
+
+---
+
+<div class="vp-doc" style="text-align: center; margin: 2rem 0; color: var(--vp-c-text-2);">
+  <p>由 <strong>LDesign Team</strong> 用 ❤️ 构建</p>
+  <p>基于 <a href="https://opensource.org/licenses/MIT">MIT 许可证</a> 开源</p>
+</div>

@@ -85,9 +85,17 @@ export default defineConfig({
         {
           text: '部署与发布',
           items: [
-            { text: '构建配置', link: '/guide/build-config' },
-            { text: '生产部署', link: '/guide/deployment' },
-            { text: '版本管理', link: '/guide/versioning' },
+            { text: '构建配置', link: '/guide/build-configuration' },
+            { text: '生产部署', link: '/guide/production-deployment' },
+            { text: '版本管理', link: '/guide/version-management' },
+          ]
+        },
+        {
+          text: '帮助与支持',
+          items: [
+            { text: '故障排除', link: '/guide/troubleshooting' },
+            { text: '更新日志', link: '/guide/changelog' },
+            { text: 'FAQ', link: '/guide/faq' },
           ]
         }
       ],
@@ -97,29 +105,15 @@ export default defineConfig({
           text: 'API 参考',
           items: [
             { text: '概览', link: '/api/' },
-            { text: 'Engine 类', link: '/api/engine-class' },
+            { text: 'Engine 类', link: '/api/engine' },
             { text: '插件接口', link: '/api/plugin-interface' },
             { text: '事件系统', link: '/api/event-system' },
             { text: '中间件', link: '/api/middleware' },
+            { text: '类型定义', link: '/api/types' },
+            { text: '工具函数', link: '/api/utils' },
           ]
         },
-        {
-          text: '类型定义',
-          items: [
-            { text: '核心类型', link: '/api/types/core' },
-            { text: '插件类型', link: '/api/types/plugin' },
-            { text: '事件类型', link: '/api/types/event' },
-            { text: '配置类型', link: '/api/types/config' },
-          ]
-        },
-        {
-          text: '工具函数',
-          items: [
-            { text: '创建插件', link: '/api/utils/create-plugin' },
-            { text: '事件工具', link: '/api/utils/event-utils' },
-            { text: '类型工具', link: '/api/utils/type-utils' },
-          ]
-        }
+
       ],
       
       '/examples/': [
@@ -135,21 +129,13 @@ export default defineConfig({
         {
           text: '进阶示例',
           items: [
-            { text: '自定义插件', link: '/examples/custom-plugin' },
+            { text: '自定义插件', link: '/examples/custom-plugins' },
             { text: '中间件使用', link: '/examples/middleware-usage' },
             { text: '状态管理', link: '/examples/state-management' },
-            { text: '异步操作', link: '/examples/async-operations' },
+            { text: '高级用法', link: '/examples/advanced-usage' },
           ]
         },
-        {
-          text: '实际应用',
-          items: [
-            { text: '微前端架构', link: '/examples/micro-frontend' },
-            { text: '插件化应用', link: '/examples/pluggable-app' },
-            { text: '数据处理管道', link: '/examples/data-pipeline' },
-            { text: '游戏引擎', link: '/examples/game-engine' },
-          ]
-        }
+
       ]
     },
     

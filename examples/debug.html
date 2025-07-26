@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LDesign App 调试页面</title>
+    <style>
+        body {
+            font-family: monospace;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .debug-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .warning { background: #fff3cd; color: #856404; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <div class="debug-panel">
+        <h1>🔧 LDesign App 调试面板</h1>
+        
+        <div id="app-status" class="status info">
+            📊 正在检查应用状态...
+        </div>
+        
+        <h2>🎯 检查项目</h2>
+        <div id="checks"></div>
+        
+        <h2>📋 控制台日志</h2>
+        <pre id="console-logs">等待日志...</pre>
+        
+        <h2>🔧 调试操作</h2>
+        <button class="btn" onclick="checkApp()">🔄 重新检查</button>
+        <button class="btn" onclick="clearLogs()">🗑️ 清空日志</button>
+        <button class="btn" onclick="window.open('http://localhost:3001', '_blank')">🚀 打开应用</button>
+    </div>
+
+    <script>
+        let logs = [];
+        
+        // 拦截console.log
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        
+        function addLog(type, ...args) {
+            const timestamp = new Date().toLocaleTimeString();
+            const message = args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' ');
+            
+            logs.push(`[${timestamp}] ${type.toUpperCase()}: ${message}`);
+            updateLogDisplay();
+            
+            // 调用原始方法
+            if (type === 'error') originalError(...args);
+            else if (type === 'warn') originalWarn(...args);
+            else originalLog(...args);
+        }
+        
+        console.log = (...args) => addLog('log', ...args);
+        console.error = (...args) => addLog('error', ...args);
+        console.warn = (...args) => addLog('warn', ...args);
+        
+        function updateLogDisplay() {
+            document.getElementById('console-logs').textContent = logs.slice(-20).join('\n');
+        }
+        
+        function clearLogs() {
+            logs = [];
+            updateLogDisplay();
+        }
+        
+        async function checkApp() {
+            const statusEl = document.getElementById('app-status');
+            const checksEl = document.getElementById('checks');
+            
+            statusEl.textContent = '🔄 正在检查...';
+            statusEl.className = 'status info';
+            
+            const checks = [];
+            
+            try {
+                // 检查应用是否可访问
+                const response = await fetch('http://localhost:3001');
+                if (response.ok) {
+                    checks.push('✅ 应用服务器正常运行');
+                } else {
+                    checks.push('❌ 应用服务器响应异常');
+                }
+            } catch (error) {
+                checks.push('❌ 无法连接到应用服务器');
+            }
+            
+            // 检查关键文件
+            const files = [
+                '/src/main.ts',
+                '/src/App.vue',
+                '/vite.config.ts',
+                '/package.json'
+            ];
+            
+            for (const file of files) {
+                try {
+                    const response = await fetch(`http://localhost:3001${file}`);
+                    if (response.ok) {
+                        checks.push(`✅ ${file} 文件存在`);
+                    } else {
+                        checks.push(`⚠️ ${file} 文件可能有问题`);
+                    }
+                } catch (error) {
+                    checks.push(`❌ 无法检查 ${file}`);
+                }
+            }
+            
+            // 检查依赖
+            try {
+                const response = await fetch('http://localhost:3001/node_modules/@ldesign/engine/package.json');
+                if (response.ok) {
+                    checks.push('✅ @ldesign/engine 依赖正常');
+                } else {
+                    checks.push('❌ @ldesign/engine 依赖缺失');
+                }
+            } catch (error) {
+                checks.push('❌ 无法检查 @ldesign/engine 依赖');
+            }
+            
+            checksEl.innerHTML = checks.map(check => 
+                `<div class="status ${check.includes('✅') ? 'success' : check.includes('⚠️') ? 'warning' : 'error'}">${check}</div>`
+            ).join('');
+            
+            const hasErrors = checks.some(check => check.includes('❌'));
+            const hasWarnings = checks.some(check => check.includes('⚠️'));
+            
+            if (hasErrors) {
+                statusEl.textContent = '❌ 发现问题，请检查详情';
+                statusEl.className = 'status error';
+            } else if (hasWarnings) {
+                statusEl.textContent = '⚠️ 有警告，但应用可能正常';
+                statusEl.className = 'status warning';
+            } else {
+                statusEl.textContent = '✅ 所有检查通过';
+                statusEl.className = 'status success';
+            }
+        }
+        
+        // 页面加载时自动检查
+        window.addEventListener('load', () => {
+            setTimeout(checkApp, 1000);
+        });
+        
+        // 添加初始日志
+        console.log('🔧 调试面板已加载');
+        console.log('📊 开始检查 LDesign App...');
+    </script>
+</body>
+</html>
