@@ -18,15 +18,15 @@ const engine = new Engine({
 engine.middleware('logger', (context: MiddlewareContext, next: MiddlewareNext) => {
   const start = Date.now()
   const { request } = context
-  
+
   console.log(`📝 [${new Date().toISOString()}] ${request.method} ${request.url} - 开始处理`)
-  
+
   // 调用下一个中间件
   next()
-  
+
   const duration = Date.now() - start
   const { response } = context
-  
+
   console.log(`📝 [${new Date().toISOString()}] ${request.method} ${request.url} - 完成 (${duration}ms) - 状态: ${response?.status || 'N/A'}`)
 })
 
@@ -34,9 +34,9 @@ engine.middleware('logger', (context: MiddlewareContext, next: MiddlewareNext) =
 engine.middleware('auth', (context: MiddlewareContext, next: MiddlewareNext) => {
   const { request } = context
   const token = request.headers?.authorization
-  
+
   console.log('🔐 检查认证...')
-  
+
   if (!token) {
     context.response = {
       status: 401,
@@ -44,7 +44,7 @@ engine.middleware('auth', (context: MiddlewareContext, next: MiddlewareNext) => 
     }
     return // 不调用 next()，中断中间件链
   }
-  
+
   // 简单的令牌验证
   if (token !== 'Bearer valid-token') {
     context.response = {
@@ -53,14 +53,14 @@ engine.middleware('auth', (context: MiddlewareContext, next: MiddlewareNext) => 
     }
     return
   }
-  
+
   // 设置用户信息
   context.state.user = {
     id: 1,
     name: 'John Doe',
     role: 'user'
   }
-  
+
   console.log('✅ 认证成功:', context.state.user.name)
   next()
 })
@@ -68,9 +68,9 @@ engine.middleware('auth', (context: MiddlewareContext, next: MiddlewareNext) => 
 // 业务逻辑中间件
 engine.middleware('business', (context: MiddlewareContext, next: MiddlewareNext) => {
   const { request, state } = context
-  
+
   console.log('💼 处理业务逻辑...')
-  
+
   switch (request.action) {
     case 'getUserInfo':
       context.response = {
@@ -78,7 +78,7 @@ engine.middleware('business', (context: MiddlewareContext, next: MiddlewareNext)
         data: state.user
       }
       break
-      
+
     case 'updateProfile':
       const updatedUser = { ...state.user, ...request.data }
       context.response = {
@@ -87,21 +87,21 @@ engine.middleware('business', (context: MiddlewareContext, next: MiddlewareNext)
         message: '用户信息更新成功'
       }
       break
-      
+
     default:
       context.response = {
         status: 400,
         error: '未知的操作类型'
       }
   }
-  
+
   next()
 })
 
 // 响应处理中间件
 engine.middleware('response', (context: MiddlewareContext, next: MiddlewareNext) => {
   const { response } = context
-  
+
   if (response) {
     // 添加通用响应头
     response.headers = {
@@ -109,13 +109,13 @@ engine.middleware('response', (context: MiddlewareContext, next: MiddlewareNext)
       'X-Powered-By': '@ldesign/engine',
       'X-Request-ID': context.requestId || 'unknown'
     }
-    
+
     // 添加时间戳
     response.timestamp = new Date().toISOString()
-    
+
     console.log('📤 响应处理完成')
   }
-  
+
   next()
 })
 
@@ -125,13 +125,14 @@ async function processRequest(request: any) {
     request,
     response: null,
     state: {},
-    requestId: 'req_' + Date.now()
+    requestId: `req_${Date.now()}`
   }
-  
+
   try {
     await engine.executeMiddleware(context)
     return context.response
-  } catch (error) {
+  }
+ catch (error) {
     return {
       status: 500,
       error: error.message
@@ -142,7 +143,7 @@ async function processRequest(request: any) {
 // 测试基础中间件
 engine.start().then(async () => {
   console.log('=== 测试基础中间件 ===')
-  
+
   // 1. 成功的请求
   console.log('\n1. 成功的请求')
   const result1 = await processRequest({
@@ -154,7 +155,7 @@ engine.start().then(async () => {
     }
   })
   console.log('结果:', result1)
-  
+
   // 2. 缺少认证的请求
   console.log('\n2. 缺少认证的请求')
   const result2 = await processRequest({
@@ -163,7 +164,7 @@ engine.start().then(async () => {
     action: 'getUserInfo'
   })
   console.log('结果:', result2)
-  
+
   // 3. 更新用户信息
   console.log('\n3. 更新用户信息')
   const result3 = await processRequest({
@@ -194,19 +195,19 @@ const engine = new Engine({ name: 'AsyncMiddlewareExample' })
 // 数据库中间件（异步）
 engine.middleware('database', async (context: MiddlewareContext, next: MiddlewareNext) => {
   console.log('🗄️ 连接数据库...')
-  
+
   try {
     // 模拟数据库连接
     await new Promise(resolve => setTimeout(resolve, 100))
-    
+
     context.state.db = {
       connected: true,
-      connectionId: 'conn_' + Math.random().toString(36).substr(2, 9),
-      
+      connectionId: `conn_${Math.random().toString(36).substr(2, 9)}`,
+
       async query(sql: string, params?: any[]) {
         console.log(`📊 执行查询: ${sql}`, params)
         await new Promise(resolve => setTimeout(resolve, 50 + Math.random() * 100))
-        
+
         // 模拟查询结果
         if (sql.includes('SELECT')) {
           return {
@@ -216,29 +217,31 @@ engine.middleware('database', async (context: MiddlewareContext, next: Middlewar
             ],
             count: 2
           }
-        } else if (sql.includes('INSERT') || sql.includes('UPDATE')) {
+        }
+ else if (sql.includes('INSERT') || sql.includes('UPDATE')) {
           return {
             affectedRows: 1,
             insertId: Math.floor(Math.random() * 1000)
           }
         }
-        
+
         return { success: true }
       },
-      
+
       async close() {
         console.log('🔌 关闭数据库连接')
         await new Promise(resolve => setTimeout(resolve, 50))
       }
     }
-    
+
     console.log('✅ 数据库连接成功:', context.state.db.connectionId)
-    
+
     await next()
-    
+
     // 清理资源
     await context.state.db.close()
-  } catch (error) {
+  }
+ catch (error) {
     console.error('❌ 数据库连接失败:', error.message)
     context.response = {
       status: 500,
@@ -251,18 +254,18 @@ engine.middleware('database', async (context: MiddlewareContext, next: Middlewar
 engine.middleware('cache', async (context: MiddlewareContext, next: MiddlewareNext) => {
   const { request } = context
   const cacheKey = `${request.method}:${request.url}:${JSON.stringify(request.params || {})}`
-  
+
   console.log('🗂️ 检查缓存:', cacheKey)
-  
+
   // 模拟缓存查询
   await new Promise(resolve => setTimeout(resolve, 20))
-  
+
   // 简单的内存缓存
   const cache = context.state.cache || new Map()
   context.state.cache = cache
-  
+
   const cachedData = cache.get(cacheKey)
-  
+
   if (cachedData && Date.now() - cachedData.timestamp < 60000) { // 1分钟缓存
     console.log('🎯 缓存命中')
     context.response = {
@@ -273,11 +276,11 @@ engine.middleware('cache', async (context: MiddlewareContext, next: MiddlewareNe
     }
     return // 直接返回缓存结果，不继续执行
   }
-  
+
   console.log('❌ 缓存未命中，继续处理')
-  
+
   await next()
-  
+
   // 缓存响应结果
   if (context.response && context.response.status === 200) {
     console.log('💾 缓存响应结果')
@@ -291,31 +294,32 @@ engine.middleware('cache', async (context: MiddlewareContext, next: MiddlewareNe
 // 数据验证中间件（异步）
 engine.middleware('validation', async (context: MiddlewareContext, next: MiddlewareNext) => {
   const { request } = context
-  
+
   console.log('✅ 验证请求数据...')
-  
+
   // 模拟异步验证
   await new Promise(resolve => setTimeout(resolve, 30))
-  
+
   const errors: string[] = []
-  
+
   // 验证规则
   if (request.action === 'createUser') {
     if (!request.data?.name) {
       errors.push('用户名不能为空')
     }
-    
+
     if (!request.data?.email) {
       errors.push('邮箱不能为空')
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(request.data.email)) {
+    }
+ else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(request.data.email)) {
       errors.push('邮箱格式不正确')
     }
-    
+
     if (!request.data?.password || request.data.password.length < 6) {
       errors.push('密码长度至少6位')
     }
   }
-  
+
   if (errors.length > 0) {
     console.log('❌ 验证失败:', errors)
     context.response = {
@@ -325,7 +329,7 @@ engine.middleware('validation', async (context: MiddlewareContext, next: Middlew
     }
     return
   }
-  
+
   console.log('✅ 验证通过')
   await next()
 })
@@ -334,9 +338,9 @@ engine.middleware('validation', async (context: MiddlewareContext, next: Middlew
 engine.middleware('asyncBusiness', async (context: MiddlewareContext, next: MiddlewareNext) => {
   const { request, state } = context
   const { db } = state
-  
+
   console.log('💼 处理异步业务逻辑...')
-  
+
   try {
     switch (request.action) {
       case 'getUsers':
@@ -347,13 +351,13 @@ engine.middleware('asyncBusiness', async (context: MiddlewareContext, next: Midd
           count: users.count
         }
         break
-        
+
       case 'createUser':
         const result = await db.query(
           'INSERT INTO users (name, email, password) VALUES (?, ?, ?)',
           [request.data.name, request.data.email, request.data.password]
         )
-        
+
         context.response = {
           status: 201,
           data: {
@@ -364,13 +368,13 @@ engine.middleware('asyncBusiness', async (context: MiddlewareContext, next: Midd
           message: '用户创建成功'
         }
         break
-        
+
       case 'updateUser':
         await db.query(
           'UPDATE users SET name = ?, email = ? WHERE id = ?',
           [request.data.name, request.data.email, request.params.id]
         )
-        
+
         context.response = {
           status: 200,
           data: {
@@ -380,21 +384,22 @@ engine.middleware('asyncBusiness', async (context: MiddlewareContext, next: Midd
           message: '用户更新成功'
         }
         break
-        
+
       default:
         context.response = {
           status: 400,
           error: '未知的操作类型'
         }
     }
-  } catch (error) {
+  }
+ catch (error) {
     console.error('💥 业务逻辑处理失败:', error.message)
     context.response = {
       status: 500,
       error: '服务器内部错误'
     }
   }
-  
+
   await next()
 })
 
@@ -404,13 +409,14 @@ async function processAsyncRequest(request: any) {
     request,
     response: null,
     state: {},
-    requestId: 'async_req_' + Date.now()
+    requestId: `async_req_${Date.now()}`
   }
-  
+
   try {
     await engine.executeMiddleware(context)
     return context.response
-  } catch (error) {
+  }
+ catch (error) {
     return {
       status: 500,
       error: error.message
@@ -421,7 +427,7 @@ async function processAsyncRequest(request: any) {
 // 测试异步中间件
 engine.start().then(async () => {
   console.log('=== 测试异步中间件 ===')
-  
+
   // 1. 获取用户列表（第一次，无缓存）
   console.log('\n1. 获取用户列表（第一次）')
   const result1 = await processAsyncRequest({
@@ -430,7 +436,7 @@ engine.start().then(async () => {
     action: 'getUsers'
   })
   console.log('结果:', result1)
-  
+
   // 2. 再次获取用户列表（应该命中缓存）
   console.log('\n2. 再次获取用户列表（缓存）')
   const result2 = await processAsyncRequest({
@@ -439,7 +445,7 @@ engine.start().then(async () => {
     action: 'getUsers'
   })
   console.log('结果:', result2)
-  
+
   // 3. 创建用户（验证失败）
   console.log('\n3. 创建用户（验证失败）')
   const result3 = await processAsyncRequest({
@@ -453,7 +459,7 @@ engine.start().then(async () => {
     }
   })
   console.log('结果:', result3)
-  
+
   // 4. 创建用户（成功）
   console.log('\n4. 创建用户（成功）')
   const result4 = await processAsyncRequest({
@@ -487,7 +493,8 @@ function conditionalMiddleware(
   return async (context: MiddlewareContext, next: MiddlewareNext) => {
     if (condition(context)) {
       await middleware(context, next)
-    } else {
+    }
+ else {
       await next()
     }
   }
@@ -495,7 +502,7 @@ function conditionalMiddleware(
 
 // 仅对 API 请求执行的中间件
 engine.middleware('apiOnly', conditionalMiddleware(
-  (context) => context.request.url?.startsWith('/api/'),
+  context => context.request.url?.startsWith('/api/'),
   (context, next) => {
     console.log('🔗 这是一个 API 请求')
     context.state.isApiRequest = true
@@ -505,7 +512,7 @@ engine.middleware('apiOnly', conditionalMiddleware(
 
 // 仅对管理员执行的中间件
 engine.middleware('adminOnly', conditionalMiddleware(
-  (context) => context.state.user?.role === 'admin',
+  context => context.state.user?.role === 'admin',
   (context, next) => {
     console.log('👑 管理员权限验证通过')
     context.state.hasAdminAccess = true
@@ -515,14 +522,14 @@ engine.middleware('adminOnly', conditionalMiddleware(
 
 // 仅对 POST 请求执行的中间件
 engine.middleware('postOnly', conditionalMiddleware(
-  (context) => context.request.method === 'POST',
+  context => context.request.method === 'POST',
   async (context, next) => {
     console.log('📝 POST 请求特殊处理')
-    
+
     // 记录请求体大小
     const bodySize = JSON.stringify(context.request.data || {}).length
     context.state.requestBodySize = bodySize
-    
+
     if (bodySize > 1024 * 1024) { // 1MB
       context.response = {
         status: 413,
@@ -530,7 +537,7 @@ engine.middleware('postOnly', conditionalMiddleware(
       }
       return
     }
-    
+
     await next()
   }
 ))
@@ -550,7 +557,7 @@ engine.middleware('businessHours', conditionalMiddleware(
 
 // 基于用户类型的条件中间件
 engine.middleware('premiumFeatures', conditionalMiddleware(
-  (context) => context.state.user?.subscription === 'premium',
+  context => context.state.user?.subscription === 'premium',
   (context, next) => {
     console.log('💎 高级用户功能访问')
     context.state.hasPremiumAccess = true
@@ -566,14 +573,14 @@ engine.middleware('rateLimiting', conditionalMiddleware(
     const clientId = context.request.headers?.['x-client-id'] || 'anonymous'
     const now = Date.now()
     const windowSize = 60000 // 1分钟窗口
-    
+
     const clientData = requestCounts.get(clientId)
-    
+
     if (!clientData || now > clientData.resetTime) {
       requestCounts.set(clientId, { count: 1, resetTime: now + windowSize })
       return false // 不需要限流
     }
-    
+
     clientData.count++
     return clientData.count > 10 // 每分钟最多10个请求
   },
@@ -590,7 +597,7 @@ engine.middleware('rateLimiting', conditionalMiddleware(
 // 用户认证中间件
 engine.middleware('userAuth', (context: MiddlewareContext, next: MiddlewareNext) => {
   const token = context.request.headers?.authorization
-  
+
   if (token === 'Bearer admin-token') {
     context.state.user = {
       id: 1,
@@ -598,14 +605,16 @@ engine.middleware('userAuth', (context: MiddlewareContext, next: MiddlewareNext)
       role: 'admin',
       subscription: 'premium'
     }
-  } else if (token === 'Bearer user-token') {
+  }
+ else if (token === 'Bearer user-token') {
     context.state.user = {
       id: 2,
       name: 'Regular User',
       role: 'user',
       subscription: 'basic'
     }
-  } else if (token === 'Bearer premium-token') {
+  }
+ else if (token === 'Bearer premium-token') {
     context.state.user = {
       id: 3,
       name: 'Premium User',
@@ -613,14 +622,14 @@ engine.middleware('userAuth', (context: MiddlewareContext, next: MiddlewareNext)
       subscription: 'premium'
     }
   }
-  
+
   next()
 })
 
 // 业务逻辑中间件
 engine.middleware('conditionalBusiness', (context: MiddlewareContext, next: MiddlewareNext) => {
   const { request, state } = context
-  
+
   console.log('💼 处理条件业务逻辑...')
   console.log('状态:', {
     isApiRequest: state.isApiRequest,
@@ -629,7 +638,7 @@ engine.middleware('conditionalBusiness', (context: MiddlewareContext, next: Midd
     hasPremiumAccess: state.hasPremiumAccess,
     requestBodySize: state.requestBodySize
   })
-  
+
   switch (request.action) {
     case 'adminOperation':
       if (!state.hasAdminAccess) {
@@ -639,13 +648,13 @@ engine.middleware('conditionalBusiness', (context: MiddlewareContext, next: Midd
         }
         return
       }
-      
+
       context.response = {
         status: 200,
         data: { message: '管理员操作执行成功' }
       }
       break
-      
+
     case 'premiumFeature':
       if (!state.hasPremiumAccess) {
         context.response = {
@@ -654,13 +663,13 @@ engine.middleware('conditionalBusiness', (context: MiddlewareContext, next: Midd
         }
         return
       }
-      
+
       context.response = {
         status: 200,
         data: { message: '高级功能访问成功' }
       }
       break
-      
+
     case 'businessHoursOnly':
       if (!state.duringBusinessHours) {
         context.response = {
@@ -669,20 +678,20 @@ engine.middleware('conditionalBusiness', (context: MiddlewareContext, next: Midd
         }
         return
       }
-      
+
       context.response = {
         status: 200,
         data: { message: '工作时间功能访问成功' }
       }
       break
-      
+
     default:
       context.response = {
         status: 200,
         data: { message: '普通操作执行成功' }
       }
   }
-  
+
   next()
 })
 
@@ -692,13 +701,14 @@ async function processConditionalRequest(request: any) {
     request,
     response: null,
     state: {},
-    requestId: 'cond_req_' + Date.now()
+    requestId: `cond_req_${Date.now()}`
   }
-  
+
   try {
     await engine.executeMiddleware(context)
     return context.response
-  } catch (error) {
+  }
+ catch (error) {
     return {
       status: 500,
       error: error.message
@@ -709,7 +719,7 @@ async function processConditionalRequest(request: any) {
 // 测试条件中间件
 engine.start().then(async () => {
   console.log('=== 测试条件中间件 ===')
-  
+
   // 1. 管理员 API 请求
   console.log('\n1. 管理员 API 请求')
   const result1 = await processConditionalRequest({
@@ -721,7 +731,7 @@ engine.start().then(async () => {
     }
   })
   console.log('结果:', result1)
-  
+
   // 2. 普通用户尝试管理员操作
   console.log('\n2. 普通用户尝试管理员操作')
   const result2 = await processConditionalRequest({
@@ -733,7 +743,7 @@ engine.start().then(async () => {
     }
   })
   console.log('结果:', result2)
-  
+
   // 3. 高级用户访问高级功能
   console.log('\n3. 高级用户访问高级功能')
   const result3 = await processConditionalRequest({
@@ -745,7 +755,7 @@ engine.start().then(async () => {
     }
   })
   console.log('结果:', result3)
-  
+
   // 4. 基础用户尝试高级功能
   console.log('\n4. 基础用户尝试高级功能')
   const result4 = await processConditionalRequest({
@@ -757,7 +767,7 @@ engine.start().then(async () => {
     }
   })
   console.log('结果:', result4)
-  
+
   // 5. 大请求体的 POST 请求
   console.log('\n5. 大请求体的 POST 请求')
   const largeData = 'x'.repeat(2 * 1024 * 1024) // 2MB 数据
@@ -771,7 +781,7 @@ engine.start().then(async () => {
     }
   })
   console.log('结果:', result5)
-  
+
   // 6. 测试频率限制
   console.log('\n6. 测试频率限制')
   for (let i = 1; i <= 12; i++) {
@@ -781,13 +791,14 @@ engine.start().then(async () => {
       action: 'test',
       headers: {
         'x-client-id': 'test-client',
-        authorization: 'Bearer user-token'
+        'authorization': 'Bearer user-token'
       }
     })
-    
+
     console.log(`请求 ${i}:`, result.status === 429 ? '被限流' : '成功')
-    
-    if (i === 12) break
+
+    if (i === 12)
+break
     await new Promise(resolve => setTimeout(resolve, 100))
   }
 })
@@ -806,9 +817,10 @@ const engine = new Engine({ name: 'ErrorHandlingExample' })
 engine.middleware('globalErrorHandler', async (context: MiddlewareContext, next: MiddlewareNext) => {
   try {
     await next()
-  } catch (error) {
+  }
+ catch (error) {
     console.error('🚨 全局错误捕获:', error)
-    
+
     // 记录错误日志
     const errorLog = {
       timestamp: new Date().toISOString(),
@@ -825,10 +837,10 @@ engine.middleware('globalErrorHandler', async (context: MiddlewareContext, next:
       },
       user: context.state.user?.id || 'anonymous'
     }
-    
+
     // 这里可以发送到日志服务
     console.log('📝 错误日志:', errorLog)
-    
+
     // 根据错误类型返回不同的响应
     if (error.name === 'ValidationError') {
       context.response = {
@@ -836,27 +848,32 @@ engine.middleware('globalErrorHandler', async (context: MiddlewareContext, next:
         error: '数据验证失败',
         details: error.details || []
       }
-    } else if (error.name === 'AuthenticationError') {
+    }
+ else if (error.name === 'AuthenticationError') {
       context.response = {
         status: 401,
         error: '认证失败'
       }
-    } else if (error.name === 'AuthorizationError') {
+    }
+ else if (error.name === 'AuthorizationError') {
       context.response = {
         status: 403,
         error: '权限不足'
       }
-    } else if (error.name === 'NotFoundError') {
+    }
+ else if (error.name === 'NotFoundError') {
       context.response = {
         status: 404,
         error: '资源不存在'
       }
-    } else if (error.name === 'RateLimitError') {
+    }
+ else if (error.name === 'RateLimitError') {
       context.response = {
         status: 429,
         error: '请求过于频繁'
       }
-    } else {
+    }
+ else {
       // 未知错误，返回通用错误信息
       context.response = {
         status: 500,
@@ -864,7 +881,7 @@ engine.middleware('globalErrorHandler', async (context: MiddlewareContext, next:
         requestId: context.requestId
       }
     }
-    
+
     // 触发错误事件
     engine.emit('middleware:error', {
       error,
@@ -878,7 +895,7 @@ engine.middleware('globalErrorHandler', async (context: MiddlewareContext, next:
 class ValidationError extends Error {
   name = 'ValidationError'
   details: string[]
-  
+
   constructor(message: string, details: string[] = []) {
     super(message)
     this.details = details
@@ -904,92 +921,95 @@ class RateLimitError extends Error {
 // 认证中间件（可能抛出认证错误）
 engine.middleware('authWithErrors', (context: MiddlewareContext, next: MiddlewareNext) => {
   const token = context.request.headers?.authorization
-  
+
   if (!token) {
     throw new AuthenticationError('缺少认证令牌')
   }
-  
+
   if (token === 'Bearer invalid-token') {
     throw new AuthenticationError('无效的认证令牌')
   }
-  
+
   if (token === 'Bearer valid-token') {
     context.state.user = {
       id: 1,
       name: 'John Doe',
       role: 'user'
     }
-  } else if (token === 'Bearer admin-token') {
+  }
+ else if (token === 'Bearer admin-token') {
     context.state.user = {
       id: 2,
       name: 'Admin User',
       role: 'admin'
     }
-  } else {
+  }
+ else {
     throw new AuthenticationError('未知的认证令牌')
   }
-  
+
   next()
 })
 
 // 权限检查中间件（可能抛出权限错误）
 engine.middleware('authzWithErrors', (context: MiddlewareContext, next: MiddlewareNext) => {
   const { request, state } = context
-  
+
   // 检查是否需要管理员权限
   if (request.action?.startsWith('admin:') && state.user?.role !== 'admin') {
     throw new AuthorizationError('需要管理员权限')
   }
-  
+
   next()
 })
 
 // 数据验证中间件（可能抛出验证错误）
 engine.middleware('validationWithErrors', (context: MiddlewareContext, next: MiddlewareNext) => {
   const { request } = context
-  
+
   if (request.action === 'createUser') {
     const errors: string[] = []
     const { data } = request
-    
+
     if (!data?.name || data.name.trim().length === 0) {
       errors.push('用户名不能为空')
     }
-    
+
     if (!data?.email) {
       errors.push('邮箱不能为空')
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+    }
+ else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
       errors.push('邮箱格式不正确')
     }
-    
+
     if (!data?.password || data.password.length < 6) {
       errors.push('密码长度至少6位')
     }
-    
+
     if (errors.length > 0) {
       throw new ValidationError('数据验证失败', errors)
     }
   }
-  
+
   next()
 })
 
 // 业务逻辑中间件（可能抛出各种错误）
 engine.middleware('businessWithErrors', async (context: MiddlewareContext, next: MiddlewareNext) => {
   const { request } = context
-  
+
   switch (request.action) {
     case 'getUser':
       const userId = request.params?.id
       if (!userId) {
         throw new ValidationError('缺少用户ID')
       }
-      
+
       // 模拟用户不存在
       if (userId === '999') {
         throw new NotFoundError('用户不存在')
       }
-      
+
       context.response = {
         status: 200,
         data: {
@@ -999,13 +1019,13 @@ engine.middleware('businessWithErrors', async (context: MiddlewareContext, next:
         }
       }
       break
-      
+
     case 'createUser':
       // 模拟数据库错误
       if (Math.random() < 0.3) {
         throw new Error('数据库连接失败')
       }
-      
+
       context.response = {
         status: 201,
         data: {
@@ -1016,28 +1036,28 @@ engine.middleware('businessWithErrors', async (context: MiddlewareContext, next:
         message: '用户创建成功'
       }
       break
-      
+
     case 'admin:deleteUser':
       const deleteUserId = request.params?.id
       if (!deleteUserId) {
         throw new ValidationError('缺少用户ID')
       }
-      
+
       // 模拟删除不存在的用户
       if (deleteUserId === '999') {
         throw new NotFoundError('要删除的用户不存在')
       }
-      
+
       context.response = {
         status: 200,
         message: '用户删除成功'
       }
       break
-      
+
     case 'triggerError':
       // 故意触发错误用于测试
       const errorType = request.params?.type
-      
+
       switch (errorType) {
         case 'validation':
           throw new ValidationError('测试验证错误', ['字段1错误', '字段2错误'])
@@ -1052,21 +1072,21 @@ engine.middleware('businessWithErrors', async (context: MiddlewareContext, next:
         default:
           throw new Error('测试未知错误')
       }
-      
+
     default:
       context.response = {
         status: 200,
         data: { message: '操作成功' }
       }
   }
-  
+
   next()
 })
 
 // 监听错误事件
 engine.on('middleware:error', (data) => {
   console.log('📧 错误事件触发，可以发送通知或记录到外部系统')
-  
+
   // 这里可以:
   // 1. 发送错误通知给开发团队
   // 2. 记录到错误监控系统（如 Sentry）
@@ -1080,9 +1100,9 @@ async function processErrorProneRequest(request: any) {
     request,
     response: null,
     state: {},
-    requestId: 'error_req_' + Date.now()
+    requestId: `error_req_${Date.now()}`
   }
-  
+
   await engine.executeMiddleware(context)
   return context.response
 }
@@ -1090,7 +1110,7 @@ async function processErrorProneRequest(request: any) {
 // 测试错误处理中间件
 engine.start().then(async () => {
   console.log('=== 测试错误处理中间件 ===')
-  
+
   // 1. 成功的请求
   console.log('\n1. 成功的请求')
   const result1 = await processErrorProneRequest({
@@ -1103,7 +1123,7 @@ engine.start().then(async () => {
     }
   })
   console.log('结果:', result1)
-  
+
   // 2. 认证错误
   console.log('\n2. 认证错误')
   const result2 = await processErrorProneRequest({
@@ -1114,7 +1134,7 @@ engine.start().then(async () => {
     // 缺少认证头
   })
   console.log('结果:', result2)
-  
+
   // 3. 权限错误
   console.log('\n3. 权限错误')
   const result3 = await processErrorProneRequest({
@@ -1127,7 +1147,7 @@ engine.start().then(async () => {
     }
   })
   console.log('结果:', result3)
-  
+
   // 4. 验证错误
   console.log('\n4. 验证错误')
   const result4 = await processErrorProneRequest({
@@ -1144,7 +1164,7 @@ engine.start().then(async () => {
     }
   })
   console.log('结果:', result4)
-  
+
   // 5. 资源不存在错误
   console.log('\n5. 资源不存在错误')
   const result5 = await processErrorProneRequest({
@@ -1157,11 +1177,11 @@ engine.start().then(async () => {
     }
   })
   console.log('结果:', result5)
-  
+
   // 6. 测试各种错误类型
   console.log('\n6. 测试各种错误类型')
   const errorTypes = ['validation', 'auth', 'authz', 'notfound', 'ratelimit', 'unknown']
-  
+
   for (const errorType of errorTypes) {
     console.log(`\n测试 ${errorType} 错误:`)
     const result = await processErrorProneRequest({

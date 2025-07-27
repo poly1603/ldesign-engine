@@ -100,11 +100,12 @@ class SimpleMenu {
 
     SIMPLE_MENU_ITEMS.forEach((item, index) => {
       const isSelected = index === this.selectedIndex
-      
+
       if (isSelected) {
         console.log(chalk.bgCyan.black(`❯ ${item.icon} ${item.name}`))
         console.log(chalk.bgCyan.black(`  ${item.description}`))
-      } else {
+      }
+ else {
         console.log(chalk.gray(`  ${item.icon} ${item.name}`))
         console.log(chalk.gray(`  ${item.description}`))
       }
@@ -117,7 +118,7 @@ class SimpleMenu {
   private async executeCommand(command: string): Promise<void> {
     console.clear()
     console.log(chalk.blue.bold(`🚀 执行: ${command}\n`))
-    
+
     // 临时恢复正常模式以显示命令输出
     if (process.stdin.setRawMode) {
       process.stdin.setRawMode(false)
@@ -135,16 +136,17 @@ class SimpleMenu {
         console.log()
         if (code === 0) {
           console.log(chalk.green.bold('✅ 执行完成!'))
-        } else {
+        }
+ else {
           console.log(chalk.red.bold(`❌ 执行失败 (退出码: ${code})`))
         }
         console.log(chalk.gray('按任意键返回菜单...'))
-        
+
         // 重新设置原始模式
         if (process.stdin.setRawMode) {
           process.stdin.setRawMode(true)
         }
-        
+
         // 等待用户按键
         this.waitForKeyPress().then(() => resolve())
       })
@@ -153,12 +155,12 @@ class SimpleMenu {
         console.log()
         console.log(chalk.red.bold(`❌ 执行错误: ${error.message}`))
         console.log(chalk.gray('按任意键返回菜单...'))
-        
+
         // 重新设置原始模式
         if (process.stdin.setRawMode) {
           process.stdin.setRawMode(true)
         }
-        
+
         // 等待用户按键
         this.waitForKeyPress().then(() => resolve())
       })
@@ -191,7 +193,8 @@ class SimpleMenu {
           await this.executeCommand(selectedItem.command)
         }
       }
-    } finally {
+    }
+ finally {
       // 恢复终端设置
       if (process.stdin.setRawMode) {
         process.stdin.setRawMode(false)

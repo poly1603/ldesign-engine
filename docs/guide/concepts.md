@@ -48,14 +48,14 @@ const engine = new Engine({
 
 ```typescript
 interface Plugin {
-  name: string                    // 插件名称（唯一标识）
-  version: string                 // 插件版本
-  description?: string            // 插件描述
-  dependencies?: string[]         // 依赖的其他插件
-  install: (engine: Engine) => void | Promise<void>    // 安装函数
+  name: string // 插件名称（唯一标识）
+  version: string // 插件版本
+  description?: string // 插件描述
+  dependencies?: string[] // 依赖的其他插件
+  install: (engine: Engine) => void | Promise<void> // 安装函数
   uninstall?: (engine: Engine) => void | Promise<void> // 卸载函数
-  enable?: (engine: Engine) => void | Promise<void>    // 启用函数
-  disable?: (engine: Engine) => void | Promise<void>   // 禁用函数
+  enable?: (engine: Engine) => void | Promise<void> // 启用函数
+  disable?: (engine: Engine) => void | Promise<void> // 禁用函数
 }
 ```
 
@@ -73,7 +73,7 @@ const myPlugin: Plugin = {
   version: '1.0.0',
   description: '我的自定义插件',
   dependencies: ['core-plugin'],
-  
+
   async install(engine) {
     console.log('插件安装中...')
     // 注册事件监听器
@@ -81,18 +81,18 @@ const myPlugin: Plugin = {
     // 添加自定义方法
     engine.addMethod('myMethod', this.myMethod)
   },
-  
+
   async uninstall(engine) {
     console.log('插件卸载中...')
     // 清理资源
     engine.off('app:start', this.onAppStart)
     engine.removeMethod('myMethod')
   },
-  
+
   onAppStart() {
     console.log('应用启动了！')
   },
-  
+
   myMethod(param: string) {
     return `处理参数: ${param}`
   }
@@ -172,9 +172,9 @@ engine.on('data:validate', logger, { priority: 10 })
 
 ```typescript
 interface Middleware {
-  name: string                    // 中间件名称
-  priority?: number               // 执行优先级
-  execute: MiddlewareFunction     // 执行函数
+  name: string // 中间件名称
+  priority?: number // 执行优先级
+  execute: MiddlewareFunction // 执行函数
 }
 
 type MiddlewareFunction = (
@@ -192,19 +192,20 @@ const authMiddleware: Middleware = {
   async execute(context, next) {
     // 前置处理
     console.log('检查用户权限...')
-    
+
     if (!context.user?.isAuthenticated) {
       throw new Error('用户未认证')
     }
-    
+
     try {
       // 执行下一个中间件或目标操作
       const result = await next()
-      
+
       // 后置处理
       console.log('操作执行成功')
       return result
-    } catch (error) {
+    }
+ catch (error) {
       // 错误处理
       console.error('操作执行失败:', error)
       throw error
@@ -277,11 +278,11 @@ const userPlugin: Plugin = {
   name: 'user-plugin',
   version: '1.0.0',
   dependencies: ['userService', 'apiClient'],
-  
+
   install(engine) {
     const userService = engine.resolve('userService')
     const apiClient = engine.resolve('apiClient')
-    
+
     // 使用注入的依赖
     engine.addMethod('getUser', (id) => {
       return userService.getUser(id)
@@ -301,7 +302,7 @@ const userPlugin: Plugin = {
 engine.on('error', (error, context) => {
   console.error('引擎错误:', error)
   console.error('错误上下文:', context)
-  
+
   // 发送错误报告
   errorReporter.report(error, context)
 })
@@ -320,12 +321,13 @@ engine.on('uncaughtException', (error) => {
 const safePlugin: Plugin = {
   name: 'safe-plugin',
   version: '1.0.0',
-  
+
   async install(engine) {
     try {
       // 可能出错的操作
       await riskyOperation()
-    } catch (error) {
+    }
+ catch (error) {
       // 插件内部错误处理
       console.error('插件安装失败:', error)
       // 不影响其他插件的运行
@@ -343,7 +345,7 @@ const safePlugin: Plugin = {
 const lazyPlugin: Plugin = {
   name: 'lazy-plugin',
   version: '1.0.0',
-  
+
   async install(engine) {
     // 只在需要时加载重型依赖
     engine.addMethod('heavyOperation', async () => {

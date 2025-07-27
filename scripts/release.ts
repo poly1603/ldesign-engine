@@ -30,7 +30,8 @@ class ReleaseManager {
     try {
       const content = fs.readFileSync(this.packageJsonPath, 'utf8')
       return JSON.parse(content)
-    } catch (error) {
+    }
+ catch (error) {
       throw new Error(`无法读取 package.json: ${(error as Error).message}`)
     }
   }
@@ -41,12 +42,13 @@ class ReleaseManager {
       const content = fs.readFileSync(this.packageJsonPath, 'utf8')
       const packageJson = JSON.parse(content)
       packageJson.version = packageInfo.version
-      
+
       fs.writeFileSync(
         this.packageJsonPath,
-        JSON.stringify(packageJson, null, 2) + '\n'
+        `${JSON.stringify(packageJson, null, 2)}\n`,
       )
-    } catch (error) {
+    }
+ catch (error) {
       throw new Error(`无法写入 package.json: ${(error as Error).message}`)
     }
   }
@@ -56,7 +58,8 @@ class ReleaseManager {
     try {
       const output = execSync('git status --porcelain', { encoding: 'utf8' })
       return output.trim() === ''
-    } catch {
+    }
+ catch {
       return false
     }
   }
@@ -96,27 +99,29 @@ class ReleaseManager {
   // 生成 changelog
   private generateChangelog(currentVersion: string, newVersion: string): void {
     const spinner = ora('📝 生成 CHANGELOG...').start()
-    
+
     try {
       // 这里可以集成 conventional-changelog 等工具
       // 简化实现，只添加基本的版本信息
       const changelogPath = path.join(this.rootDir, 'CHANGELOG.md')
       const date = new Date().toISOString().split('T')[0]
       const newEntry = `\n## [${newVersion}] - ${date}\n\n### Changed\n- Version bump from ${currentVersion} to ${newVersion}\n`
-      
+
       if (fs.existsSync(changelogPath)) {
         const content = fs.readFileSync(changelogPath, 'utf8')
         const lines = content.split('\n')
         const insertIndex = lines.findIndex(line => line.startsWith('## [')) || 1
         lines.splice(insertIndex, 0, ...newEntry.split('\n'))
         fs.writeFileSync(changelogPath, lines.join('\n'))
-      } else {
+      }
+ else {
         const header = `# Changelog\n\nAll notable changes to @ldesign/engine will be documented in this file.\n`
         fs.writeFileSync(changelogPath, header + newEntry)
       }
-      
+
       spinner.succeed(chalk.green('✅ CHANGELOG 已更新'))
-    } catch (error) {
+    }
+ catch (error) {
       spinner.fail(chalk.red('❌ 生成 CHANGELOG 失败'))
       throw error
     }
@@ -130,35 +135,36 @@ class ReleaseManager {
       {
         name: 'TypeScript 类型检查',
         command: 'pnpm typecheck',
-        spinner: ora('🔍 TypeScript 类型检查...').start()
+        spinner: ora('🔍 TypeScript 类型检查...').start(),
       },
       {
         name: 'ESLint 检查',
         command: 'pnpm lint',
-        spinner: ora('🔍 ESLint 检查...').start()
+        spinner: ora('🔍 ESLint 检查...').start(),
       },
       {
         name: '测试用例',
         command: 'pnpm test:run',
-        spinner: ora('🧪 运行测试...').start()
+        spinner: ora('🧪 运行测试...').start(),
       },
       {
         name: '项目构建',
         command: 'pnpm build',
-        spinner: ora('📦 构建项目...').start()
+        spinner: ora('📦 构建项目...').start(),
       },
       {
         name: '文档构建',
         command: 'pnpm docs:build',
-        spinner: ora('📚 构建文档...').start()
-      }
+        spinner: ora('📚 构建文档...').start(),
+      },
     ]
 
     for (const check of checks) {
       try {
         execSync(check.command, { stdio: 'ignore' })
         check.spinner.succeed(chalk.green(`✅ ${check.name} 通过`))
-      } catch {
+      }
+ catch {
         check.spinner.fail(chalk.red(`❌ ${check.name} 失败`))
         return false
       }
@@ -184,17 +190,18 @@ class ReleaseManager {
     }
 
     const spinner = ora('📝 提交更改和创建标签...').start()
-    
+
     try {
       // 提交更改
       execSync('git add .', { stdio: 'ignore' })
       execSync(`git commit -m "${commitMessage}"`, { stdio: 'ignore' })
-      
+
       // 创建标签
       execSync(`git tag ${tagName}`, { stdio: 'ignore' })
-      
+
       spinner.succeed(chalk.green(`✅ 已创建提交和标签 ${tagName}`))
-    } catch (error) {
+    }
+ catch (error) {
       spinner.fail(chalk.red('❌ Git 操作失败'))
       throw error
     }
@@ -208,13 +215,14 @@ class ReleaseManager {
     }
 
     const spinner = ora('⬆️  推送到远程仓库...').start()
-    
+
     try {
       execSync('git push origin main', { stdio: 'ignore' })
       execSync(`git push origin v${version}`, { stdio: 'ignore' })
-      
+
       spinner.succeed(chalk.green('✅ 已推送到远程仓库'))
-    } catch (error) {
+    }
+ catch (error) {
       spinner.fail(chalk.red('❌ 推送失败'))
       throw error
     }
@@ -228,11 +236,12 @@ class ReleaseManager {
     }
 
     const spinner = ora('📦 发布到 NPM...').start()
-    
+
     try {
       execSync('pnpm publish --access public', { stdio: 'ignore' })
       spinner.succeed(chalk.green('✅ 已发布到 NPM'))
-    } catch (error) {
+    }
+ catch (error) {
       spinner.fail(chalk.red('❌ NPM 发布失败'))
       throw error
     }
@@ -279,24 +288,31 @@ class ReleaseManager {
     const args = process.argv.slice(2)
     const options: ReleaseOptions = {}
 
-    args.forEach(arg => {
+    args.forEach((arg) => {
       if (arg.startsWith('--type=')) {
         options.type = arg.split('=')[1] as ReleaseType
-      } else if (arg === '--skip-checks') {
+      }
+ else if (arg === '--skip-checks') {
         options.skipChecks = true
-      } else if (arg === '--dry-run') {
+      }
+ else if (arg === '--dry-run') {
         options.dryRun = true
-      } else if (arg === '--help' || arg === '-h') {
+      }
+ else if (arg === '--help' || arg === '-h') {
         options.help = true
       }
     })
 
     // 从脚本名称推断发布类型
     const scriptName = process.argv[1]
-    if (scriptName?.includes('release:patch')) options.type = 'patch'
-    else if (scriptName?.includes('release:minor')) options.type = 'minor'
-    else if (scriptName?.includes('release:major')) options.type = 'major'
-    else if (scriptName?.includes('release:prerelease')) options.type = 'prerelease'
+    if (scriptName?.includes('release:patch'))
+options.type = 'patch'
+    else if (scriptName?.includes('release:minor'))
+options.type = 'minor'
+    else if (scriptName?.includes('release:major'))
+options.type = 'major'
+    else if (scriptName?.includes('release:prerelease'))
+options.type = 'prerelease'
 
     return options
   }
@@ -318,9 +334,9 @@ class ReleaseManager {
 
     const releaseType = options.type
     const dryRun = options.dryRun || false
-    
+
     console.log(chalk.blue.bold(`🚀 开始 @ldesign/engine ${releaseType} 发布流程\n`))
-    
+
     if (dryRun) {
       console.log(chalk.yellow('🔍 预览模式 - 不会执行实际操作\n'))
     }
@@ -335,7 +351,7 @@ class ReleaseManager {
       // 2. 获取版本信息
       const currentVersion = this.getCurrentVersion()
       const newVersion = this.calculateNewVersion(currentVersion, releaseType)
-      
+
       this.displayReleaseInfo(currentVersion, newVersion, releaseType)
 
       // 3. 运行发布前检查
@@ -345,7 +361,8 @@ class ReleaseManager {
           console.log(chalk.red('\n❌ 发布前检查失败，请修复后重试'))
           process.exit(1)
         }
-      } else {
+      }
+ else {
         console.log(chalk.yellow('⚠️  跳过发布前检查'))
       }
 
@@ -353,14 +370,16 @@ class ReleaseManager {
       if (!dryRun) {
         this.updateVersion(newVersion)
         console.log(chalk.green(`✅ 版本号已更新: ${currentVersion} → ${newVersion}`))
-      } else {
+      }
+ else {
         console.log(chalk.yellow(`🔍 Dry Run - 版本号将更新: ${currentVersion} → ${newVersion}`))
       }
 
       // 5. 生成 CHANGELOG
       if (!dryRun) {
         this.generateChangelog(currentVersion, newVersion)
-      } else {
+      }
+ else {
         console.log(chalk.yellow('🔍 Dry Run - 跳过生成 CHANGELOG'))
       }
 
@@ -372,14 +391,14 @@ class ReleaseManager {
       this.publishToNpm(dryRun)
 
       console.log(chalk.green.bold('\n🎉 发布完成!'))
-      
+
       if (!dryRun) {
         console.log(chalk.white(`📦 @ldesign/engine@${newVersion} 已成功发布`))
         console.log(chalk.white(`🔗 NPM: https://www.npmjs.com/package/@ldesign/engine`))
         console.log(chalk.white(`🏷️  Git Tag: v${newVersion}`))
       }
-      
-    } catch (error) {
+    }
+ catch (error) {
       console.error(chalk.red('❌ 发布过程中发生错误:'), error)
       process.exit(1)
     }

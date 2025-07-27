@@ -80,12 +80,12 @@ pnpm add -D @ldesign/engine
 ```html
 <script type="module">
   import { Engine } from 'https://unpkg.com/@ldesign/engine/dist/index.esm.js'
-  
+
   const engine = new Engine({
     name: 'my-app',
     version: '1.0.0'
   })
-  
+
   engine.start()
 </script>
 ```
@@ -232,7 +232,7 @@ npm install --save-dev \
 
 ```javascript
 // webpack.config.js
-const path = require('path')
+const path = require('node:path')
 
 module.exports = {
   entry: './src/main.ts',
@@ -264,8 +264,8 @@ module.exports = {
 
 ```typescript
 // vite.config.ts
+import { resolve } from 'node:path'
 import { defineConfig } from 'vite'
-import { resolve } from 'path'
 
 export default defineConfig({
   resolve: {
@@ -335,7 +335,7 @@ const engine = new Engine({
   name: 'my-app',
   version: '1.0.0',
   debug: process.env.DEBUG === 'true',
-  maxListeners: parseInt(process.env.MAX_LISTENERS || '10'),
+  maxListeners: Number.parseInt(process.env.MAX_LISTENERS || '10'),
 })
 ```
 

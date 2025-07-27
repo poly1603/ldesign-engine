@@ -7,36 +7,36 @@
 ```typescript
 class Engine {
   constructor(config?: EngineConfig)
-  
+
   // 插件管理
   use(plugin: Plugin | PluginFunction, options?: any): this
   unuse(plugin: Plugin | string): this
   hasPlugin(plugin: Plugin | string): boolean
   getPlugin(name: string): Plugin | undefined
   getPlugins(): Plugin[]
-  
+
   // 事件系统
   on(event: string, listener: EventListener): this
   off(event: string, listener?: EventListener): this
   once(event: string, listener: EventListener): this
   emit(event: string, ...args: any[]): boolean
   emitAsync(event: string, ...args: any[]): Promise<any[]>
-  
+
   // 中间件
   middleware(middleware: Middleware): this
   removeMiddleware(middleware: Middleware | string): this
-  
+
   // 状态管理
   setState(key: string, value: any): this
   getState(key?: string): any
   hasState(key: string): boolean
   removeState(key: string): this
-  
+
   // 生命周期
   start(): Promise<void>
   stop(): Promise<void>
   restart(): Promise<void>
-  
+
   // 工具方法
   destroy(): void
   isRunning(): boolean
@@ -181,7 +181,7 @@ if (plugin) {
 const plugins = engine.getPlugins()
 console.log('已注册插件数量:', plugins.length)
 
-plugins.forEach(plugin => {
+plugins.forEach((plugin) => {
   console.log('插件:', plugin.name)
 })
 ```
@@ -211,7 +211,7 @@ engine.on('plugin:loaded', (plugin) => {
 engine
   .on('start', () => console.log('引擎启动'))
   .on('stop', () => console.log('引擎停止'))
-  .on('error', (error) => console.error('错误:', error))
+  .on('error', error => console.error('错误:', error))
 ```
 
 ### `off(event, listener?)`
@@ -281,7 +281,8 @@ const handled = engine.emit('custom-event', { data: 'hello' }, 123)
 
 if (handled) {
   console.log('事件已被处理')
-} else {
+}
+ else {
   console.log('没有监听器处理此事件')
 }
 ```
@@ -331,7 +332,8 @@ engine.middleware(async (context, next) => {
 engine.middleware(async (context, next) => {
   try {
     await next()
-  } catch (error) {
+  }
+ catch (error) {
     console.error('中间件捕获错误:', error)
     throw error
   }
@@ -351,7 +353,7 @@ engine.middleware(async (context, next) => {
 **示例：**
 
 ```typescript
-const myMiddleware = async (context, next) => {
+async function myMiddleware(context, next) {
   await next()
 }
 
@@ -529,7 +531,8 @@ console.log('引擎已销毁')
 ```typescript
 if (engine.isRunning()) {
   console.log('引擎正在运行')
-} else {
+}
+ else {
   console.log('引擎已停止')
 }
 ```
@@ -584,7 +587,7 @@ console.log('引擎版本:', version)
 engine.on('error', (error, context) => {
   console.error('引擎错误:', error)
   console.error('错误上下文:', context)
-  
+
   // 发送错误报告
   sendErrorReport(error, context)
 })
@@ -592,7 +595,7 @@ engine.on('error', (error, context) => {
 // 插件错误处理
 engine.on('plugin:error', (error, plugin) => {
   console.error(`插件 ${plugin.name} 发生错误:`, error)
-  
+
   // 可以选择卸载有问题的插件
   engine.unuse(plugin)
 })
@@ -601,13 +604,14 @@ engine.on('plugin:error', (error, plugin) => {
 engine.middleware(async (context, next) => {
   try {
     await next()
-  } catch (error) {
+  }
+ catch (error) {
     // 记录错误
     console.error('中间件错误:', error)
-    
+
     // 触发错误事件
     engine.emit('error', error, context)
-    
+
     // 重新抛出错误
     throw error
   }
@@ -627,7 +631,8 @@ engine.on('error', (error) => {
 // 在异步操作中使用 try-catch
 try {
   await engine.start()
-} catch (error) {
+}
+ catch (error) {
   console.error('启动失败:', error)
 }
 ```

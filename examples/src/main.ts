@@ -1,8 +1,8 @@
 import { createApp } from 'vue'
 import './style.css'
+import { createEngine } from '@ldesign/engine'
 import App from './App.vue'
 import router from './router'
-import { createEngine } from '@ldesign/engine'
 
 // 创建主题插件
 const themePlugin = {
@@ -14,37 +14,38 @@ const themePlugin = {
         themeService.currentTheme = theme
         document.documentElement.setAttribute('data-theme', theme)
         localStorage.setItem('theme', theme)
-        
+
         // 更新 CSS 变量
         const root = document.documentElement
         if (theme === 'dark') {
           root.style.setProperty('--bg-color', '#1a1a1a')
           root.style.setProperty('--text-color', '#ffffff')
           root.style.setProperty('--border-color', '#333333')
-        } else {
+        }
+ else {
           root.style.setProperty('--bg-color', '#ffffff')
           root.style.setProperty('--text-color', '#000000')
           root.style.setProperty('--border-color', '#e0e0e0')
         }
-        
+
         engine.emit('theme:changed', { theme })
       },
       getTheme: () => themeService.currentTheme,
       toggleTheme: () => {
         const newTheme = themeService.currentTheme === 'light' ? 'dark' : 'light'
         themeService.setTheme(newTheme)
-      }
+      },
     }
-    
+
     // 从本地存储恢复主题
     const savedTheme = localStorage.getItem('theme')
     if (savedTheme) {
       themeService.setTheme(savedTheme)
     }
-    
+
     engine.provide('theme', themeService)
     return themeService
-  }
+  },
 }
 
 // 创建通知插件
@@ -60,19 +61,19 @@ const notificationPlugin = {
           title: title || '通知',
           message,
           type,
-          timestamp: new Date()
+          timestamp: new Date(),
         }
         notificationService.notifications.push(notification)
-        
+
         // 触发通知事件
         notificationService.emit('notification', notification)
         engine.emit('notification:shown', notification)
-        
+
         // 自动移除通知
         setTimeout(() => {
           notificationService.remove(notification.id)
         }, 5000)
-        
+
         return notification
       },
       remove: (id: number) => {
@@ -98,12 +99,12 @@ const notificationPlugin = {
         if (listeners) {
           listeners.forEach(callback => callback(data))
         }
-      }
+      },
     }
-    
+
     engine.provide('notification', notificationService)
     return notificationService
-  }
+  },
 }
 
 // 启动应用
@@ -113,45 +114,45 @@ async function startApp() {
     const engine = createEngine({
       name: 'ldesign-demo-app',
       version: '1.0.0',
-      debug: true
+      debug: true,
     })
-    
+
     // 安装插件
     await engine.use(themePlugin)
     await engine.use(notificationPlugin)
-    
+
     // 创建 Vue 应用
     const app = createApp(App)
-    
+
     // 使用路由
     app.use(router)
-    
+
     // 提供引擎实例和服务给组件
     app.provide('engine', engine)
     app.provide('theme', engine.inject('theme'))
     app.provide('notification', engine.inject('notification'))
-    
+
     // 挂载应用
     app.mount('#app')
-    
+
     // 显示启动成功通知
     const notificationService = engine.inject('notification')
     if (notificationService) {
       notificationService.show(
         '所有系统组件已成功初始化，演示应用已准备就绪！',
         'success',
-        '应用启动成功'
+        '应用启动成功',
       )
     }
-    
+
     console.log('🚀 LDesign Engine 演示应用启动成功！')
     console.log('📊 引擎实例:', engine)
     console.log('🔌 引擎名称:', engine.name)
     console.log('🎯 引擎版本:', engine.version)
-    
-  } catch (error) {
+  }
+ catch (error) {
     console.error('❌ 应用启动失败:', error)
-    
+
     // 显示错误信息
     const errorDiv = document.createElement('div')
     errorDiv.innerHTML = `

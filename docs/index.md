@@ -23,23 +23,23 @@ features:
   - icon: 🔌
     title: 插件化架构
     details: 真正的插件化设计，支持热插拔、依赖管理和生命周期控制，让您的应用具备无限扩展能力。
-  
+
   - icon: 🚀
     title: 高性能
     details: 优化的状态管理和事件系统，最小化重渲染，提供卓越的运行时性能。
-  
+
   - icon: 📦
     title: 轻量级
     details: 核心库小于 50KB，按需加载，不会给您的应用增加不必要的负担。
-  
+
   - icon: 🔧
     title: TypeScript 优先
     details: 完整的 TypeScript 类型定义，提供出色的开发体验和类型安全保障。
-  
+
   - icon: 🌐
     title: 框架无关
     details: 可与 React、Vue、Angular 等任何前端框架无缝集成，也支持 Node.js 环境。
-  
+
   - icon: 🛠️
     title: 开发友好
     details: 简洁的 API 设计、丰富的调试工具和详尽的文档，让开发变得更加轻松。
@@ -65,7 +65,7 @@ features:
 class MyPlugin implements Plugin {
   name = 'my-plugin'
   version = '1.0.0'
-  
+
   async install(engine: Engine) {
     // 插件安装逻辑
     engine.addMethod('hello', () => 'Hello World!')
@@ -116,7 +116,7 @@ engine.registerService('httpClient', new HttpClient())
 class ApiPlugin implements Plugin {
   async install(engine: Engine) {
     const http = engine.getService('httpClient')
-    
+
     engine.addMethod('fetchUser', (id) => {
       return http.get(`/users/${id}`)
     })
@@ -149,23 +149,23 @@ console.log(engine.greet('World')) // "Hello, World!"
 ```
 
 ```typescript [插件开发]
-import { Plugin, Engine } from '@ldesign/engine'
+import { Engine, Plugin } from '@ldesign/engine'
 
 class CounterPlugin implements Plugin {
   name = 'counter'
   version = '1.0.0'
-  
+
   async install(engine: Engine) {
     // 初始化状态
     engine.setState('counter', 0)
-    
+
     // 添加方法
     engine.addMethod('increment', () => {
       const current = engine.getState('counter')
       engine.setState('counter', current + 1)
       engine.emit('counter:changed', current + 1)
     })
-    
+
     engine.addMethod('getCount', () => {
       return engine.getState('counter')
     })
@@ -190,28 +190,28 @@ import React, { useEffect, useState } from 'react'
 import { Engine } from '@ldesign/engine'
 
 function useEngine() {
-  const [engine] = useState(() => 
+  const [engine] = useState(() =>
     new Engine({ name: 'react-app', version: '1.0.0' })
   )
-  
+
   const [count, setCount] = useState(0)
-  
+
   useEffect(() => {
     // 订阅状态变化
     return engine.subscribe('counter', setCount)
   }, [engine])
-  
+
   return { engine, count }
 }
 
 function Counter() {
   const { engine, count } = useEngine()
-  
+
   useEffect(() => {
     // 初始化计数器插件
     engine.use(new CounterPlugin())
   }, [engine])
-  
+
   return (
     <div>
       <p>Count: {count}</p>

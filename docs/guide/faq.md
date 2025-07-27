@@ -80,19 +80,19 @@ const engine = new Engine({
 **A:** 实现 `Plugin` 接口：
 
 ```typescript
-import { Plugin, Engine } from '@ldesign/engine'
+import { Engine, Plugin } from '@ldesign/engine'
 
 class MyPlugin implements Plugin {
   name = 'my-plugin'
   version = '1.0.0'
-  
+
   async install(engine: Engine): Promise<void> {
     // 插件安装逻辑
     engine.addMethod('myMethod', () => {
       console.log('Hello from my plugin!')
     })
   }
-  
+
   async uninstall(engine: Engine): Promise<void> {
     // 插件卸载逻辑
     engine.removeMethod('myMethod')
@@ -144,13 +144,13 @@ class MyPlugin implements Plugin {
   name = 'my-plugin'
   version = '1.0.0'
   dependencies = ['http-plugin', 'storage-plugin']
-  
+
   async install(engine: Engine): Promise<void> {
     // 确保依赖已安装
     if (!engine.hasPlugin('http-plugin')) {
       throw new Error('http-plugin is required')
     }
-    
+
     // 使用依赖提供的服务
     const httpService = engine.getService('http')
   }
@@ -163,7 +163,7 @@ class MyPlugin implements Plugin {
 
 ```typescript
 // 动态导入插件
-const loadAnalyticsPlugin = async () => {
+async function loadAnalyticsPlugin() {
   const { AnalyticsPlugin } = await import('./plugins/analytics')
   await engine.use(new AnalyticsPlugin())
 }
@@ -264,9 +264,8 @@ await engine.emitAsync('user:login', user)
 engine.on('button:click', (event) => {
   if (someCondition) {
     event.stopPropagation() // 停止传播
-    return
   }
-  
+
   // 继续处理
 })
 ```
@@ -278,7 +277,7 @@ engine.on('button:click', (event) => {
 ```typescript
 class Component {
   private unsubscribers: Array<() => void> = []
-  
+
   constructor(engine: Engine) {
     // 保存取消订阅函数
     this.unsubscribers.push(
@@ -288,7 +287,7 @@ class Component {
       engine.on('event2', this.handler2.bind(this))
     )
   }
-  
+
   destroy() {
     // 清理所有监听器
     this.unsubscribers.forEach(unsubscribe => unsubscribe())
@@ -361,7 +360,7 @@ engine.on('method:after', ({ name, result, duration }) => {
 // 监听插件错误
 engine.on('plugin:error', ({ plugin, error, phase }) => {
   console.error(`Plugin ${plugin} error in ${phase}:`, error)
-  
+
   // 错误恢复策略
   if (phase === 'install') {
     // 尝试重新安装
@@ -385,12 +384,13 @@ engine.on('error', (error) => {
 ```typescript
 class SafePlugin implements Plugin {
   name = 'safe-plugin'
-  
+
   async install(engine: Engine): Promise<void> {
     engine.addMethod('safeMethod', async (...args) => {
       try {
         return await this.riskyOperation(...args)
-      } catch (error) {
+      }
+ catch (error) {
         console.error('Method failed:', error)
         engine.emit('method:error', { method: 'safeMethod', error })
         return { success: false, error: error.message }
@@ -411,12 +411,12 @@ class SafePlugin implements Plugin {
 describe('MyPlugin', () => {
   let engine: Engine
   let plugin: MyPlugin
-  
+
   beforeEach(() => {
     engine = new Engine({ name: 'test', version: '1.0.0' })
     plugin = new MyPlugin()
   })
-  
+
   test('should install correctly', async () => {
     await engine.use(plugin)
     expect(engine.hasPlugin('my-plugin')).toBe(true)
@@ -428,7 +428,7 @@ describe('MyPlugin', () => {
 ```typescript
 test('plugins should work together', async () => {
   await engine.use([pluginA, pluginB, pluginC])
-  
+
   const result = await engine.performComplexOperation()
   expect(result).toMatchSnapshot()
 })
@@ -453,7 +453,8 @@ expect(mockEngine.addMethod).toHaveBeenCalledWith('myMethod', expect.any(Functio
 **A:** 创建模拟插件：
 
 ```typescript
-const createMockPlugin = (name: string, methods: Record<string, Function> = {}) => ({
+function createMockPlugin(name: string, methods: Record<string, Function> = {}) {
+  return {
   name,
   version: '1.0.0',
   async install(engine: Engine) {
@@ -461,7 +462,8 @@ const createMockPlugin = (name: string, methods: Record<string, Function> = {}) 
       engine.addMethod(methodName, method)
     })
   }
-})
+}
+}
 
 // 在测试中使用
 const mockHttpPlugin = createMockPlugin('http-plugin', {

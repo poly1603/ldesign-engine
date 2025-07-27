@@ -1,3 +1,194 @@
+<script setup lang="ts">
+import { computed, inject, nextTick, onMounted, onUnmounted, ref } from 'vue'
+import {
+  Activity,
+  ArrowRight,
+  Grid,
+  Layers,
+  Package,
+  Puzzle,
+  ScrollText,
+  Settings,
+  Terminal,
+  Trash2,
+  Users,
+  Zap,
+} from 'lucide-vue-next'
+
+// 注入引擎服务
+const engine = inject('engine') as any
+
+// 响应式数据
+const logLevel = ref('all')
+const autoScroll = ref(true)
+const logs = ref<Array<{ id: number, level: string, message: string, timestamp: number }>>([])
+const logsContainer = ref<HTMLElement>()
+
+// 功能导航配置
+const features = [
+  {
+    name: 'plugins',
+    title: '插件系统',
+    description: '插件管理、动态加载、依赖关系展示',
+    icon: Puzzle,
+    path: '/plugins',
+  },
+  {
+    name: 'middleware',
+    title: '中间件系统',
+    description: '生命周期钩子、中间件执行流程、性能监控',
+    icon: Layers,
+    path: '/middleware',
+  },
+  {
+    name: 'di',
+    title: '依赖注入',
+    description: '服务注册、服务注入、服务管理',
+    icon: Package,
+    path: '/di',
+  },
+  {
+    name: 'config',
+    title: '配置管理',
+    description: '配置设置、实时更新、配置监听',
+    icon: Settings,
+    path: '/config',
+  },
+  {
+    name: 'events',
+    title: '事件系统',
+    description: '事件发射、事件监听、事件流可视化',
+    icon: Zap,
+    path: '/events',
+  },
+  {
+    name: 'examples',
+    title: '综合示例',
+    description: '完整的业务场景演示、最佳实践展示',
+    icon: Users,
+    path: '/examples',
+  },
+]
+
+// 计算属性
+const engineStatus = computed(() => {
+  if (!engine) {
+    return {
+      isRunning: false,
+      state: '未连接',
+      version: '未知',
+      name: '未知',
+    }
+  }
+
+  return {
+    isRunning: engine.state === 'mounted',
+    state: engine.state || '未知',
+    version: engine.version || '1.0.0',
+    name: engine.name || 'LDesign Engine',
+  }
+})
+
+const pluginCount = computed(() => {
+  if (!engine || !engine.plugins)
+return 0
+  return Object.keys(engine.plugins || {}).length
+})
+
+const performanceScore = computed(() => {
+  // 模拟性能分数计算
+  const baseScore = 85
+  const pluginPenalty = Math.max(0, (pluginCount.value - 5) * 2)
+  return Math.max(50, Math.min(100, baseScore - pluginPenalty))
+})
+
+const filteredLogs = computed(() => {
+  if (logLevel.value === 'all')
+return logs.value
+  return logs.value.filter(log => log.level === logLevel.value)
+})
+
+// 方法
+function addLog(level: string, message: string) {
+  const log = {
+    id: Date.now() + Math.random(),
+    level,
+    message,
+    timestamp: Date.now(),
+  }
+
+  logs.value.push(log)
+
+  // 限制日志数量
+  if (logs.value.length > 100) {
+    logs.value.shift()
+  }
+
+  // 自动滚动到底部
+  if (autoScroll.value) {
+    nextTick(() => {
+      if (logsContainer.value) {
+        logsContainer.value.scrollTop = logsContainer.value.scrollHeight
+      }
+    })
+  }
+}
+
+function clearLogs() {
+  logs.value = []
+}
+
+function toggleAutoScroll() {
+  autoScroll.value = !autoScroll.value
+}
+
+function formatTime(timestamp: number) {
+  return new Date(timestamp).toLocaleTimeString()
+}
+
+// 生命周期
+onMounted(() => {
+  // 添加初始日志
+  addLog('info', '引擎演示应用已启动')
+  addLog('info', `引擎状态: ${engineStatus.value.state}`)
+  addLog('info', `已安装插件数量: ${pluginCount.value}`)
+
+  // 监听引擎事件
+  if (engine) {
+    const unsubscribers: Array<() => void> = []
+
+    // 监听各种引擎事件
+    const events = [
+      'engine:mounted',
+      'engine:unmounted',
+      'plugin:installed',
+      'plugin:uninstalled',
+      'config:changed',
+      'middleware:error',
+      'engine:error',
+    ]
+
+    events.forEach((event) => {
+      const unsubscribe = engine.on(event, (data: any) => {
+        const level = event.includes('error') ? 'error' : 'info'
+        addLog(level, `${event}: ${JSON.stringify(data)}`)
+      })
+      unsubscribers.push(unsubscribe)
+    })
+
+    // 清理函数
+    onUnmounted(() => {
+      unsubscribers.forEach(fn => fn())
+    })
+  }
+
+  // 模拟一些日志
+  setTimeout(() => addLog('info', '主题服务已初始化'), 1000)
+  setTimeout(() => addLog('info', '通知服务已初始化'), 1500)
+  setTimeout(() => addLog('warn', '这是一个警告消息'), 3000)
+})
+</script>
+
 <template>
   <div class="home-page">
     <!-- 引擎状态面板 -->
@@ -9,7 +200,7 @@
       <div class="status-grid">
         <div class="status-card">
           <div class="status-indicator" :class="{ active: engineStatus.isRunning }">
-            <div class="status-dot"></div>
+            <div class="status-dot" />
           </div>
           <div class="status-info">
             <h3>引擎状态</h3>
@@ -17,14 +208,18 @@
           </div>
         </div>
         <div class="status-card">
-          <div class="status-badge">v{{ engineStatus.version }}</div>
+          <div class="status-badge">
+            v{{ engineStatus.version }}
+          </div>
           <div class="status-info">
             <h3>版本信息</h3>
             <p>{{ engineStatus.name }}</p>
           </div>
         </div>
         <div class="status-card">
-          <div class="status-number">{{ pluginCount }}</div>
+          <div class="status-number">
+            {{ pluginCount }}
+          </div>
           <div class="status-info">
             <h3>已安装插件</h3>
             <p>{{ pluginCount }} 个插件</p>
@@ -32,7 +227,7 @@
         </div>
         <div class="status-card">
           <div class="status-progress">
-            <div class="progress-bar" :style="{ width: performanceScore + '%' }"></div>
+            <div class="progress-bar" :style="{ width: `${performanceScore}%` }" />
           </div>
           <div class="status-info">
             <h3>性能指标</h3>
@@ -76,22 +271,30 @@
         </h2>
         <div class="logs-controls">
           <select v-model="logLevel" class="log-filter">
-            <option value="all">所有级别</option>
-            <option value="info">信息</option>
-            <option value="warn">警告</option>
-            <option value="error">错误</option>
+            <option value="all">
+              所有级别
+            </option>
+            <option value="info">
+              信息
+            </option>
+            <option value="warn">
+              警告
+            </option>
+            <option value="error">
+              错误
+            </option>
           </select>
-          <button @click="clearLogs" class="btn btn-sm">
+          <button class="btn btn-sm" @click="clearLogs">
             <Trash2 class="btn-icon" />
             清空
           </button>
-          <button @click="toggleAutoScroll" class="btn btn-sm" :class="{ active: autoScroll }">
+          <button class="btn btn-sm" :class="{ active: autoScroll }" @click="toggleAutoScroll">
             <ScrollText class="btn-icon" />
             自动滚动
           </button>
         </div>
       </div>
-      <div class="logs-content" ref="logsContainer">
+      <div ref="logsContainer" class="logs-content">
         <div
           v-for="log in filteredLogs"
           :key="log.id"
@@ -109,195 +312,6 @@
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-import { ref, computed, inject, onMounted, onUnmounted, nextTick } from 'vue'
-import {
-  Activity,
-  Grid,
-  ArrowRight,
-  Terminal,
-  Trash2,
-  ScrollText,
-  Puzzle,
-  Layers,
-  Package,
-  Settings,
-  Zap,
-  Users
-} from 'lucide-vue-next'
-
-// 注入引擎服务
-const engine = inject('engine') as any
-
-// 响应式数据
-const logLevel = ref('all')
-const autoScroll = ref(true)
-const logs = ref<Array<{ id: number; level: string; message: string; timestamp: number }>>([])
-const logsContainer = ref<HTMLElement>()
-
-// 功能导航配置
-const features = [
-  {
-    name: 'plugins',
-    title: '插件系统',
-    description: '插件管理、动态加载、依赖关系展示',
-    icon: Puzzle,
-    path: '/plugins'
-  },
-  {
-    name: 'middleware',
-    title: '中间件系统',
-    description: '生命周期钩子、中间件执行流程、性能监控',
-    icon: Layers,
-    path: '/middleware'
-  },
-  {
-    name: 'di',
-    title: '依赖注入',
-    description: '服务注册、服务注入、服务管理',
-    icon: Package,
-    path: '/di'
-  },
-  {
-    name: 'config',
-    title: '配置管理',
-    description: '配置设置、实时更新、配置监听',
-    icon: Settings,
-    path: '/config'
-  },
-  {
-    name: 'events',
-    title: '事件系统',
-    description: '事件发射、事件监听、事件流可视化',
-    icon: Zap,
-    path: '/events'
-  },
-  {
-    name: 'examples',
-    title: '综合示例',
-    description: '完整的业务场景演示、最佳实践展示',
-    icon: Users,
-    path: '/examples'
-  }
-]
-
-// 计算属性
-const engineStatus = computed(() => {
-  if (!engine) {
-    return {
-      isRunning: false,
-      state: '未连接',
-      version: '未知',
-      name: '未知'
-    }
-  }
-
-  return {
-    isRunning: engine.state === 'mounted',
-    state: engine.state || '未知',
-    version: engine.version || '1.0.0',
-    name: engine.name || 'LDesign Engine'
-  }
-})
-
-const pluginCount = computed(() => {
-  if (!engine || !engine.plugins) return 0
-  return Object.keys(engine.plugins || {}).length
-})
-
-const performanceScore = computed(() => {
-  // 模拟性能分数计算
-  const baseScore = 85
-  const pluginPenalty = Math.max(0, (pluginCount.value - 5) * 2)
-  return Math.max(50, Math.min(100, baseScore - pluginPenalty))
-})
-
-const filteredLogs = computed(() => {
-  if (logLevel.value === 'all') return logs.value
-  return logs.value.filter(log => log.level === logLevel.value)
-})
-
-// 方法
-const addLog = (level: string, message: string) => {
-  const log = {
-    id: Date.now() + Math.random(),
-    level,
-    message,
-    timestamp: Date.now()
-  }
-
-  logs.value.push(log)
-
-  // 限制日志数量
-  if (logs.value.length > 100) {
-    logs.value.shift()
-  }
-
-  // 自动滚动到底部
-  if (autoScroll.value) {
-    nextTick(() => {
-      if (logsContainer.value) {
-        logsContainer.value.scrollTop = logsContainer.value.scrollHeight
-      }
-    })
-  }
-}
-
-const clearLogs = () => {
-  logs.value = []
-}
-
-const toggleAutoScroll = () => {
-  autoScroll.value = !autoScroll.value
-}
-
-const formatTime = (timestamp: number) => {
-  return new Date(timestamp).toLocaleTimeString()
-}
-
-// 生命周期
-onMounted(() => {
-  // 添加初始日志
-  addLog('info', '引擎演示应用已启动')
-  addLog('info', `引擎状态: ${engineStatus.value.state}`)
-  addLog('info', `已安装插件数量: ${pluginCount.value}`)
-
-  // 监听引擎事件
-  if (engine) {
-    const unsubscribers: Array<() => void> = []
-
-    // 监听各种引擎事件
-    const events = [
-      'engine:mounted',
-      'engine:unmounted',
-      'plugin:installed',
-      'plugin:uninstalled',
-      'config:changed',
-      'middleware:error',
-      'engine:error'
-    ]
-
-    events.forEach(event => {
-      const unsubscribe = engine.on(event, (data: any) => {
-        const level = event.includes('error') ? 'error' : 'info'
-        addLog(level, `${event}: ${JSON.stringify(data)}`)
-      })
-      unsubscribers.push(unsubscribe)
-    })
-
-    // 清理函数
-    onUnmounted(() => {
-      unsubscribers.forEach(fn => fn())
-    })
-  }
-
-  // 模拟一些日志
-  setTimeout(() => addLog('info', '主题服务已初始化'), 1000)
-  setTimeout(() => addLog('info', '通知服务已初始化'), 1500)
-  setTimeout(() => addLog('warn', '这是一个警告消息'), 3000)
-})
-</script>
 
 <style scoped>
 .home-page {

@@ -31,7 +31,7 @@ const CONFIG_ITEMS: ConfigItem[] = [
     category: 'NPM',
     icon: '🌐',
   },
-  
+
   // GitHub 相关
   {
     name: 'GitHub Token',
@@ -49,7 +49,7 @@ const CONFIG_ITEMS: ConfigItem[] = [
     category: 'GitHub',
     icon: '📁',
   },
-  
+
   // 测试覆盖率相关
   {
     name: 'CodeCov Token',
@@ -59,7 +59,7 @@ const CONFIG_ITEMS: ConfigItem[] = [
     category: '测试覆盖率',
     icon: '📊',
   },
-  
+
   // 安全相关
   {
     name: 'Snyk Token',
@@ -69,7 +69,7 @@ const CONFIG_ITEMS: ConfigItem[] = [
     category: '安全',
     icon: '🔒',
   },
-  
+
   // 部署相关
   {
     name: 'Netlify Auth Token',
@@ -87,7 +87,7 @@ const CONFIG_ITEMS: ConfigItem[] = [
     category: '部署',
     icon: '▲',
   },
-  
+
   // 构建相关
   {
     name: 'Node Environment',
@@ -124,7 +124,7 @@ class ConfigChecker {
   }
 
   private checkAllConfigs(): void {
-    this.configStatuses = CONFIG_ITEMS.map(item => {
+    this.configStatuses = CONFIG_ITEMS.map((item) => {
       // 检查环境变量
       const envValue = process.env[item.envKey]
       if (envValue) {
@@ -197,17 +197,17 @@ class ConfigChecker {
     const configuredCount = this.configStatuses.filter(status => status.isConfigured).length
     const requiredCount = this.configStatuses.filter(status => status.item.required).length
     const requiredConfiguredCount = this.configStatuses.filter(
-      status => status.item.required && status.isConfigured
+      status => status.item.required && status.isConfigured,
     ).length
 
     console.log(chalk.yellow.bold('📊 总体状态:'))
     console.log(chalk.white(`  总配置项: ${totalConfigs}`))
     console.log(chalk.white(`  已配置: ${configuredCount}/${totalConfigs}`))
     console.log(chalk.white(`  必需配置: ${requiredConfiguredCount}/${requiredCount}`))
-    
+
     const completionRate = Math.round((configuredCount / totalConfigs) * 100)
     const requiredCompletionRate = requiredCount > 0 ? Math.round((requiredConfiguredCount / requiredCount) * 100) : 100
-    
+
     console.log(chalk.white(`  完成度: ${completionRate}%`))
     console.log(chalk.white(`  必需项完成度: ${requiredCompletionRate}%`))
     console.log()
@@ -215,7 +215,8 @@ class ConfigChecker {
     // 显示状态指示器
     if (requiredCompletionRate === 100) {
       console.log(chalk.green.bold('✅ 所有必需配置已完成!'))
-    } else {
+    }
+ else {
       console.log(chalk.red.bold('❌ 还有必需配置未完成!'))
     }
     console.log()
@@ -223,29 +224,30 @@ class ConfigChecker {
 
   displayByCategory(): void {
     const categories = [...new Set(CONFIG_ITEMS.map(item => item.category))]
-    
-    categories.forEach(category => {
+
+    categories.forEach((category) => {
       const categoryStatuses = this.configStatuses.filter(
-        status => status.item.category === category
+        status => status.item.category === category,
       )
-      
+
       console.log(chalk.cyan.bold(`📂 ${category}:`))
-      
-      categoryStatuses.forEach(status => {
+
+      categoryStatuses.forEach((status) => {
         const { item, isConfigured, source, maskedValue } = status
         const statusIcon = isConfigured ? chalk.green('✅') : chalk.red('❌')
         const requiredIcon = item.required ? chalk.yellow('⭐') : ''
         const sourceIcon = this.getSourceIcon(source)
         const sourceText = this.getSourceText(source)
-        
+
         console.log(chalk.white(`  ${item.icon} ${item.name} ${statusIcon}${requiredIcon}`))
         console.log(chalk.gray(`    ${item.description}`))
         console.log(chalk.gray(`    环境变量: ${item.envKey}`))
-        
+
         if (isConfigured) {
           console.log(chalk.gray(`    来源: ${sourceIcon} ${sourceText}`))
           console.log(chalk.gray(`    值: ${maskedValue}`))
-        } else {
+        }
+ else {
           console.log(chalk.gray(`    状态: ${sourceIcon} ${sourceText}`))
         }
         console.log()
@@ -255,18 +257,18 @@ class ConfigChecker {
 
   displayMissingRequired(): void {
     const missingRequired = this.configStatuses.filter(
-      status => status.item.required && !status.isConfigured
+      status => status.item.required && !status.isConfigured,
     )
-    
+
     if (missingRequired.length === 0) {
       console.log(chalk.green.bold('🎉 所有必需配置都已完成!'))
       return
     }
-    
+
     console.log(chalk.red.bold('⚠️  缺少的必需配置:'))
     console.log()
-    
-    missingRequired.forEach(status => {
+
+    missingRequired.forEach((status) => {
       const { item } = status
       console.log(chalk.red(`❌ ${item.icon} ${item.name}`))
       console.log(chalk.white(`   描述: ${item.description}`))
@@ -279,23 +281,23 @@ class ConfigChecker {
   displayConfigurationGuide(): void {
     console.log(chalk.yellow.bold('📖 配置指南:'))
     console.log()
-    
+
     console.log(chalk.white('有两种方式配置环境变量:'))
     console.log()
-    
+
     console.log(chalk.cyan.bold('方式 1: 使用配置管理工具 (推荐)'))
     console.log(chalk.white('  运行: tsx scripts/config-manager.ts'))
     console.log(chalk.gray('  - 交互式配置界面'))
     console.log(chalk.gray('  - 自动保存到 .env.local 文件'))
     console.log(chalk.gray('  - 提供详细的获取说明'))
     console.log()
-    
+
     console.log(chalk.cyan.bold('方式 2: 手动配置'))
     console.log(chalk.white('  1. 创建 .env.local 文件'))
     console.log(chalk.white('  2. 添加环境变量，格式: KEY=value'))
     console.log(chalk.white('  3. 重新运行此检查脚本'))
     console.log()
-    
+
     console.log(chalk.yellow.bold('注意事项:'))
     console.log(chalk.gray('  - .env.local 文件已添加到 .gitignore'))
     console.log(chalk.gray('  - 不要将敏感信息提交到版本控制'))
@@ -305,12 +307,12 @@ class ConfigChecker {
 
   generateReport(): void {
     console.clear()
-    
+
     this.displaySummary()
     this.displayByCategory()
     this.displayMissingRequired()
     this.displayConfigurationGuide()
-    
+
     console.log(chalk.blue.bold('🔄 重新检查配置:'))
     console.log(chalk.white('  运行: tsx scripts/test-config.ts'))
     console.log()

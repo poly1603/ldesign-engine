@@ -9,38 +9,38 @@
 ```typescript
 interface EngineConfig {
   // 基本信息
-  name: string                    // 引擎名称（必需）
-  version: string                 // 引擎版本（必需）
-  description?: string            // 引擎描述
-  
+  name: string // 引擎名称（必需）
+  version: string // 引擎版本（必需）
+  description?: string // 引擎描述
+
   // 调试和日志
-  debug?: boolean                 // 是否开启调试模式
-  logLevel?: LogLevel             // 日志级别
-  logger?: Logger                 // 自定义日志器
-  
+  debug?: boolean // 是否开启调试模式
+  logLevel?: LogLevel // 日志级别
+  logger?: Logger // 自定义日志器
+
   // 事件系统
-  maxListeners?: number           // 最大事件监听器数量
-  eventTimeout?: number           // 事件超时时间（毫秒）
-  
+  maxListeners?: number // 最大事件监听器数量
+  eventTimeout?: number // 事件超时时间（毫秒）
+
   // 插件系统
-  plugins?: Plugin[]              // 预注册的插件
-  pluginTimeout?: number          // 插件操作超时时间
-  
+  plugins?: Plugin[] // 预注册的插件
+  pluginTimeout?: number // 插件操作超时时间
+
   // 中间件
-  middleware?: Middleware[]       // 预注册的中间件
-  
+  middleware?: Middleware[] // 预注册的中间件
+
   // 状态管理
-  initialState?: Record<string, any>  // 初始状态
-  persistence?: PersistenceConfig     // 状态持久化配置
-  
+  initialState?: Record<string, any> // 初始状态
+  persistence?: PersistenceConfig // 状态持久化配置
+
   // 性能优化
-  performance?: PerformanceConfig     // 性能配置
-  
+  performance?: PerformanceConfig // 性能配置
+
   // 错误处理
-  errorHandler?: ErrorHandler         // 全局错误处理器
-  
+  errorHandler?: ErrorHandler // 全局错误处理器
+
   // 环境配置
-  env?: 'development' | 'production' | 'test'  // 运行环境
+  env?: 'development' | 'production' | 'test' // 运行环境
 }
 ```
 
@@ -53,7 +53,7 @@ const engine = new Engine({
   // 必需配置
   name: 'my-application',
   version: '1.0.0',
-  
+
   // 可选配置
   description: '我的应用程序',
   debug: true,
@@ -72,7 +72,7 @@ const engine = new Engine({
   name: 'my-app',
   version: '1.0.0',
   debug: true,
-  logLevel: 'debug'  // 设置日志级别
+  logLevel: 'debug' // 设置日志级别
 })
 ```
 
@@ -88,25 +88,25 @@ class CustomLogger implements Logger {
     // 发送到错误监控服务
     this.sendToErrorService('error', message, args)
   }
-  
+
   warn(message: string, ...args: any[]): void {
     console.warn(`[WARN] ${message}`, ...args)
   }
-  
+
   info(message: string, ...args: any[]): void {
     console.info(`[INFO] ${message}`, ...args)
   }
-  
+
   debug(message: string, ...args: any[]): void {
     if (process.env.NODE_ENV === 'development') {
       console.debug(`[DEBUG] ${message}`, ...args)
     }
   }
-  
+
   trace(message: string, ...args: any[]): void {
     console.trace(`[TRACE] ${message}`, ...args)
   }
-  
+
   private sendToErrorService(level: string, message: string, args: any[]): void {
     // 实现错误上报逻辑
   }
@@ -127,7 +127,7 @@ const engine = new Engine({
 const engine = new Engine({
   name: 'my-app',
   version: '1.0.0',
-  maxListeners: 50,  // 每个事件最多 50 个监听器
+  maxListeners: 50, // 每个事件最多 50 个监听器
   eventTimeout: 5000 // 事件处理超时 5 秒
 })
 
@@ -143,7 +143,7 @@ engine.on('maxListenersExceeded', (eventName, count) => {
 const engine = new Engine({
   name: 'my-app',
   version: '1.0.0',
-  eventTimeout: 3000  // 3秒超时
+  eventTimeout: 3000 // 3秒超时
 })
 
 // 监听超时事件
@@ -157,7 +157,7 @@ engine.on('eventTimeout', (eventName, duration) => {
 ### 预注册插件
 
 ```typescript
-import { authPlugin, uiPlugin, analyticsPlugin } from './plugins'
+import { analyticsPlugin, authPlugin, uiPlugin } from './plugins'
 
 const engine = new Engine({
   name: 'my-app',
@@ -167,7 +167,7 @@ const engine = new Engine({
     uiPlugin,
     analyticsPlugin
   ],
-  pluginTimeout: 10000  // 插件操作超时 10 秒
+  pluginTimeout: 10000 // 插件操作超时 10 秒
 })
 ```
 
@@ -222,14 +222,14 @@ const engine = new Engine({
 
 ```typescript
 interface PersistenceConfig {
-  enabled: boolean                    // 是否启用持久化
+  enabled: boolean // 是否启用持久化
   storage: 'localStorage' | 'sessionStorage' | 'indexedDB' | 'custom'
-  key?: string                        // 存储键名
-  include?: string[]                  // 包含的状态键
-  exclude?: string[]                  // 排除的状态键
-  serializer?: Serializer             // 自定义序列化器
-  debounceTime?: number               // 防抖时间（毫秒）
-  compression?: boolean               // 是否压缩
+  key?: string // 存储键名
+  include?: string[] // 包含的状态键
+  exclude?: string[] // 排除的状态键
+  serializer?: Serializer // 自定义序列化器
+  debounceTime?: number // 防抖时间（毫秒）
+  compression?: boolean // 是否压缩
 }
 
 const engine = new Engine({
@@ -239,10 +239,10 @@ const engine = new Engine({
     enabled: true,
     storage: 'localStorage',
     key: 'my-app-state',
-    include: ['user', 'settings', 'theme'],  // 只持久化这些状态
-    exclude: ['cache', 'temp'],              // 排除临时状态
-    debounceTime: 1000,                      // 1秒防抖
-    compression: true                        // 启用压缩
+    include: ['user', 'settings', 'theme'], // 只持久化这些状态
+    exclude: ['cache', 'temp'], // 排除临时状态
+    debounceTime: 1000, // 1秒防抖
+    compression: true // 启用压缩
   }
 })
 ```
@@ -272,7 +272,7 @@ class CustomSerializer implements Serializer {
       return value
     })
   }
-  
+
   deserialize(data: string): any {
     // 自定义反序列化逻辑
     return JSON.parse(data, (key, value) => {
@@ -306,12 +306,12 @@ const engine = new Engine({
 
 ```typescript
 interface PerformanceConfig {
-  enableMetrics?: boolean             // 启用性能指标收集
-  metricsInterval?: number            // 指标收集间隔（毫秒）
-  memoryThreshold?: number            // 内存使用阈值（MB）
-  eventLoopThreshold?: number         // 事件循环延迟阈值（毫秒）
-  gcThreshold?: number                // GC 压力阈值
-  enableProfiling?: boolean           // 启用性能分析
+  enableMetrics?: boolean // 启用性能指标收集
+  metricsInterval?: number // 指标收集间隔（毫秒）
+  memoryThreshold?: number // 内存使用阈值（MB）
+  eventLoopThreshold?: number // 事件循环延迟阈值（毫秒）
+  gcThreshold?: number // GC 压力阈值
+  enableProfiling?: boolean // 启用性能分析
 }
 
 const engine = new Engine({
@@ -319,9 +319,9 @@ const engine = new Engine({
   version: '1.0.0',
   performance: {
     enableMetrics: true,
-    metricsInterval: 5000,      // 每5秒收集一次指标
-    memoryThreshold: 100,       // 内存使用超过100MB时警告
-    eventLoopThreshold: 100,    // 事件循环延迟超过100ms时警告
+    metricsInterval: 5000, // 每5秒收集一次指标
+    memoryThreshold: 100, // 内存使用超过100MB时警告
+    eventLoopThreshold: 100, // 事件循环延迟超过100ms时警告
     enableProfiling: process.env.NODE_ENV === 'development'
   }
 })
@@ -350,24 +350,25 @@ engine.on('performance:metrics', (metrics) => {
 ### 全局错误处理器
 
 ```typescript
-import { ErrorHandler, EngineError } from '@ldesign/engine'
+import { EngineError, ErrorHandler } from '@ldesign/engine'
 
 class CustomErrorHandler implements ErrorHandler {
   handleError(error: Error, context?: any): void {
     // 记录错误
     console.error('引擎错误:', error)
-    
+
     // 根据错误类型进行不同处理
     if (error instanceof EngineError) {
       this.handleEngineError(error, context)
-    } else {
+    }
+ else {
       this.handleGenericError(error, context)
     }
-    
+
     // 发送错误报告
     this.reportError(error, context)
   }
-  
+
   private handleEngineError(error: EngineError, context?: any): void {
     switch (error.code) {
       case 'PLUGIN_LOAD_FAILED':
@@ -380,11 +381,11 @@ class CustomErrorHandler implements ErrorHandler {
         console.error('引擎错误:', error.message)
     }
   }
-  
+
   private handleGenericError(error: Error, context?: any): void {
     console.error('通用错误:', error.message)
   }
-  
+
   private reportError(error: Error, context?: any): void {
     // 发送到错误监控服务
     fetch('/api/errors', {
@@ -417,7 +418,7 @@ function createEngineConfig(env: string) {
     name: 'my-app',
     version: '1.0.0'
   }
-  
+
   switch (env) {
     case 'development':
       return {
@@ -429,7 +430,7 @@ function createEngineConfig(env: string) {
           enableProfiling: true
         }
       }
-      
+
     case 'production':
       return {
         ...baseConfig,
@@ -445,16 +446,16 @@ function createEngineConfig(env: string) {
           compression: true
         }
       }
-      
+
     case 'test':
       return {
         ...baseConfig,
         debug: false,
         logLevel: 'warn' as const,
-        maxListeners: 1000,  // 测试时允许更多监听器
-        eventTimeout: 1000   // 测试时使用较短超时
+        maxListeners: 1000, // 测试时允许更多监听器
+        eventTimeout: 1000 // 测试时使用较短超时
       }
-      
+
     default:
       return baseConfig
   }
@@ -467,6 +468,9 @@ const engine = new Engine(createEngineConfig(process.env.NODE_ENV || 'developmen
 
 ```typescript
 // config/engine.config.ts
+// main.ts
+import { engineConfig } from './config/engine.config'
+
 export const engineConfig = {
   development: {
     name: 'my-app-dev',
@@ -474,10 +478,10 @@ export const engineConfig = {
     debug: true,
     logLevel: 'debug',
     persistence: {
-      enabled: false  // 开发环境不持久化
+      enabled: false // 开发环境不持久化
     }
   },
-  
+
   production: {
     name: 'my-app',
     version: '1.0.0',
@@ -494,9 +498,6 @@ export const engineConfig = {
     }
   }
 }
-
-// main.ts
-import { engineConfig } from './config/engine.config'
 
 const env = process.env.NODE_ENV || 'development'
 const config = engineConfig[env]
@@ -633,16 +634,16 @@ const config: AppConfig = {
 interface AppConfig {
   /** 应用名称 */
   name: string
-  
+
   /** 应用版本 */
   version: string
-  
-  /** 
+
+  /**
    * 调试模式
    * @default false
    */
   debug?: boolean
-  
+
   /**
    * 日志级别
    * @default 'info'

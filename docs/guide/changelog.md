@@ -280,7 +280,7 @@ class MyPlugin {
 class MyPlugin implements Plugin {
   name = 'my-plugin'
   version = '1.0.0'
-  
+
   async install(engine: Engine) {
     // 安装逻辑
   }

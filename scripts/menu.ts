@@ -58,7 +58,7 @@ const MENU_ACTIONS: MenuAction[] = [
     category: '开发',
     subcategory: '文档',
   },
-  
+
   // 质量检查类别
   {
     id: 'qa-type-check',
@@ -123,7 +123,7 @@ const MENU_ACTIONS: MenuAction[] = [
     category: '质量检查',
     subcategory: '测试',
   },
-  
+
   // 构建类别
   {
     id: 'build-lib',
@@ -152,7 +152,7 @@ const MENU_ACTIONS: MenuAction[] = [
     category: '构建',
     subcategory: '文档',
   },
-  
+
   // 分析类别
   {
     id: 'analyze-bundle',
@@ -181,7 +181,7 @@ const MENU_ACTIONS: MenuAction[] = [
     category: '分析',
     subcategory: '依赖',
   },
-  
+
   // 维护类别
   {
     id: 'maintain-clean',
@@ -220,7 +220,7 @@ const MENU_ACTIONS: MenuAction[] = [
     category: '维护',
     subcategory: '配置',
   },
-  
+
   // 发布类别
   {
     id: 'release-precheck',
@@ -259,7 +259,7 @@ class InteractiveMenu {
   private selectedSubcategory = '全部'
   private isRunning = true
   private viewMode: 'category' | 'action' = 'category'
-  
+
   private categories = ['全部', ...new Set(MENU_ACTIONS.map(action => action.category))]
   private categoryIndex = 0
 
@@ -285,15 +285,15 @@ class InteractiveMenu {
 
   private getFilteredActions(): MenuAction[] {
     let filtered = MENU_ACTIONS
-    
+
     if (this.selectedCategory !== '全部') {
       filtered = filtered.filter(action => action.category === this.selectedCategory)
     }
-    
+
     if (this.selectedSubcategory !== '全部') {
       filtered = filtered.filter(action => action.subcategory === this.selectedSubcategory)
     }
-    
+
     return filtered
   }
 
@@ -315,20 +315,21 @@ class InteractiveMenu {
   private displayCategoryView(): void {
     console.clear()
     this.displayHeader()
-    
+
     console.log(chalk.blue.bold('📂 选择类别:'))
     this.categories.forEach((category, index) => {
-      const actionCount = category === '全部' 
-        ? MENU_ACTIONS.length 
+      const actionCount = category === '全部'
+        ? MENU_ACTIONS.length
         : MENU_ACTIONS.filter(action => action.category === category).length
-      
+
       if (category === this.selectedCategory) {
         console.log(chalk.bgBlue.white(`❯ ${category} (${actionCount} 项)`))
-      } else {
+      }
+ else {
         console.log(chalk.gray(`  ${category} (${actionCount} 项)`))
       }
     })
-    
+
     console.log()
     console.log(chalk.gray('操作说明:'))
     console.log(chalk.gray('  ↑↓ - 选择类别'))
@@ -339,13 +340,13 @@ class InteractiveMenu {
   private displayActionView(): void {
     console.clear()
     this.displayHeader()
-    
+
     // 显示当前路径
-    const breadcrumb = this.selectedSubcategory === '全部' 
+    const breadcrumb = this.selectedSubcategory === '全部'
       ? this.selectedCategory
       : `${this.selectedCategory} > ${this.selectedSubcategory}`
     console.log(chalk.yellow.bold(`📍 当前位置: ${breadcrumb}\n`))
-    
+
     // 显示子类别选择（如果有）
     const subcategories = this.getSubcategories()
     if (subcategories.length > 1) {
@@ -353,37 +354,40 @@ class InteractiveMenu {
       subcategories.forEach((subcategory) => {
         if (subcategory === this.selectedSubcategory) {
           console.log(chalk.bgYellow.black(`❯ ${subcategory}`))
-        } else {
+        }
+ else {
           console.log(chalk.gray(`  ${subcategory}`))
         }
       })
       console.log()
     }
-    
+
     // 显示操作列表
     const filteredActions = this.getFilteredActions()
     console.log(chalk.blue.bold('🎯 可用操作:'))
-    
+
     if (filteredActions.length === 0) {
       console.log(chalk.gray('  暂无可用操作'))
-    } else {
+    }
+ else {
       filteredActions.forEach((action, index) => {
         const isSelected = index === this.selectedIndex
         const dangerIcon = action.dangerous ? chalk.red(' ⚠️') : ''
         const confirmIcon = action.requiresConfirm ? chalk.yellow(' 🔒') : ''
-        
+
         if (isSelected) {
           console.log(chalk.bgGreen.black(`❯ ${action.icon} ${action.name}${dangerIcon}${confirmIcon}`))
           console.log(chalk.bgGreen.black(`  ${action.description}`))
           console.log(chalk.bgGreen.black(`  命令: ${action.command}`))
-        } else {
+        }
+ else {
           console.log(chalk.gray(`  ${action.icon} ${action.name}${dangerIcon}${confirmIcon}`))
           console.log(chalk.gray(`  ${action.description}`))
         }
         console.log()
       })
     }
-    
+
     console.log(chalk.gray('操作说明:'))
     console.log(chalk.gray('  Tab - 切换子类别'))
     console.log(chalk.gray('  ↑↓ - 选择操作'))
@@ -395,24 +399,25 @@ class InteractiveMenu {
   private async confirmAction(action: MenuAction): Promise<boolean> {
     console.clear()
     this.displayHeader()
-    
+
     if (action.dangerous) {
       console.log(chalk.red.bold('⚠️  危险操作确认\n'))
-    } else {
+    }
+ else {
       console.log(chalk.yellow.bold('🔒 操作确认\n'))
     }
-    
+
     console.log(chalk.white(`操作: ${action.icon} ${action.name}`))
     console.log(chalk.white(`描述: ${action.description}`))
     console.log(chalk.white(`命令: ${action.command}`))
     console.log()
-    
+
     if (action.dangerous) {
       console.log(chalk.red('此操作可能会产生重要影响，请谨慎确认!'))
     }
-    
+
     console.log(chalk.yellow('确认执行此操作? (y/N)'))
-    
+
     const key = await this.waitForKeyPress()
     return key.toLowerCase() === 'y'
   }
@@ -422,7 +427,7 @@ class InteractiveMenu {
     this.displayHeader()
     console.log(chalk.blue.bold(`🚀 执行: ${actionName}`))
     console.log(chalk.gray(`命令: ${command}\n`))
-    
+
     // 临时恢复正常模式以显示命令输出
     if (process.stdin.setRawMode) {
       process.stdin.setRawMode(false)
@@ -440,16 +445,17 @@ class InteractiveMenu {
         console.log()
         if (code === 0) {
           console.log(chalk.green.bold('✅ 操作执行成功!'))
-        } else {
+        }
+ else {
           console.log(chalk.red.bold(`❌ 操作执行失败 (退出码: ${code})`))
         }
         console.log(chalk.gray('按任意键返回菜单...'))
-        
+
         // 重新设置原始模式
         if (process.stdin.setRawMode) {
           process.stdin.setRawMode(true)
         }
-        
+
         // 等待用户按键
         this.waitForKeyPress().then(() => resolve())
       })
@@ -458,12 +464,12 @@ class InteractiveMenu {
         console.log()
         console.log(chalk.red.bold(`❌ 执行错误: ${error.message}`))
         console.log(chalk.gray('按任意键返回菜单...'))
-        
+
         // 重新设置原始模式
         if (process.stdin.setRawMode) {
           process.stdin.setRawMode(true)
         }
-        
+
         // 等待用户按键
         this.waitForKeyPress().then(() => resolve())
       })
@@ -472,7 +478,7 @@ class InteractiveMenu {
 
   private checkCommandAvailability(command: string): boolean {
     const [cmd] = command.split(' ')
-    
+
     // 检查是否是 npm 脚本
     if (cmd === 'npm' && command.includes('run')) {
       const packageJsonPath = join(process.cwd(), 'package.json')
@@ -481,13 +487,14 @@ class InteractiveMenu {
           const packageJson = require(packageJsonPath)
           const scriptName = command.split('run ')[1]?.split(' ')[0]
           return !!(packageJson.scripts && packageJson.scripts[scriptName])
-        } catch {
+        }
+ catch {
           return false
         }
       }
       return false
     }
-    
+
     // 检查是否是 tsx 脚本
     if (cmd === 'tsx') {
       const scriptPath = command.split('tsx ')[1]?.split(' ')[0]
@@ -495,7 +502,7 @@ class InteractiveMenu {
         return existsSync(join(process.cwd(), scriptPath))
       }
     }
-    
+
     return true
   }
 
@@ -504,10 +511,11 @@ class InteractiveMenu {
       while (this.isRunning) {
         if (this.viewMode === 'category') {
           this.displayCategoryView()
-        } else {
+        }
+ else {
           this.displayActionView()
         }
-        
+
         const key = await this.waitForKeyPress()
 
         if (key === KEYS.CTRL_C) {
@@ -520,19 +528,23 @@ class InteractiveMenu {
           if (key === KEYS.UP) {
             this.categoryIndex = Math.max(0, this.categoryIndex - 1)
             this.selectedCategory = this.categories[this.categoryIndex]
-          } else if (key === KEYS.DOWN) {
+          }
+ else if (key === KEYS.DOWN) {
             this.categoryIndex = Math.min(this.categories.length - 1, this.categoryIndex + 1)
             this.selectedCategory = this.categories[this.categoryIndex]
-          } else if (key === KEYS.ENTER || key === KEYS.RIGHT) {
+          }
+ else if (key === KEYS.ENTER || key === KEYS.RIGHT) {
             this.viewMode = 'action'
             this.selectedIndex = 0
             this.selectedSubcategory = '全部'
           }
-        } else {
+        }
+ else {
           // 操作选择模式
           if (key === KEYS.LEFT) {
             this.viewMode = 'category'
-          } else if (key === KEYS.TAB) {
+          }
+ else if (key === KEYS.TAB) {
             // 切换子类别
             const subcategories = this.getSubcategories()
             if (subcategories.length > 1) {
@@ -541,17 +553,20 @@ class InteractiveMenu {
               this.selectedSubcategory = subcategories[nextIndex]
               this.selectedIndex = 0
             }
-          } else if (key === KEYS.UP) {
+          }
+ else if (key === KEYS.UP) {
             const filteredActions = this.getFilteredActions()
             this.selectedIndex = Math.max(0, this.selectedIndex - 1)
-          } else if (key === KEYS.DOWN) {
+          }
+ else if (key === KEYS.DOWN) {
             const filteredActions = this.getFilteredActions()
             this.selectedIndex = Math.min(filteredActions.length - 1, this.selectedIndex + 1)
-          } else if (key === KEYS.ENTER) {
+          }
+ else if (key === KEYS.ENTER) {
             const filteredActions = this.getFilteredActions()
             if (filteredActions.length > 0) {
               const selectedAction = filteredActions[this.selectedIndex]
-              
+
               // 检查命令是否可用
               if (!this.checkCommandAvailability(selectedAction.command)) {
                 console.clear()
@@ -567,7 +582,7 @@ class InteractiveMenu {
                 await this.waitForKeyPress()
                 continue
               }
-              
+
               // 如果需要确认，先确认
               if (selectedAction.requiresConfirm) {
                 const confirmed = await this.confirmAction(selectedAction)
@@ -575,13 +590,14 @@ class InteractiveMenu {
                   continue
                 }
               }
-              
+
               await this.executeCommand(selectedAction.command, selectedAction.name)
             }
           }
         }
       }
-    } finally {
+    }
+ finally {
       // 恢复终端设置
       if (process.stdin.setRawMode) {
         process.stdin.setRawMode(false)

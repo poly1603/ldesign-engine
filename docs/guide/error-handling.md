@@ -140,16 +140,16 @@ const engine = new Engine({
   errorHandling: {
     // 启用全局错误捕获
     global: true,
-    
+
     // 错误处理策略
     strategy: 'continue', // 'continue' | 'stop' | 'restart'
-    
+
     // 最大重试次数
     maxRetries: 3,
-    
+
     // 重试延迟（毫秒）
     retryDelay: 1000,
-    
+
     // 错误报告
     reporting: {
       enabled: true,
@@ -164,15 +164,18 @@ const engine = new Engine({
 engine.onError((error, context) => {
   console.error('全局错误:', error)
   console.error('错误上下文:', context)
-  
+
   // 根据错误类型进行不同处理
   if (error instanceof NetworkError) {
     handleNetworkError(error)
-  } else if (error instanceof AuthenticationError) {
+  }
+ else if (error instanceof AuthenticationError) {
     handleAuthError(error)
-  } else if (error instanceof ValidationError) {
+  }
+ else if (error instanceof ValidationError) {
     handleValidationError(error)
-  } else {
+  }
+ else {
     handleGenericError(error)
   }
 })
@@ -180,10 +183,10 @@ engine.onError((error, context) => {
 // 未捕获错误处理
 engine.onUnhandledError((error, context) => {
   console.error('未处理的错误:', error)
-  
+
   // 发送错误报告
   sendErrorReport(error, context)
-  
+
   // 显示用户友好的错误消息
   showErrorNotification('发生了意外错误，请稍后重试')
 })
@@ -195,10 +198,10 @@ engine.onUnhandledError((error, context) => {
 // 插件错误处理
 engine.onPluginError((error, pluginName, context) => {
   console.error(`插件 ${pluginName} 发生错误:`, error)
-  
+
   // 禁用有问题的插件
   engine.disablePlugin(pluginName)
-  
+
   // 通知用户
   showNotification(`插件 ${pluginName} 已被禁用`, 'warning')
 })
@@ -206,10 +209,10 @@ engine.onPluginError((error, pluginName, context) => {
 // 状态错误处理
 engine.onStateError((error, statePath, context) => {
   console.error(`状态 ${statePath} 发生错误:`, error)
-  
+
   // 恢复到上一个有效状态
   engine.undoState(statePath)
-  
+
   // 记录错误
   logStateError(statePath, error, context)
 })
@@ -217,7 +220,7 @@ engine.onStateError((error, statePath, context) => {
 // 事件错误处理
 engine.onEventError((error, eventName, context) => {
   console.error(`事件 ${eventName} 处理错误:`, error)
-  
+
   // 移除有问题的事件监听器
   if (context.listenerId) {
     engine.off(eventName, context.listenerId)
@@ -227,7 +230,7 @@ engine.onEventError((error, eventName, context) => {
 // 中间件错误处理
 engine.onMiddlewareError((error, middlewareName, context) => {
   console.error(`中间件 ${middlewareName} 发生错误:`, error)
-  
+
   // 跳过有问题的中间件
   engine.skipMiddleware(middlewareName)
 })
@@ -241,12 +244,13 @@ engine.onPromiseRejection((reason, promise, context) => {
   console.error('Promise 被拒绝:', reason)
   console.error('Promise:', promise)
   console.error('上下文:', context)
-  
+
   // 处理特定类型的 Promise 错误
   if (reason instanceof NetworkError) {
     // 网络错误重试
     retryNetworkRequest(context.originalRequest)
-  } else if (reason instanceof ValidationError) {
+  }
+ else if (reason instanceof ValidationError) {
     // 验证错误显示给用户
     showValidationError(reason.field, reason.message)
   }
@@ -255,13 +259,14 @@ engine.onPromiseRejection((reason, promise, context) => {
 // 异步操作错误处理
 engine.onAsyncError(async (error, operation, context) => {
   console.error(`异步操作 ${operation} 发生错误:`, error)
-  
+
   try {
     // 尝试恢复操作
     await recoverAsyncOperation(operation, context)
-  } catch (recoveryError) {
+  }
+ catch (recoveryError) {
     console.error('恢复操作失败:', recoveryError)
-    
+
     // 记录严重错误
     await logCriticalError(error, recoveryError, context)
   }
@@ -281,21 +286,21 @@ engine.configureErrorRecovery({
     maxAttempts: 3,
     backoffDelay: 1000
   },
-  
+
   // 状态错误恢复
   state: {
     strategy: 'rollback', // 'rollback' | 'reset' | 'ignore'
     preserveHistory: true,
     maxRollbacks: 5
   },
-  
+
   // 事件错误恢复
   event: {
     strategy: 'retry', // 'retry' | 'skip' | 'stop'
     maxRetries: 3,
     retryDelay: 500
   },
-  
+
   // 网络错误恢复
   network: {
     strategy: 'exponential-backoff',
@@ -308,15 +313,16 @@ engine.configureErrorRecovery({
 // 自定义恢复处理器
 engine.addRecoveryHandler('plugin', async (error, context) => {
   const { pluginName } = context
-  
+
   try {
     // 尝试重新初始化插件
     await engine.reinitializePlugin(pluginName)
     console.log(`插件 ${pluginName} 恢复成功`)
     return true
-  } catch (recoveryError) {
+  }
+ catch (recoveryError) {
     console.error(`插件 ${pluginName} 恢复失败:`, recoveryError)
-    
+
     // 降级处理：禁用插件
     engine.disablePlugin(pluginName)
     return false
@@ -325,7 +331,7 @@ engine.addRecoveryHandler('plugin', async (error, context) => {
 
 engine.addRecoveryHandler('state', async (error, context) => {
   const { statePath } = context
-  
+
   try {
     // 尝试从持久化存储恢复状态
     const persistedState = await engine.loadPersistedState(statePath)
@@ -334,14 +340,15 @@ engine.addRecoveryHandler('state', async (error, context) => {
       console.log(`状态 ${statePath} 从持久化存储恢复成功`)
       return true
     }
-    
+
     // 回滚到上一个有效状态
     engine.undoState(statePath)
     console.log(`状态 ${statePath} 回滚成功`)
     return true
-  } catch (recoveryError) {
+  }
+ catch (recoveryError) {
     console.error(`状态 ${statePath} 恢复失败:`, recoveryError)
-    
+
     // 重置为默认值
     engine.resetState(statePath)
     return false
@@ -355,56 +362,63 @@ engine.addRecoveryHandler('state', async (error, context) => {
 // 手动恢复操作
 class ErrorRecoveryManager {
   constructor(private engine: Engine) {}
-  
+
   async recoverFromError(error: Error, context: any): Promise<boolean> {
     console.log('开始错误恢复:', error.message)
-    
+
     try {
       // 根据错误类型选择恢复策略
       if (error instanceof PluginError) {
         return await this.recoverPluginError(error, context)
-      } else if (error instanceof StateError) {
+      }
+ else if (error instanceof StateError) {
         return await this.recoverStateError(error, context)
-      } else if (error instanceof NetworkError) {
+      }
+ else if (error instanceof NetworkError) {
         return await this.recoverNetworkError(error, context)
-      } else {
+      }
+ else {
         return await this.recoverGenericError(error, context)
       }
-    } catch (recoveryError) {
+    }
+ catch (recoveryError) {
       console.error('恢复过程中发生错误:', recoveryError)
       return false
     }
   }
-  
+
   private async recoverPluginError(error: PluginError, context: any): Promise<boolean> {
     const { pluginName } = error
-    
+
     // 1. 尝试重启插件
     try {
       await this.engine.restartPlugin(pluginName)
       return true
-    } catch {}
-    
+    }
+ catch {}
+
     // 2. 尝试重新加载插件
     try {
       await this.engine.reloadPlugin(pluginName)
       return true
-    } catch {}
-    
+    }
+ catch {}
+
     // 3. 禁用插件
     this.engine.disablePlugin(pluginName)
     return false
   }
-  
+
   private async recoverStateError(error: StateError, context: any): Promise<boolean> {
     const { statePath } = error
-    
+
     // 1. 尝试回滚状态
     try {
       this.engine.undoState(statePath)
       return true
-    } catch {}
-    
+    }
+ catch {}
+
     // 2. 尝试从备份恢复
     try {
       const backup = await this.engine.getStateBackup(statePath)
@@ -412,51 +426,55 @@ class ErrorRecoveryManager {
         this.engine.setState(statePath, backup)
         return true
       }
-    } catch {}
-    
+    }
+ catch {}
+
     // 3. 重置为默认值
     this.engine.resetState(statePath)
     return false
   }
-  
+
   private async recoverNetworkError(error: NetworkError, context: any): Promise<boolean> {
     const { url, status } = error
-    
+
     // 根据状态码选择恢复策略
     if (status === 401) {
       // 认证错误：刷新令牌
       try {
         await this.refreshAuthToken()
         return true
-      } catch {}
-    } else if (status >= 500) {
+      }
+ catch {}
+    }
+ else if (status >= 500) {
       // 服务器错误：重试请求
       try {
         await this.retryRequest(context.originalRequest)
         return true
-      } catch {}
+      }
+ catch {}
     }
-    
+
     return false
   }
-  
+
   private async recoverGenericError(error: Error, context: any): Promise<boolean> {
     // 通用恢复策略
     console.log('执行通用错误恢复')
-    
+
     // 清理可能的损坏状态
     this.engine.clearTempState()
-    
+
     // 重新初始化关键组件
     await this.engine.reinitializeCoreComponents()
-    
+
     return true
   }
-  
+
   private async refreshAuthToken(): Promise<void> {
     // 刷新认证令牌的实现
   }
-  
+
   private async retryRequest(request: any): Promise<void> {
     // 重试网络请求的实现
   }
@@ -467,11 +485,12 @@ const recoveryManager = new ErrorRecoveryManager(engine)
 
 engine.onError(async (error, context) => {
   const recovered = await recoveryManager.recoverFromError(error, context)
-  
+
   if (recovered) {
     console.log('错误恢复成功')
     showNotification('系统已自动恢复', 'success')
-  } else {
+  }
+ else {
     console.error('错误恢复失败')
     showNotification('系统恢复失败，请刷新页面', 'error')
   }
@@ -491,7 +510,7 @@ engine.configureErrorLogging({
   includeContext: true,
   includeUserAgent: true,
   includeTimestamp: true,
-  
+
   // 日志输出目标
   targets: [
     {
@@ -548,24 +567,24 @@ engine.setErrorLogFormatter((error, context) => {
 class ErrorReportingService {
   private queue: ErrorReport[] = []
   private isOnline = navigator.onLine
-  
+
   constructor(private engine: Engine) {
     this.setupNetworkListeners()
     this.setupPeriodicFlush()
   }
-  
+
   async reportError(error: Error, context: any): Promise<void> {
     const report = this.createErrorReport(error, context)
-    
+
     // 添加到队列
     this.queue.push(report)
-    
+
     // 立即发送严重错误
     if (report.severity === 'critical') {
       await this.flushQueue()
     }
   }
-  
+
   private createErrorReport(error: Error, context: any): ErrorReport {
     return {
       id: generateId(),
@@ -593,14 +612,14 @@ class ErrorReportingService {
       tags: this.generateTags(error, context)
     }
   }
-  
+
   private async flushQueue(): Promise<void> {
     if (!this.isOnline || this.queue.length === 0) {
       return
     }
-    
+
     const reports = this.queue.splice(0, 10) // 批量发送
-    
+
     try {
       await fetch('/api/error-reports', {
         method: 'POST',
@@ -609,59 +628,74 @@ class ErrorReportingService {
         },
         body: JSON.stringify({ reports })
       })
-      
+
       console.log(`成功发送 ${reports.length} 个错误报告`)
-    } catch (error) {
+    }
+ catch (error) {
       console.error('发送错误报告失败:', error)
-      
+
       // 重新添加到队列
       this.queue.unshift(...reports)
     }
   }
-  
+
   private setupNetworkListeners(): void {
     window.addEventListener('online', () => {
       this.isOnline = true
       this.flushQueue()
     })
-    
+
     window.addEventListener('offline', () => {
       this.isOnline = false
     })
   }
-  
+
   private setupPeriodicFlush(): void {
     setInterval(() => {
       this.flushQueue()
     }, 30000) // 每30秒发送一次
   }
-  
+
   private calculateSeverity(error: Error): 'low' | 'medium' | 'high' | 'critical' {
-    if (error instanceof AuthenticationError) return 'high'
-    if (error instanceof NetworkError) return 'medium'
-    if (error instanceof ValidationError) return 'low'
-    if (error instanceof PluginError) return 'medium'
-    if (error instanceof StateError) return 'high'
+    if (error instanceof AuthenticationError)
+return 'high'
+    if (error instanceof NetworkError)
+return 'medium'
+    if (error instanceof ValidationError)
+return 'low'
+    if (error instanceof PluginError)
+return 'medium'
+    if (error instanceof StateError)
+return 'high'
     return 'medium'
   }
-  
+
   private categorizeError(error: Error): string {
-    if (error instanceof NetworkError) return 'network'
-    if (error instanceof AuthenticationError) return 'auth'
-    if (error instanceof ValidationError) return 'validation'
-    if (error instanceof PluginError) return 'plugin'
-    if (error instanceof StateError) return 'state'
+    if (error instanceof NetworkError)
+return 'network'
+    if (error instanceof AuthenticationError)
+return 'auth'
+    if (error instanceof ValidationError)
+return 'validation'
+    if (error instanceof PluginError)
+return 'plugin'
+    if (error instanceof StateError)
+return 'state'
     return 'general'
   }
-  
+
   private generateTags(error: Error, context: any): string[] {
     const tags = []
-    
-    if (error.name) tags.push(`error:${error.name}`)
-    if (context.pluginName) tags.push(`plugin:${context.pluginName}`)
-    if (context.statePath) tags.push(`state:${context.statePath}`)
-    if (context.eventName) tags.push(`event:${context.eventName}`)
-    
+
+    if (error.name)
+tags.push(`error:${error.name}`)
+    if (context.pluginName)
+tags.push(`plugin:${context.pluginName}`)
+    if (context.statePath)
+tags.push(`state:${context.statePath}`)
+    if (context.eventName)
+tags.push(`event:${context.eventName}`)
+
     return tags
   }
 }
@@ -681,11 +715,11 @@ engine.onError((error, context) => {
 class ErrorAnalyticsService {
   private errorStats = new Map<string, ErrorStats>()
   private errorTrends: ErrorTrend[] = []
-  
+
   constructor(private engine: Engine) {
     this.setupErrorTracking()
   }
-  
+
   private setupErrorTracking(): void {
     this.engine.onError((error, context) => {
       this.trackError(error, context)
@@ -693,7 +727,7 @@ class ErrorAnalyticsService {
       this.detectErrorPatterns(error, context)
     })
   }
-  
+
   private trackError(error: Error, context: any): void {
     const errorKey = `${error.name}:${error.message}`
     const stats = this.errorStats.get(errorKey) || {
@@ -702,55 +736,56 @@ class ErrorAnalyticsService {
       lastSeen: Date.now(),
       contexts: []
     }
-    
+
     stats.count++
     stats.lastSeen = Date.now()
     stats.contexts.push({
       timestamp: Date.now(),
       ...context
     })
-    
+
     // 只保留最近的100个上下文
     if (stats.contexts.length > 100) {
       stats.contexts = stats.contexts.slice(-100)
     }
-    
+
     this.errorStats.set(errorKey, stats)
   }
-  
+
   private updateErrorStats(error: Error): void {
     const now = Date.now()
     const hourKey = Math.floor(now / (1000 * 60 * 60))
-    
+
     const trend = this.errorTrends.find(t => t.hour === hourKey) || {
       hour: hourKey,
       total: 0,
       byType: new Map<string, number>()
     }
-    
+
     trend.total++
     trend.byType.set(error.name, (trend.byType.get(error.name) || 0) + 1)
-    
+
     if (!this.errorTrends.find(t => t.hour === hourKey)) {
       this.errorTrends.push(trend)
     }
-    
+
     // 只保留最近24小时的数据
     this.errorTrends = this.errorTrends.filter(t => t.hour > hourKey - 24)
   }
-  
+
   private detectErrorPatterns(error: Error, context: any): void {
     const errorKey = `${error.name}:${error.message}`
     const stats = this.errorStats.get(errorKey)
-    
-    if (!stats) return
-    
+
+    if (!stats)
+return
+
     // 检测错误激增
     if (stats.count > 10) {
       const recentErrors = stats.contexts.filter(
         c => c.timestamp > Date.now() - 5 * 60 * 1000 // 最近5分钟
       )
-      
+
       if (recentErrors.length > 5) {
         this.engine.emit('error:spike-detected', {
           error: errorKey,
@@ -759,7 +794,7 @@ class ErrorAnalyticsService {
         })
       }
     }
-    
+
     // 检测错误循环
     if (stats.contexts.length >= 3) {
       const lastThree = stats.contexts.slice(-3)
@@ -767,7 +802,7 @@ class ErrorAnalyticsService {
         lastThree[1].timestamp - lastThree[0].timestamp,
         lastThree[2].timestamp - lastThree[1].timestamp
       ]
-      
+
       if (timeDiffs.every(diff => diff < 1000)) { // 1秒内重复
         this.engine.emit('error:loop-detected', {
           error: errorKey,
@@ -776,15 +811,15 @@ class ErrorAnalyticsService {
       }
     }
   }
-  
+
   getErrorReport(): ErrorReport {
     const now = Date.now()
     const last24h = now - 24 * 60 * 60 * 1000
-    
+
     const recentErrors = Array.from(this.errorStats.entries())
       .filter(([_, stats]) => stats.lastSeen > last24h)
       .sort(([_, a], [__, b]) => b.count - a.count)
-    
+
     return {
       summary: {
         totalErrors: recentErrors.reduce((sum, [_, stats]) => sum + stats.count, 0),
@@ -801,7 +836,7 @@ class ErrorAnalyticsService {
       patterns: this.detectCurrentPatterns()
     }
   }
-  
+
   private detectCurrentPatterns(): ErrorPattern[] {
     // 实现错误模式检测逻辑
     return []
@@ -826,7 +861,7 @@ engine.on('error:loop-detected', (data) => {
 setInterval(() => {
   const report = errorAnalytics.getErrorReport()
   console.log('错误报告:', report)
-  
+
   // 发送到监控服务
   sendToMonitoring(report)
 }, 60 * 60 * 1000) // 每小时
@@ -841,13 +876,14 @@ setInterval(() => {
 function validateParams(schema: any) {
   return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value
-    
+
     descriptor.value = function (...args: any[]) {
       try {
         // 验证参数
         validateSchema(args, schema)
         return originalMethod.apply(this, args)
-      } catch (error) {
+      }
+ catch (error) {
         throw new ValidationError(
           `参数验证失败: ${error.message}`,
           propertyKey,
@@ -855,7 +891,7 @@ function validateParams(schema: any) {
         )
       }
     }
-    
+
     return descriptor
   }
 }
@@ -873,7 +909,7 @@ class UserService {
   createUser(name: string, email: string, age: number) {
     // 创建用户逻辑
   }
-  
+
   @validateParams({
     type: 'array',
     items: [
@@ -894,7 +930,8 @@ function safeGetState<T>(engine: Engine, path: string, defaultValue?: T): T {
   try {
     const value = engine.getState(path)
     return value !== undefined ? value : defaultValue
-  } catch (error) {
+  }
+ catch (error) {
     console.warn(`获取状态 ${path} 失败:`, error)
     return defaultValue
   }
@@ -905,7 +942,8 @@ function safeSetState(engine: Engine, path: string, value: any): boolean {
   try {
     engine.setState(path, value)
     return true
-  } catch (error) {
+  }
+ catch (error) {
     console.error(`设置状态 ${path} 失败:`, error)
     return false
   }
@@ -923,9 +961,10 @@ function safeCallPlugin<T>(
     if (!plugin || !plugin[method]) {
       throw new Error(`插件方法 ${pluginName}.${method} 不存在`)
     }
-    
+
     return plugin[method](...args)
-  } catch (error) {
+  }
+ catch (error) {
     console.error(`调用插件方法 ${pluginName}.${method} 失败:`, error)
     return null
   }
@@ -941,10 +980,11 @@ async function safeAsyncOperation<T>(
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => reject(new Error('操作超时')), timeout)
     })
-    
+
     const result = await Promise.race([operation(), timeoutPromise])
     return result
-  } catch (error) {
+  }
+ catch (error) {
     console.error('异步操作失败:', error)
     return fallback
   }
@@ -957,26 +997,26 @@ async function safeAsyncOperation<T>(
 // 插件错误边界
 class PluginErrorBoundary {
   private failedPlugins = new Set<string>()
-  
+
   constructor(private engine: Engine) {
     this.setupErrorBoundary()
   }
-  
+
   private setupErrorBoundary(): void {
     // 包装插件方法
     this.engine.onPluginRegister((plugin) => {
       this.wrapPluginMethods(plugin)
     })
   }
-  
+
   private wrapPluginMethods(plugin: any): void {
     const pluginName = plugin.name
-    
+
     Object.getOwnPropertyNames(plugin)
       .filter(prop => typeof plugin[prop] === 'function')
-      .forEach(methodName => {
+      .forEach((methodName) => {
         const originalMethod = plugin[methodName]
-        
+
         plugin[methodName] = (...args: any[]) => {
           try {
             // 检查插件是否已失败
@@ -984,14 +1024,15 @@ class PluginErrorBoundary {
               console.warn(`插件 ${pluginName} 已被禁用，跳过方法 ${methodName}`)
               return
             }
-            
+
             return originalMethod.apply(plugin, args)
-          } catch (error) {
+          }
+ catch (error) {
             console.error(`插件 ${pluginName} 方法 ${methodName} 发生错误:`, error)
-            
+
             // 标记插件为失败
             this.failedPlugins.add(pluginName)
-            
+
             // 触发插件错误事件
             this.engine.emit('plugin:error', {
               pluginName,
@@ -999,7 +1040,7 @@ class PluginErrorBoundary {
               error,
               args
             })
-            
+
             throw new PluginError(
               `插件 ${pluginName} 方法 ${methodName} 执行失败`,
               pluginName,
@@ -1009,18 +1050,19 @@ class PluginErrorBoundary {
         }
       })
   }
-  
+
   recoverPlugin(pluginName: string): boolean {
     try {
       // 重新初始化插件
       this.engine.reinitializePlugin(pluginName)
-      
+
       // 从失败列表中移除
       this.failedPlugins.delete(pluginName)
-      
+
       console.log(`插件 ${pluginName} 恢复成功`)
       return true
-    } catch (error) {
+    }
+ catch (error) {
       console.error(`插件 ${pluginName} 恢复失败:`, error)
       return false
     }
@@ -1033,13 +1075,14 @@ const pluginErrorBoundary = new PluginErrorBoundary(engine)
 // 监听插件错误并尝试恢复
 engine.on('plugin:error', async ({ pluginName }) => {
   console.log(`尝试恢复插件 ${pluginName}`)
-  
+
   // 等待一段时间后尝试恢复
   setTimeout(() => {
     const recovered = pluginErrorBoundary.recoverPlugin(pluginName)
     if (recovered) {
       showNotification(`插件 ${pluginName} 已恢复`, 'success')
-    } else {
+    }
+ else {
       showNotification(`插件 ${pluginName} 恢复失败`, 'error')
     }
   }, 5000)
@@ -1061,37 +1104,38 @@ enum ErrorSeverity {
 
 // 错误分类器
 class ErrorClassifier {
-  static classify(error: Error): { severity: ErrorSeverity; category: string } {
+  static classify(error: Error): { severity: ErrorSeverity, category: string } {
     // 关键错误
     if (error instanceof AuthenticationError) {
       return { severity: ErrorSeverity.HIGH, category: 'security' }
     }
-    
+
     // 数据错误
     if (error instanceof StateError) {
       return { severity: ErrorSeverity.HIGH, category: 'data' }
     }
-    
+
     // 网络错误
     if (error instanceof NetworkError) {
       const networkError = error as NetworkError
       if (networkError.status >= 500) {
         return { severity: ErrorSeverity.HIGH, category: 'network' }
-      } else {
+      }
+ else {
         return { severity: ErrorSeverity.MEDIUM, category: 'network' }
       }
     }
-    
+
     // 验证错误
     if (error instanceof ValidationError) {
       return { severity: ErrorSeverity.LOW, category: 'validation' }
     }
-    
+
     // 插件错误
     if (error instanceof PluginError) {
       return { severity: ErrorSeverity.MEDIUM, category: 'plugin' }
     }
-    
+
     // 默认分类
     return { severity: ErrorSeverity.MEDIUM, category: 'general' }
   }
@@ -1103,19 +1147,19 @@ class ErrorClassifier {
 ```typescript
 // 错误消息映射
 const ERROR_MESSAGES = {
-  'NETWORK_ERROR': {
+  NETWORK_ERROR: {
     user: '网络连接出现问题，请检查您的网络设置',
     developer: 'Network request failed'
   },
-  'AUTH_ERROR': {
+  AUTH_ERROR: {
     user: '登录已过期，请重新登录',
     developer: 'Authentication token expired'
   },
-  'VALIDATION_ERROR': {
+  VALIDATION_ERROR: {
     user: '输入的信息格式不正确，请检查后重试',
     developer: 'Input validation failed'
   },
-  'PLUGIN_ERROR': {
+  PLUGIN_ERROR: {
     user: '某个功能模块出现问题，已自动禁用',
     developer: 'Plugin execution failed'
   }
@@ -1126,23 +1170,23 @@ class ErrorMessageHandler {
   static getUserMessage(error: Error): string {
     const errorCode = (error as any).code || 'UNKNOWN_ERROR'
     const mapping = ERROR_MESSAGES[errorCode]
-    
+
     if (mapping) {
       return mapping.user
     }
-    
+
     // 默认用户消息
     return '系统出现了一个问题，我们正在努力修复'
   }
-  
+
   static getDeveloperMessage(error: Error): string {
     const errorCode = (error as any).code || 'UNKNOWN_ERROR'
     const mapping = ERROR_MESSAGES[errorCode]
-    
+
     if (mapping) {
       return mapping.developer
     }
-    
+
     return error.message
   }
 }
@@ -1151,10 +1195,10 @@ class ErrorMessageHandler {
 engine.onError((error, context) => {
   const userMessage = ErrorMessageHandler.getUserMessage(error)
   const developerMessage = ErrorMessageHandler.getDeveloperMessage(error)
-  
+
   // 显示用户友好消息
   showNotification(userMessage, 'error')
-  
+
   // 记录开发者消息
   console.error('开发者错误信息:', developerMessage, error)
 })

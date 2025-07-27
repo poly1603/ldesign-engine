@@ -1,362 +1,24 @@
-<template>
-  <div class="middleware-page">
-    <div class="page-header">
-      <h1>
-        <Layers class="icon" />
-        中间件系统演示
-      </h1>
-      <p>展示生命周期钩子、中间件执行流程和性能监控</p>
-    </div>
-
-    <!-- 生命周期可视化 -->
-    <div class="section">
-      <h2 class="section-title">
-        <Clock class="icon" />
-        生命周期可视化
-      </h2>
-      
-      <div class="lifecycle-container">
-        <div class="lifecycle-timeline">
-          <div 
-            v-for="(phase, index) in lifecyclePhases" 
-            :key="phase.name"
-            class="timeline-item"
-            :class="{ 
-              active: currentPhase === phase.name,
-              completed: phase.completed,
-              executing: phase.executing
-            }"
-          >
-            <div class="timeline-marker">
-              <div class="marker-dot">
-                <CheckCircle v-if="phase.completed" class="marker-icon completed" />
-                <Loader v-else-if="phase.executing" class="marker-icon executing spinning" />
-                <Circle v-else class="marker-icon pending" />
-              </div>
-              <div v-if="index < lifecyclePhases.length - 1" class="marker-line"></div>
-            </div>
-            
-            <div class="timeline-content">
-              <h3>{{ phase.title }}</h3>
-              <p>{{ phase.description }}</p>
-              <div class="phase-stats">
-                <span class="stat-item">
-                  <Timer class="stat-icon" />
-                  {{ phase.duration }}ms
-                </span>
-                <span class="stat-item">
-                  <Layers class="stat-icon" />
-                  {{ phase.middlewareCount }} 中间件
-                </span>
-              </div>
-              
-              <!-- 中间件列表 -->
-              <div v-if="phase.middlewares?.length" class="middleware-list">
-                <div 
-                  v-for="middleware in phase.middlewares" 
-                  :key="middleware.name"
-                  class="middleware-item"
-                  :class="{ 
-                    executing: middleware.executing,
-                    completed: middleware.completed,
-                    error: middleware.error
-                  }"
-                >
-                  <div class="middleware-status">
-                    <CheckCircle v-if="middleware.completed" class="status-icon success" />
-                    <XCircle v-else-if="middleware.error" class="status-icon error" />
-                    <Loader v-else-if="middleware.executing" class="status-icon executing spinning" />
-                    <Circle v-else class="status-icon pending" />
-                  </div>
-                  <div class="middleware-info">
-                    <span class="middleware-name">{{ middleware.name }}</span>
-                    <span class="middleware-time">{{ middleware.duration }}ms</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <div class="lifecycle-controls">
-          <button @click="simulateLifecycle" class="btn btn-primary" :disabled="isSimulating">
-            <Play class="btn-icon" />
-            {{ isSimulating ? '执行中...' : '模拟生命周期' }}
-          </button>
-          <button @click="resetLifecycle" class="btn btn-secondary">
-            <RotateCcw class="btn-icon" />
-            重置
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 中间件管理器 -->
-    <div class="section">
-      <h2 class="section-title">
-        <Settings class="icon" />
-        中间件管理器
-      </h2>
-      
-      <div class="middleware-manager">
-        <div class="manager-controls">
-          <div class="hook-selector">
-            <label>选择生命周期钩子:</label>
-            <select v-model="selectedHook" class="hook-select">
-              <option v-for="hook in availableHooks" :key="hook" :value="hook">
-                {{ hook }}
-              </option>
-            </select>
-          </div>
-          
-          <button @click="showAddMiddleware = true" class="btn btn-primary">
-            <Plus class="btn-icon" />
-            添加中间件
-          </button>
-        </div>
-        
-        <div class="middleware-table">
-          <table>
-            <thead>
-              <tr>
-                <th>名称</th>
-                <th>钩子</th>
-                <th>优先级</th>
-                <th>状态</th>
-                <th>执行时间</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="middleware in registeredMiddlewares" :key="middleware.id">
-                <td>{{ middleware.name }}</td>
-                <td>
-                  <span class="hook-badge">{{ middleware.hook }}</span>
-                </td>
-                <td>{{ middleware.priority }}</td>
-                <td>
-                  <span 
-                    class="status-badge" 
-                    :class="middleware.enabled ? 'enabled' : 'disabled'"
-                  >
-                    {{ middleware.enabled ? '启用' : '禁用' }}
-                  </span>
-                </td>
-                <td>{{ middleware.lastDuration || '-' }}ms</td>
-                <td>
-                  <div class="action-buttons">
-                    <button 
-                      @click="toggleMiddleware(middleware)"
-                      class="btn btn-sm"
-                      :class="middleware.enabled ? 'btn-warning' : 'btn-success'"
-                    >
-                      {{ middleware.enabled ? '禁用' : '启用' }}
-                    </button>
-                    <button @click="executeMiddleware(middleware)" class="btn btn-sm btn-primary">
-                      <Play class="btn-icon" />
-                      执行
-                    </button>
-                    <button @click="removeMiddleware(middleware)" class="btn btn-sm btn-danger">
-                      <Trash2 class="btn-icon" />
-                      删除
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- 性能监控面板 -->
-    <div class="section">
-      <h2 class="section-title">
-        <BarChart class="icon" />
-        性能监控面板
-      </h2>
-      
-      <div class="performance-dashboard">
-        <div class="performance-cards">
-          <div class="perf-card">
-            <div class="perf-icon">
-              <Zap class="icon" />
-            </div>
-            <div class="perf-content">
-              <h3>平均执行时间</h3>
-              <div class="perf-value">{{ performanceMetrics.avgExecutionTime }}ms</div>
-              <div class="perf-change" :class="performanceMetrics.timeChange >= 0 ? 'positive' : 'negative'">
-                {{ performanceMetrics.timeChange >= 0 ? '+' : '' }}{{ performanceMetrics.timeChange }}%
-              </div>
-            </div>
-          </div>
-          
-          <div class="perf-card">
-            <div class="perf-icon">
-              <Activity class="icon" />
-            </div>
-            <div class="perf-content">
-              <h3>内存使用</h3>
-              <div class="perf-value">{{ performanceMetrics.memoryUsage }}MB</div>
-              <div class="perf-change" :class="performanceMetrics.memoryChange >= 0 ? 'positive' : 'negative'">
-                {{ performanceMetrics.memoryChange >= 0 ? '+' : '' }}{{ performanceMetrics.memoryChange }}%
-              </div>
-            </div>
-          </div>
-          
-          <div class="perf-card">
-            <div class="perf-icon">
-              <TrendingUp class="icon" />
-            </div>
-            <div class="perf-content">
-              <h3>执行次数</h3>
-              <div class="perf-value">{{ performanceMetrics.executionCount }}</div>
-              <div class="perf-change positive">
-                +{{ performanceMetrics.executionIncrease }}
-              </div>
-            </div>
-          </div>
-          
-          <div class="perf-card">
-            <div class="perf-icon">
-              <AlertTriangle class="icon" />
-            </div>
-            <div class="perf-content">
-              <h3>错误率</h3>
-              <div class="perf-value">{{ performanceMetrics.errorRate }}%</div>
-              <div class="perf-change" :class="performanceMetrics.errorRateChange >= 0 ? 'positive' : 'negative'">
-                {{ performanceMetrics.errorRateChange >= 0 ? '+' : '' }}{{ performanceMetrics.errorRateChange }}%
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <!-- 性能图表 -->
-        <div class="performance-charts">
-          <div class="chart-container">
-            <h3>执行时间趋势</h3>
-            <div class="chart-placeholder">
-              <svg class="performance-chart" viewBox="0 0 400 200">
-                <polyline 
-                  :points="executionTimePoints" 
-                  fill="none" 
-                  stroke="#3b82f6" 
-                  stroke-width="2"
-                />
-                <circle 
-                  v-for="(point, index) in executionTimeData" 
-                  :key="index"
-                  :cx="index * 40 + 20"
-                  :cy="200 - point * 2"
-                  r="3"
-                  fill="#3b82f6"
-                />
-              </svg>
-            </div>
-          </div>
-          
-          <div class="chart-container">
-            <h3>内存使用趋势</h3>
-            <div class="chart-placeholder">
-              <svg class="performance-chart" viewBox="0 0 400 200">
-                <polyline 
-                  :points="memoryUsagePoints" 
-                  fill="none" 
-                  stroke="#10b981" 
-                  stroke-width="2"
-                />
-                <circle 
-                  v-for="(point, index) in memoryUsageData" 
-                  :key="index"
-                  :cx="index * 40 + 20"
-                  :cy="200 - point * 4"
-                  r="3"
-                  fill="#10b981"
-                />
-              </svg>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 添加中间件模态框 -->
-    <div v-if="showAddMiddleware" class="modal-overlay" @click="closeAddMiddleware">
-      <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <h3>添加中间件</h3>
-          <button @click="closeAddMiddleware" class="modal-close">
-            <X class="close-icon" />
-          </button>
-        </div>
-        <div class="modal-body">
-          <form @submit.prevent="addMiddleware">
-            <div class="form-group">
-              <label>中间件名称</label>
-              <input v-model="newMiddleware.name" required class="form-input" placeholder="输入中间件名称" />
-            </div>
-            
-            <div class="form-group">
-              <label>生命周期钩子</label>
-              <select v-model="newMiddleware.hook" required class="form-select">
-                <option v-for="hook in availableHooks" :key="hook" :value="hook">
-                  {{ hook }}
-                </option>
-              </select>
-            </div>
-            
-            <div class="form-group">
-              <label>优先级</label>
-              <input v-model.number="newMiddleware.priority" type="number" class="form-input" placeholder="数字越小优先级越高" />
-            </div>
-            
-            <div class="form-group">
-              <label>中间件代码</label>
-              <textarea 
-                v-model="newMiddleware.code" 
-                required 
-                class="form-textarea" 
-                rows="8"
-                placeholder="输入中间件函数代码..."
-              ></textarea>
-            </div>
-            
-            <div class="form-actions">
-              <button type="button" @click="closeAddMiddleware" class="btn btn-secondary">
-                取消
-              </button>
-              <button type="submit" class="btn btn-primary">
-                添加中间件
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { ref, computed, inject, onMounted } from 'vue'
+import { computed, inject, onMounted, ref } from 'vue'
 import {
-  Layers,
-  Clock,
+  Activity,
+  AlertTriangle,
+  BarChart,
   CheckCircle,
-  Loader,
   Circle,
-  Timer,
-  XCircle,
+  Clock,
+  Layers,
+  Loader,
   Play,
+  Plus,
   RotateCcw,
   Settings,
-  Plus,
+  Timer,
   Trash2,
-  BarChart,
-  Zap,
-  Activity,
   TrendingUp,
-  AlertTriangle,
-  X
+  X,
+  XCircle,
+  Zap,
 } from 'lucide-vue-next'
 
 // 注入引擎服务
@@ -371,13 +33,13 @@ const showAddMiddleware = ref(false)
 // 可用的生命周期钩子
 const availableHooks = [
   'beforeCreate',
-  'created', 
+  'created',
   'beforeMount',
   'mounted',
   'beforeUpdate',
   'updated',
   'beforeUnmount',
-  'unmounted'
+  'unmounted',
 ]
 
 // 生命周期阶段
@@ -392,8 +54,8 @@ const lifecyclePhases = ref([
     executing: false,
     middlewares: [
       { name: 'logger', duration: 5, executing: false, completed: false, error: false },
-      { name: 'validator', duration: 8, executing: false, completed: false, error: false }
-    ]
+      { name: 'validator', duration: 8, executing: false, completed: false, error: false },
+    ],
   },
   {
     name: 'created',
@@ -404,8 +66,8 @@ const lifecyclePhases = ref([
     completed: false,
     executing: false,
     middlewares: [
-      { name: 'initializer', duration: 12, executing: false, completed: false, error: false }
-    ]
+      { name: 'initializer', duration: 12, executing: false, completed: false, error: false },
+    ],
   },
   {
     name: 'beforeMount',
@@ -418,8 +80,8 @@ const lifecyclePhases = ref([
     middlewares: [
       { name: 'preloader', duration: 15, executing: false, completed: false, error: false },
       { name: 'theme', duration: 7, executing: false, completed: false, error: false },
-      { name: 'router', duration: 10, executing: false, completed: false, error: false }
-    ]
+      { name: 'router', duration: 10, executing: false, completed: false, error: false },
+    ],
   },
   {
     name: 'mounted',
@@ -431,9 +93,9 @@ const lifecyclePhases = ref([
     executing: false,
     middlewares: [
       { name: 'analytics', duration: 6, executing: false, completed: false, error: false },
-      { name: 'notification', duration: 4, executing: false, completed: false, error: false }
-    ]
-  }
+      { name: 'notification', duration: 4, executing: false, completed: false, error: false },
+    ],
+  },
 ])
 
 // 注册的中间件
@@ -444,15 +106,15 @@ const registeredMiddlewares = ref([
     hook: 'beforeCreate',
     priority: 1,
     enabled: true,
-    lastDuration: 5
+    lastDuration: 5,
   },
   {
     id: 2,
     name: 'validator',
-    hook: 'beforeCreate', 
+    hook: 'beforeCreate',
     priority: 2,
     enabled: true,
-    lastDuration: 8
+    lastDuration: 8,
   },
   {
     id: 3,
@@ -460,7 +122,7 @@ const registeredMiddlewares = ref([
     hook: 'beforeMount',
     priority: 1,
     enabled: true,
-    lastDuration: 7
+    lastDuration: 7,
   },
   {
     id: 4,
@@ -468,8 +130,8 @@ const registeredMiddlewares = ref([
     hook: 'mounted',
     priority: 1,
     enabled: false,
-    lastDuration: 6
-  }
+    lastDuration: 6,
+  },
 ])
 
 // 新中间件表单
@@ -494,7 +156,7 @@ const newMiddleware = ref({
     console.error('Middleware error:', error)
     throw error
   }
-}`
+}`,
 })
 
 // 性能指标
@@ -506,7 +168,7 @@ const performanceMetrics = ref({
   executionCount: 1247,
   executionIncrease: 23,
   errorRate: 0.8,
-  errorRateChange: -0.2
+  errorRateChange: -0.2,
 })
 
 // 性能图表数据
@@ -527,16 +189,17 @@ const memoryUsagePoints = computed(() => {
 })
 
 // 方法
-const simulateLifecycle = async () => {
-  if (isSimulating.value) return
-  
+async function simulateLifecycle() {
+  if (isSimulating.value)
+return
+
   isSimulating.value = true
   resetLifecycle()
-  
+
   for (const phase of lifecyclePhases.value) {
     currentPhase.value = phase.name
     phase.executing = true
-    
+
     // 执行该阶段的中间件
     for (const middleware of phase.middlewares || []) {
       middleware.executing = true
@@ -544,31 +207,31 @@ const simulateLifecycle = async () => {
       middleware.executing = false
       middleware.completed = true
     }
-    
+
     // 计算阶段总时间
     phase.duration = (phase.middlewares || []).reduce((sum, m) => sum + m.duration, 0)
-    
+
     await new Promise(resolve => setTimeout(resolve, 200))
-    
+
     phase.executing = false
     phase.completed = true
   }
-  
+
   currentPhase.value = ''
   isSimulating.value = false
-  
+
   // 更新性能指标
   updatePerformanceMetrics()
 }
 
-const resetLifecycle = () => {
-  lifecyclePhases.value.forEach(phase => {
+function resetLifecycle() {
+  lifecyclePhases.value.forEach((phase) => {
     phase.completed = false
     phase.executing = false
     phase.duration = 0
-    
+
     if (phase.middlewares) {
-      phase.middlewares.forEach(middleware => {
+      phase.middlewares.forEach((middleware) => {
         middleware.executing = false
         middleware.completed = false
         middleware.error = false
@@ -578,94 +241,95 @@ const resetLifecycle = () => {
   currentPhase.value = ''
 }
 
-const addMiddleware = () => {
+function addMiddleware() {
   const middleware = {
     id: Date.now(),
     name: newMiddleware.value.name,
     hook: newMiddleware.value.hook,
     priority: newMiddleware.value.priority,
     enabled: true,
-    lastDuration: null
+    lastDuration: null,
   }
-  
+
   registeredMiddlewares.value.push(middleware)
-  
+
   // 重置表单
   newMiddleware.value = {
     name: '',
     hook: 'beforeMount',
     priority: 1,
-    code: newMiddleware.value.code // 保留代码模板
+    code: newMiddleware.value.code, // 保留代码模板
   }
-  
+
   showAddMiddleware.value = false
-  
+
   // 触发引擎事件
   if (engine) {
     engine.emit('middleware:added', middleware)
   }
 }
 
-const toggleMiddleware = (middleware: any) => {
+function toggleMiddleware(middleware: any) {
   middleware.enabled = !middleware.enabled
-  
+
   if (engine) {
     engine.emit('middleware:toggled', {
       name: middleware.name,
-      enabled: middleware.enabled
+      enabled: middleware.enabled,
     })
   }
 }
 
-const executeMiddleware = async (middleware: any) => {
+async function executeMiddleware(middleware: any) {
   const startTime = Date.now()
-  
+
   try {
     // 模拟中间件执行
     await new Promise(resolve => setTimeout(resolve, Math.random() * 100 + 50))
-    
+
     middleware.lastDuration = Date.now() - startTime
-    
+
     if (engine) {
       engine.emit('middleware:executed', {
         name: middleware.name,
-        duration: middleware.lastDuration
+        duration: middleware.lastDuration,
       })
     }
-  } catch (error) {
+  }
+ catch (error) {
     if (engine) {
       engine.emit('middleware:error', {
         name: middleware.name,
-        error: error
+        error,
       })
     }
   }
 }
 
-const removeMiddleware = (middleware: any) => {
+function removeMiddleware(middleware: any) {
   const index = registeredMiddlewares.value.findIndex(m => m.id === middleware.id)
   if (index > -1) {
     registeredMiddlewares.value.splice(index, 1)
-    
+
     if (engine) {
       engine.emit('middleware:removed', { name: middleware.name })
     }
   }
 }
 
-const closeAddMiddleware = () => {
+function closeAddMiddleware() {
   showAddMiddleware.value = false
 }
 
-const updatePerformanceMetrics = () => {
+function updatePerformanceMetrics() {
   // 模拟性能指标更新
   performanceMetrics.value.executionCount += Math.floor(Math.random() * 10) + 1
   performanceMetrics.value.executionIncrease = Math.floor(Math.random() * 20) + 10
-  
+
   // 更新图表数据
   executionTimeData.value.push(Math.floor(Math.random() * 10) + 8)
   executionTimeData.value.shift()
-  
+
   memoryUsageData.value.push(Math.floor(Math.random() * 5) + 7)
   memoryUsageData.value.shift()
 }
@@ -676,6 +340,352 @@ onMounted(() => {
   setInterval(updatePerformanceMetrics, 5000)
 })
 </script>
+
+<template>
+  <div class="middleware-page">
+    <div class="page-header">
+      <h1>
+        <Layers class="icon" />
+        中间件系统演示
+      </h1>
+      <p>展示生命周期钩子、中间件执行流程和性能监控</p>
+    </div>
+
+    <!-- 生命周期可视化 -->
+    <div class="section">
+      <h2 class="section-title">
+        <Clock class="icon" />
+        生命周期可视化
+      </h2>
+
+      <div class="lifecycle-container">
+        <div class="lifecycle-timeline">
+          <div
+            v-for="(phase, index) in lifecyclePhases"
+            :key="phase.name"
+            class="timeline-item"
+            :class="{
+              active: currentPhase === phase.name,
+              completed: phase.completed,
+              executing: phase.executing,
+            }"
+          >
+            <div class="timeline-marker">
+              <div class="marker-dot">
+                <CheckCircle v-if="phase.completed" class="marker-icon completed" />
+                <Loader v-else-if="phase.executing" class="marker-icon executing spinning" />
+                <Circle v-else class="marker-icon pending" />
+              </div>
+              <div v-if="index < lifecyclePhases.length - 1" class="marker-line" />
+            </div>
+
+            <div class="timeline-content">
+              <h3>{{ phase.title }}</h3>
+              <p>{{ phase.description }}</p>
+              <div class="phase-stats">
+                <span class="stat-item">
+                  <Timer class="stat-icon" />
+                  {{ phase.duration }}ms
+                </span>
+                <span class="stat-item">
+                  <Layers class="stat-icon" />
+                  {{ phase.middlewareCount }} 中间件
+                </span>
+              </div>
+
+              <!-- 中间件列表 -->
+              <div v-if="phase.middlewares?.length" class="middleware-list">
+                <div
+                  v-for="middleware in phase.middlewares"
+                  :key="middleware.name"
+                  class="middleware-item"
+                  :class="{
+                    executing: middleware.executing,
+                    completed: middleware.completed,
+                    error: middleware.error,
+                  }"
+                >
+                  <div class="middleware-status">
+                    <CheckCircle v-if="middleware.completed" class="status-icon success" />
+                    <XCircle v-else-if="middleware.error" class="status-icon error" />
+                    <Loader v-else-if="middleware.executing" class="status-icon executing spinning" />
+                    <Circle v-else class="status-icon pending" />
+                  </div>
+                  <div class="middleware-info">
+                    <span class="middleware-name">{{ middleware.name }}</span>
+                    <span class="middleware-time">{{ middleware.duration }}ms</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="lifecycle-controls">
+          <button class="btn btn-primary" :disabled="isSimulating" @click="simulateLifecycle">
+            <Play class="btn-icon" />
+            {{ isSimulating ? '执行中...' : '模拟生命周期' }}
+          </button>
+          <button class="btn btn-secondary" @click="resetLifecycle">
+            <RotateCcw class="btn-icon" />
+            重置
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 中间件管理器 -->
+    <div class="section">
+      <h2 class="section-title">
+        <Settings class="icon" />
+        中间件管理器
+      </h2>
+
+      <div class="middleware-manager">
+        <div class="manager-controls">
+          <div class="hook-selector">
+            <label>选择生命周期钩子:</label>
+            <select v-model="selectedHook" class="hook-select">
+              <option v-for="hook in availableHooks" :key="hook" :value="hook">
+                {{ hook }}
+              </option>
+            </select>
+          </div>
+
+          <button class="btn btn-primary" @click="showAddMiddleware = true">
+            <Plus class="btn-icon" />
+            添加中间件
+          </button>
+        </div>
+
+        <div class="middleware-table">
+          <table>
+            <thead>
+              <tr>
+                <th>名称</th>
+                <th>钩子</th>
+                <th>优先级</th>
+                <th>状态</th>
+                <th>执行时间</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="middleware in registeredMiddlewares" :key="middleware.id">
+                <td>{{ middleware.name }}</td>
+                <td>
+                  <span class="hook-badge">{{ middleware.hook }}</span>
+                </td>
+                <td>{{ middleware.priority }}</td>
+                <td>
+                  <span
+                    class="status-badge"
+                    :class="middleware.enabled ? 'enabled' : 'disabled'"
+                  >
+                    {{ middleware.enabled ? '启用' : '禁用' }}
+                  </span>
+                </td>
+                <td>{{ middleware.lastDuration || '-' }}ms</td>
+                <td>
+                  <div class="action-buttons">
+                    <button
+                      class="btn btn-sm"
+                      :class="middleware.enabled ? 'btn-warning' : 'btn-success'"
+                      @click="toggleMiddleware(middleware)"
+                    >
+                      {{ middleware.enabled ? '禁用' : '启用' }}
+                    </button>
+                    <button class="btn btn-sm btn-primary" @click="executeMiddleware(middleware)">
+                      <Play class="btn-icon" />
+                      执行
+                    </button>
+                    <button class="btn btn-sm btn-danger" @click="removeMiddleware(middleware)">
+                      <Trash2 class="btn-icon" />
+                      删除
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 性能监控面板 -->
+    <div class="section">
+      <h2 class="section-title">
+        <BarChart class="icon" />
+        性能监控面板
+      </h2>
+
+      <div class="performance-dashboard">
+        <div class="performance-cards">
+          <div class="perf-card">
+            <div class="perf-icon">
+              <Zap class="icon" />
+            </div>
+            <div class="perf-content">
+              <h3>平均执行时间</h3>
+              <div class="perf-value">
+                {{ performanceMetrics.avgExecutionTime }}ms
+              </div>
+              <div class="perf-change" :class="performanceMetrics.timeChange >= 0 ? 'positive' : 'negative'">
+                {{ performanceMetrics.timeChange >= 0 ? '+' : '' }}{{ performanceMetrics.timeChange }}%
+              </div>
+            </div>
+          </div>
+
+          <div class="perf-card">
+            <div class="perf-icon">
+              <Activity class="icon" />
+            </div>
+            <div class="perf-content">
+              <h3>内存使用</h3>
+              <div class="perf-value">
+                {{ performanceMetrics.memoryUsage }}MB
+              </div>
+              <div class="perf-change" :class="performanceMetrics.memoryChange >= 0 ? 'positive' : 'negative'">
+                {{ performanceMetrics.memoryChange >= 0 ? '+' : '' }}{{ performanceMetrics.memoryChange }}%
+              </div>
+            </div>
+          </div>
+
+          <div class="perf-card">
+            <div class="perf-icon">
+              <TrendingUp class="icon" />
+            </div>
+            <div class="perf-content">
+              <h3>执行次数</h3>
+              <div class="perf-value">
+                {{ performanceMetrics.executionCount }}
+              </div>
+              <div class="perf-change positive">
+                +{{ performanceMetrics.executionIncrease }}
+              </div>
+            </div>
+          </div>
+
+          <div class="perf-card">
+            <div class="perf-icon">
+              <AlertTriangle class="icon" />
+            </div>
+            <div class="perf-content">
+              <h3>错误率</h3>
+              <div class="perf-value">
+                {{ performanceMetrics.errorRate }}%
+              </div>
+              <div class="perf-change" :class="performanceMetrics.errorRateChange >= 0 ? 'positive' : 'negative'">
+                {{ performanceMetrics.errorRateChange >= 0 ? '+' : '' }}{{ performanceMetrics.errorRateChange }}%
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 性能图表 -->
+        <div class="performance-charts">
+          <div class="chart-container">
+            <h3>执行时间趋势</h3>
+            <div class="chart-placeholder">
+              <svg class="performance-chart" viewBox="0 0 400 200">
+                <polyline
+                  :points="executionTimePoints"
+                  fill="none"
+                  stroke="#3b82f6"
+                  stroke-width="2"
+                />
+                <circle
+                  v-for="(point, index) in executionTimeData"
+                  :key="index"
+                  :cx="index * 40 + 20"
+                  :cy="200 - point * 2"
+                  r="3"
+                  fill="#3b82f6"
+                />
+              </svg>
+            </div>
+          </div>
+
+          <div class="chart-container">
+            <h3>内存使用趋势</h3>
+            <div class="chart-placeholder">
+              <svg class="performance-chart" viewBox="0 0 400 200">
+                <polyline
+                  :points="memoryUsagePoints"
+                  fill="none"
+                  stroke="#10b981"
+                  stroke-width="2"
+                />
+                <circle
+                  v-for="(point, index) in memoryUsageData"
+                  :key="index"
+                  :cx="index * 40 + 20"
+                  :cy="200 - point * 4"
+                  r="3"
+                  fill="#10b981"
+                />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 添加中间件模态框 -->
+    <div v-if="showAddMiddleware" class="modal-overlay" @click="closeAddMiddleware">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>添加中间件</h3>
+          <button class="modal-close" @click="closeAddMiddleware">
+            <X class="close-icon" />
+          </button>
+        </div>
+        <div class="modal-body">
+          <form @submit.prevent="addMiddleware">
+            <div class="form-group">
+              <label>中间件名称</label>
+              <input v-model="newMiddleware.name" required class="form-input" placeholder="输入中间件名称">
+            </div>
+
+            <div class="form-group">
+              <label>生命周期钩子</label>
+              <select v-model="newMiddleware.hook" required class="form-select">
+                <option v-for="hook in availableHooks" :key="hook" :value="hook">
+                  {{ hook }}
+                </option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>优先级</label>
+              <input v-model.number="newMiddleware.priority" type="number" class="form-input" placeholder="数字越小优先级越高">
+            </div>
+
+            <div class="form-group">
+              <label>中间件代码</label>
+              <textarea
+                v-model="newMiddleware.code"
+                required
+                class="form-textarea"
+                rows="8"
+                placeholder="输入中间件函数代码..."
+              />
+            </div>
+
+            <div class="form-actions">
+              <button type="button" class="btn btn-secondary" @click="closeAddMiddleware">
+                取消
+              </button>
+              <button type="submit" class="btn btn-primary">
+                添加中间件
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
 
 <style scoped>
 .middleware-page {
@@ -1270,19 +1280,19 @@ onMounted(() => {
   .middleware-page {
     padding: 1rem;
   }
-  
+
   .lifecycle-container {
     flex-direction: column;
   }
-  
+
   .performance-cards {
     grid-template-columns: 1fr;
   }
-  
+
   .performance-charts {
     grid-template-columns: 1fr;
   }
-  
+
   .manager-controls {
     flex-direction: column;
     align-items: stretch;

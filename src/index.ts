@@ -1,4 +1,4 @@
-import type { EngineConfig, Engine, CreateEngine } from './types'
+import type { CreateEngine, Engine, EngineConfig } from './types'
 import { EngineImpl } from './engine'
 
 /**
@@ -50,7 +50,7 @@ export type {
   DevConfig,
 
   // 错误处理
-  ErrorHandler
+  ErrorHandler,
 } from './types'
 
 // 导出常量
@@ -61,7 +61,7 @@ export {
   EngineError,
   PluginError,
   MiddlewareError,
-  ConfigError
+  ConfigError,
 } from './types'
 
 // 导出核心实现类（用于扩展）
@@ -92,5 +92,5 @@ export const engineInfo = {
   version,
   description: 'A lightweight Vue 3 based application engine',
   author: 'LDesign Team',
-  license: 'MIT'
+  license: 'MIT',
 } as const

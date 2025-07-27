@@ -1,692 +1,27 @@
-<template>
-  <div class="di-page">
-    <div class="page-header">
-      <h1>
-        <Package class="icon" />
-        依赖注入演示
-      </h1>
-      <p>展示服务注册、依赖解析和生命周期管理功能</p>
-    </div>
-
-    <!-- 服务容器概览 -->
-    <div class="section">
-      <h2 class="section-title">
-        <Box class="icon" />
-        服务容器概览
-      </h2>
-      
-      <div class="container-overview">
-        <div class="overview-stats">
-          <div class="stat-card">
-            <div class="stat-icon">
-              <Package class="icon" />
-            </div>
-            <div class="stat-content">
-              <div class="stat-value">{{ containerStats.totalServices }}</div>
-              <div class="stat-label">注册服务</div>
-            </div>
-          </div>
-          
-          <div class="stat-card">
-            <div class="stat-icon">
-              <Activity class="icon" />
-            </div>
-            <div class="stat-content">
-              <div class="stat-value">{{ containerStats.activeInstances }}</div>
-              <div class="stat-label">活跃实例</div>
-            </div>
-          </div>
-          
-          <div class="stat-card">
-            <div class="stat-icon">
-              <GitBranch class="icon" />
-            </div>
-            <div class="stat-content">
-              <div class="stat-value">{{ containerStats.dependencies }}</div>
-              <div class="stat-label">依赖关系</div>
-            </div>
-          </div>
-          
-          <div class="stat-card">
-            <div class="stat-icon">
-              <Clock class="icon" />
-            </div>
-            <div class="stat-content">
-              <div class="stat-value">{{ containerStats.avgResolutionTime }}ms</div>
-              <div class="stat-label">平均解析时间</div>
-            </div>
-          </div>
-        </div>
-        
-        <div class="container-actions">
-          <button @click="refreshContainer" class="btn btn-primary">
-            <RefreshCw class="btn-icon" />
-            刷新容器
-          </button>
-          <button @click="clearContainer" class="btn btn-danger">
-            <Trash2 class="btn-icon" />
-            清空容器
-          </button>
-          <button @click="exportContainer" class="btn btn-secondary">
-            <Download class="btn-icon" />
-            导出配置
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 服务注册 -->
-    <div class="section">
-      <h2 class="section-title">
-        <Plus class="icon" />
-        服务注册
-      </h2>
-      
-      <div class="service-registration">
-        <div class="registration-form">
-          <div class="form-row">
-            <div class="form-group">
-              <label>服务名称</label>
-              <input 
-                v-model="newService.name" 
-                placeholder="输入服务名称" 
-                class="form-input"
-                list="service-suggestions"
-              />
-              <datalist id="service-suggestions">
-                <option v-for="suggestion in serviceSuggestions" :key="suggestion" :value="suggestion" />
-              </datalist>
-            </div>
-            
-            <div class="form-group">
-              <label>服务类型</label>
-              <select v-model="newService.type" class="form-select">
-                <option value="singleton">单例 (Singleton)</option>
-                <option value="transient">瞬态 (Transient)</option>
-                <option value="scoped">作用域 (Scoped)</option>
-                <option value="factory">工厂 (Factory)</option>
-              </select>
-            </div>
-            
-            <div class="form-group">
-              <label>生命周期</label>
-              <select v-model="newService.lifecycle" class="form-select">
-                <option value="application">应用级</option>
-                <option value="session">会话级</option>
-                <option value="request">请求级</option>
-                <option value="custom">自定义</option>
-              </select>
-            </div>
-          </div>
-          
-          <div class="form-group">
-            <label>依赖项 (用逗号分隔)</label>
-            <input 
-              v-model="newService.dependencies" 
-              placeholder="例如: logger, config, database" 
-              class="form-input"
-            />
-          </div>
-          
-          <div class="form-group">
-            <label>服务实现</label>
-            <textarea 
-              v-model="newService.implementation" 
-              placeholder="输入服务实现代码..." 
-              class="form-textarea"
-              rows="8"
-            ></textarea>
-          </div>
-          
-          <div class="form-actions">
-            <button @click="registerService" class="btn btn-primary" :disabled="!newService.name">
-              <Plus class="btn-icon" />
-              注册服务
-            </button>
-            <button @click="validateService" class="btn btn-secondary">
-              <CheckCircle class="btn-icon" />
-              验证服务
-            </button>
-            <button @click="resetForm" class="btn btn-secondary">
-              <RotateCcw class="btn-icon" />
-              重置表单
-            </button>
-          </div>
-        </div>
-        
-        <!-- 预设服务模板 -->
-        <div class="service-templates">
-          <h3>服务模板</h3>
-          <div class="template-list">
-            <div 
-              v-for="template in serviceTemplates" 
-              :key="template.name"
-              class="template-item"
-              @click="loadTemplate(template)"
-            >
-              <div class="template-icon">
-                <component :is="template.icon" class="icon" />
-              </div>
-              <div class="template-content">
-                <div class="template-name">{{ template.name }}</div>
-                <div class="template-description">{{ template.description }}</div>
-                <div class="template-tags">
-                  <span 
-                    v-for="tag in template.tags" 
-                    :key="tag"
-                    class="template-tag"
-                  >
-                    {{ tag }}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 服务列表 -->
-    <div class="section">
-      <h2 class="section-title">
-        <List class="icon" />
-        注册服务列表
-      </h2>
-      
-      <div class="service-manager">
-        <div class="manager-controls">
-          <div class="search-filters">
-            <input 
-              v-model="serviceFilter.search" 
-              placeholder="搜索服务..." 
-              class="search-input"
-            />
-            <select v-model="serviceFilter.type" class="filter-select">
-              <option value="">所有类型</option>
-              <option value="singleton">单例</option>
-              <option value="transient">瞬态</option>
-              <option value="scoped">作用域</option>
-              <option value="factory">工厂</option>
-            </select>
-            <select v-model="serviceFilter.status" class="filter-select">
-              <option value="">所有状态</option>
-              <option value="active">活跃</option>
-              <option value="inactive">非活跃</option>
-              <option value="error">错误</option>
-            </select>
-          </div>
-          
-          <div class="view-options">
-            <button 
-              @click="viewMode = 'table'" 
-              class="btn btn-sm" 
-              :class="viewMode === 'table' ? 'btn-primary' : 'btn-secondary'"
-            >
-              <Grid class="btn-icon" />
-              表格
-            </button>
-            <button 
-              @click="viewMode = 'cards'" 
-              class="btn btn-sm" 
-              :class="viewMode === 'cards' ? 'btn-primary' : 'btn-secondary'"
-            >
-              <Square class="btn-icon" />
-              卡片
-            </button>
-          </div>
-        </div>
-        
-        <!-- 表格视图 -->
-        <div v-if="viewMode === 'table'" class="service-table">
-          <table>
-            <thead>
-              <tr>
-                <th>服务名称</th>
-                <th>类型</th>
-                <th>状态</th>
-                <th>实例数</th>
-                <th>依赖项</th>
-                <th>最后访问</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="service in filteredServices" :key="service.id">
-                <td>
-                  <div class="service-name">
-                    <div class="service-title">{{ service.name }}</div>
-                    <div class="service-description">{{ service.description }}</div>
-                  </div>
-                </td>
-                <td>
-                  <span class="type-badge" :class="service.type">
-                    {{ service.type }}
-                  </span>
-                </td>
-                <td>
-                  <span 
-                    class="status-badge" 
-                    :class="service.status"
-                  >
-                    <div class="status-indicator"></div>
-                    {{ getStatusText(service.status) }}
-                  </span>
-                </td>
-                <td>{{ service.instanceCount }}</td>
-                <td>
-                  <div class="dependencies">
-                    <span 
-                      v-for="dep in service.dependencies" 
-                      :key="dep"
-                      class="dependency-badge"
-                    >
-                      {{ dep }}
-                    </span>
-                  </div>
-                </td>
-                <td>{{ service.lastAccessed ? formatTime(service.lastAccessed) : '-' }}</td>
-                <td>
-                  <div class="action-buttons">
-                    <button @click="resolveService(service)" class="btn btn-sm btn-primary">
-                      <Play class="btn-icon" />
-                      解析
-                    </button>
-                    <button @click="inspectService(service)" class="btn btn-sm btn-secondary">
-                      <Eye class="btn-icon" />
-                      检查
-                    </button>
-                    <button @click="unregisterService(service)" class="btn btn-sm btn-danger">
-                      <Trash2 class="btn-icon" />
-                      注销
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        
-        <!-- 卡片视图 -->
-        <div v-else class="service-cards">
-          <div 
-            v-for="service in filteredServices" 
-            :key="service.id"
-            class="service-card"
-            :class="service.status"
-          >
-            <div class="card-header">
-              <div class="service-info">
-                <h3>{{ service.name }}</h3>
-                <p>{{ service.description }}</p>
-              </div>
-              <div class="service-status">
-                <span class="status-badge" :class="service.status">
-                  <div class="status-indicator"></div>
-                  {{ getStatusText(service.status) }}
-                </span>
-              </div>
-            </div>
-            
-            <div class="card-content">
-              <div class="service-details">
-                <div class="detail-item">
-                  <span class="detail-label">类型:</span>
-                  <span class="type-badge" :class="service.type">{{ service.type }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">实例数:</span>
-                  <span class="detail-value">{{ service.instanceCount }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">生命周期:</span>
-                  <span class="detail-value">{{ service.lifecycle }}</span>
-                </div>
-              </div>
-              
-              <div v-if="service.dependencies.length" class="service-dependencies">
-                <div class="detail-label">依赖项:</div>
-                <div class="dependencies">
-                  <span 
-                    v-for="dep in service.dependencies" 
-                    :key="dep"
-                    class="dependency-badge"
-                  >
-                    {{ dep }}
-                  </span>
-                </div>
-              </div>
-            </div>
-            
-            <div class="card-actions">
-              <button @click="resolveService(service)" class="btn btn-sm btn-primary">
-                <Play class="btn-icon" />
-                解析
-              </button>
-              <button @click="inspectService(service)" class="btn btn-sm btn-secondary">
-                <Eye class="btn-icon" />
-                检查
-              </button>
-              <button @click="unregisterService(service)" class="btn btn-sm btn-danger">
-                <Trash2 class="btn-icon" />
-                注销
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 依赖关系图 -->
-    <div class="section">
-      <h2 class="section-title">
-        <GitBranch class="icon" />
-        依赖关系图
-      </h2>
-      
-      <div class="dependency-graph">
-        <div class="graph-controls">
-          <button @click="layoutGraph" class="btn btn-primary">
-            <Shuffle class="btn-icon" />
-            重新布局
-          </button>
-          <button @click="centerGraph" class="btn btn-secondary">
-            <Target class="btn-icon" />
-            居中显示
-          </button>
-          <button @click="exportGraph" class="btn btn-secondary">
-            <Download class="btn-icon" />
-            导出图片
-          </button>
-        </div>
-        
-        <div class="graph-container">
-          <svg class="dependency-svg" viewBox="0 0 800 600">
-            <!-- 服务节点 -->
-            <g 
-              v-for="node in graphNodes" 
-              :key="node.id"
-              class="service-node"
-              :transform="`translate(${node.x}, ${node.y})`"
-              @click="selectNode(node)"
-            >
-              <circle 
-                r="30" 
-                :class="{ 
-                  selected: selectedNode?.id === node.id,
-                  [node.status]: true
-                }"
-              />
-              <text x="0" y="5" text-anchor="middle" font-size="12">
-                {{ node.name.length > 8 ? node.name.slice(0, 8) + '...' : node.name }}
-              </text>
-              
-              <!-- 节点详情提示 -->
-              <g v-if="selectedNode?.id === node.id" class="node-tooltip">
-                <rect x="35" y="-20" width="120" height="40" rx="4" fill="white" stroke="#d1d5db" />
-                <text x="45" y="-5" font-size="10" fill="#374151">{{ node.name }}</text>
-                <text x="45" y="8" font-size="8" fill="#6b7280">{{ node.type }}</text>
-                <text x="45" y="18" font-size="8" fill="#6b7280">实例: {{ node.instanceCount }}</text>
-              </g>
-            </g>
-            
-            <!-- 依赖连线 -->
-            <g class="dependency-edges">
-              <defs>
-                <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-                  <polygon points="0 0, 10 3.5, 0 7" fill="#6b7280" />
-                </marker>
-              </defs>
-              
-              <line 
-                v-for="edge in graphEdges" 
-                :key="edge.id"
-                :x1="edge.source.x" 
-                :y1="edge.source.y"
-                :x2="edge.target.x" 
-                :y2="edge.target.y"
-                stroke="#6b7280"
-                stroke-width="2"
-                marker-end="url(#arrowhead)"
-                :class="{ 
-                  highlighted: selectedNode && (edge.source.id === selectedNode.id || edge.target.id === selectedNode.id)
-                }"
-              />
-            </g>
-          </svg>
-        </div>
-        
-        <div class="graph-legend">
-          <div class="legend-item">
-            <div class="legend-color active"></div>
-            <span>活跃服务</span>
-          </div>
-          <div class="legend-item">
-            <div class="legend-color inactive"></div>
-            <span>非活跃服务</span>
-          </div>
-          <div class="legend-item">
-            <div class="legend-color error"></div>
-            <span>错误服务</span>
-          </div>
-          <div class="legend-item">
-            <div class="legend-arrow"></div>
-            <span>依赖关系</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 服务检查模态框 -->
-    <div v-if="inspectedService" class="modal-overlay" @click="closeInspection">
-      <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <h3>服务检查: {{ inspectedService.name }}</h3>
-          <button @click="closeInspection" class="modal-close">
-            <X class="close-icon" />
-          </button>
-        </div>
-        <div class="modal-body">
-          <div class="inspection-tabs">
-            <button 
-              v-for="tab in inspectionTabs" 
-              :key="tab.id"
-              @click="activeInspectionTab = tab.id"
-              class="tab-button"
-              :class="{ active: activeInspectionTab === tab.id }"
-            >
-              <component :is="tab.icon" class="tab-icon" />
-              {{ tab.label }}
-            </button>
-          </div>
-          
-          <div class="inspection-content">
-            <!-- 基本信息 -->
-            <div v-if="activeInspectionTab === 'info'" class="tab-panel">
-              <div class="info-grid">
-                <div class="info-item">
-                  <label>服务名称</label>
-                  <span>{{ inspectedService.name }}</span>
-                </div>
-                <div class="info-item">
-                  <label>服务类型</label>
-                  <span class="type-badge" :class="inspectedService.type">{{ inspectedService.type }}</span>
-                </div>
-                <div class="info-item">
-                  <label>生命周期</label>
-                  <span>{{ inspectedService.lifecycle }}</span>
-                </div>
-                <div class="info-item">
-                  <label>状态</label>
-                  <span class="status-badge" :class="inspectedService.status">
-                    <div class="status-indicator"></div>
-                    {{ getStatusText(inspectedService.status) }}
-                  </span>
-                </div>
-                <div class="info-item">
-                  <label>实例数量</label>
-                  <span>{{ inspectedService.instanceCount }}</span>
-                </div>
-                <div class="info-item">
-                  <label>注册时间</label>
-                  <span>{{ formatTime(inspectedService.registeredAt) }}</span>
-                </div>
-                <div class="info-item">
-                  <label>最后访问</label>
-                  <span>{{ inspectedService.lastAccessed ? formatTime(inspectedService.lastAccessed) : '从未访问' }}</span>
-                </div>
-                <div class="info-item">
-                  <label>访问次数</label>
-                  <span>{{ inspectedService.accessCount }}</span>
-                </div>
-              </div>
-            </div>
-            
-            <!-- 依赖关系 -->
-            <div v-if="activeInspectionTab === 'dependencies'" class="tab-panel">
-              <div class="dependencies-section">
-                <h4>直接依赖</h4>
-                <div v-if="inspectedService.dependencies.length" class="dependency-list">
-                  <div 
-                    v-for="dep in inspectedService.dependencies" 
-                    :key="dep"
-                    class="dependency-item"
-                  >
-                    <span class="dependency-name">{{ dep }}</span>
-                    <span class="dependency-status" :class="getDependencyStatus(dep)">
-                      {{ getDependencyStatus(dep) }}
-                    </span>
-                  </div>
-                </div>
-                <div v-else class="empty-state">
-                  <Package class="empty-icon" />
-                  <p>此服务没有依赖项</p>
-                </div>
-              </div>
-              
-              <div class="dependents-section">
-                <h4>被依赖</h4>
-                <div v-if="getServiceDependents(inspectedService).length" class="dependency-list">
-                  <div 
-                    v-for="dependent in getServiceDependents(inspectedService)" 
-                    :key="dependent"
-                    class="dependency-item"
-                  >
-                    <span class="dependency-name">{{ dependent }}</span>
-                    <span class="dependency-status active">活跃</span>
-                  </div>
-                </div>
-                <div v-else class="empty-state">
-                  <GitBranch class="empty-icon" />
-                  <p>没有其他服务依赖此服务</p>
-                </div>
-              </div>
-            </div>
-            
-            <!-- 实例信息 -->
-            <div v-if="activeInspectionTab === 'instances'" class="tab-panel">
-              <div class="instances-list">
-                <div 
-                  v-for="instance in getServiceInstances(inspectedService)" 
-                  :key="instance.id"
-                  class="instance-item"
-                >
-                  <div class="instance-header">
-                    <span class="instance-id">实例 #{{ instance.id }}</span>
-                    <span class="instance-status" :class="instance.status">{{ instance.status }}</span>
-                  </div>
-                  <div class="instance-details">
-                    <div class="detail-row">
-                      <span class="detail-label">创建时间:</span>
-                      <span class="detail-value">{{ formatTime(instance.createdAt) }}</span>
-                    </div>
-                    <div class="detail-row">
-                      <span class="detail-label">内存使用:</span>
-                      <span class="detail-value">{{ instance.memoryUsage }}KB</span>
-                    </div>
-                    <div class="detail-row">
-                      <span class="detail-label">调用次数:</span>
-                      <span class="detail-value">{{ instance.callCount }}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <!-- 性能指标 -->
-            <div v-if="activeInspectionTab === 'performance'" class="tab-panel">
-              <div class="performance-metrics">
-                <div class="metric-card">
-                  <div class="metric-icon">
-                    <Clock class="icon" />
-                  </div>
-                  <div class="metric-content">
-                    <div class="metric-value">{{ inspectedService.avgResolutionTime }}ms</div>
-                    <div class="metric-label">平均解析时间</div>
-                  </div>
-                </div>
-                
-                <div class="metric-card">
-                  <div class="metric-icon">
-                    <Activity class="icon" />
-                  </div>
-                  <div class="metric-content">
-                    <div class="metric-value">{{ inspectedService.accessCount }}</div>
-                    <div class="metric-label">总访问次数</div>
-                  </div>
-                </div>
-                
-                <div class="metric-card">
-                  <div class="metric-icon">
-                    <Zap class="icon" />
-                  </div>
-                  <div class="metric-content">
-                    <div class="metric-value">{{ inspectedService.successRate }}%</div>
-                    <div class="metric-label">成功率</div>
-                  </div>
-                </div>
-                
-                <div class="metric-card">
-                  <div class="metric-icon">
-                    <AlertTriangle class="icon" />
-                  </div>
-                  <div class="metric-content">
-                    <div class="metric-value">{{ inspectedService.errorCount }}</div>
-                    <div class="metric-label">错误次数</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { ref, computed, inject, onMounted } from 'vue'
+import { computed, inject, onMounted, ref } from 'vue'
 import {
-  Package,
-  Box,
   Activity,
-  GitBranch,
-  Clock,
-  RefreshCw,
-  Trash2,
-  Download,
-  Plus,
+  AlertTriangle,
+  Box,
   CheckCircle,
-  RotateCcw,
-  List,
-  Grid,
-  Square,
-  Play,
+  Clock,
+  Download,
   Eye,
+  GitBranch,
+  Grid,
+  List,
+  Package,
+  Play,
+  Plus,
+  RefreshCw,
+  RotateCcw,
   Shuffle,
+  Square,
   Target,
+  Trash2,
   X,
   Zap,
-  AlertTriangle
 } from 'lucide-vue-next'
 
 // 注入引擎服务
@@ -703,14 +38,14 @@ const containerStats = ref({
   totalServices: 12,
   activeInstances: 8,
   dependencies: 15,
-  avgResolutionTime: 8.5
+  avgResolutionTime: 8.5,
 })
 
 // 服务过滤器
 const serviceFilter = ref({
   search: '',
   type: '',
-  status: ''
+  status: '',
 })
 
 // 新服务表单
@@ -769,7 +104,7 @@ const newService = ref({
     this.logger.info('Disposing service...')
     this.initialized = false
   }
-}`
+}`,
 })
 
 // 服务建议
@@ -783,7 +118,7 @@ const serviceSuggestions = [
   'authentication',
   'authorization',
   'fileStorage',
-  'emailService'
+  'emailService',
 ]
 
 // 服务模板
@@ -823,7 +158,7 @@ const serviceTemplates = [
     const levels = ['debug', 'info', 'warn', 'error']
     return levels.indexOf(level) >= levels.indexOf(this.level)
   }
-}`
+}`,
   },
   {
     name: 'HTTP Client',
@@ -873,7 +208,7 @@ const serviceTemplates = [
       throw error
     }
   }
-}`
+}`,
   },
   {
     name: 'Cache Service',
@@ -940,8 +275,8 @@ const serviceTemplates = [
   size() {
     return this.cache.size
   }
-}`
-  }
+}`,
+  },
 ]
 
 // 注册服务列表
@@ -960,7 +295,7 @@ const services = ref([
     accessCount: 156,
     avgResolutionTime: 5,
     successRate: 99.2,
-    errorCount: 1
+    errorCount: 1,
   },
   {
     id: 2,
@@ -976,7 +311,7 @@ const services = ref([
     accessCount: 89,
     avgResolutionTime: 3,
     successRate: 100,
-    errorCount: 0
+    errorCount: 0,
   },
   {
     id: 3,
@@ -992,7 +327,7 @@ const services = ref([
     accessCount: 234,
     avgResolutionTime: 12,
     successRate: 98.5,
-    errorCount: 3
+    errorCount: 3,
   },
   {
     id: 4,
@@ -1008,7 +343,7 @@ const services = ref([
     accessCount: 445,
     avgResolutionTime: 2,
     successRate: 99.8,
-    errorCount: 1
+    errorCount: 1,
   },
   {
     id: 5,
@@ -1024,7 +359,7 @@ const services = ref([
     accessCount: 67,
     avgResolutionTime: 25,
     successRate: 95.5,
-    errorCount: 3
+    errorCount: 3,
   },
   {
     id: 6,
@@ -1040,8 +375,8 @@ const services = ref([
     accessCount: 23,
     avgResolutionTime: 45,
     successRate: 87.0,
-    errorCount: 3
-  }
+    errorCount: 3,
+  },
 ])
 
 // 检查标签页
@@ -1049,7 +384,7 @@ const inspectionTabs = [
   { id: 'info', label: '基本信息', icon: 'Info' },
   { id: 'dependencies', label: '依赖关系', icon: 'GitBranch' },
   { id: 'instances', label: '实例信息', icon: 'Box' },
-  { id: 'performance', label: '性能指标', icon: 'BarChart' }
+  { id: 'performance', label: '性能指标', icon: 'BarChart' },
 ]
 
 // 依赖关系图数据
@@ -1059,7 +394,7 @@ const graphNodes = ref([
   { id: 3, name: 'database', x: 500, y: 150, status: 'active', type: 'singleton', instanceCount: 1 },
   { id: 4, name: 'cache', x: 300, y: 400, status: 'active', type: 'singleton', instanceCount: 1 },
   { id: 5, name: 'notification', x: 600, y: 300, status: 'inactive', type: 'transient', instanceCount: 0 },
-  { id: 6, name: 'analytics', x: 700, y: 450, status: 'error', type: 'scoped', instanceCount: 0 }
+  { id: 6, name: 'analytics', x: 700, y: 450, status: 'error', type: 'scoped', instanceCount: 0 },
 ])
 
 const graphEdges = ref([
@@ -1070,12 +405,12 @@ const graphEdges = ref([
   { id: 5, source: graphNodes.value[4], target: graphNodes.value[1] }, // notification -> logger
   { id: 6, source: graphNodes.value[4], target: graphNodes.value[0] }, // notification -> config
   { id: 7, source: graphNodes.value[5], target: graphNodes.value[2] }, // analytics -> database
-  { id: 8, source: graphNodes.value[5], target: graphNodes.value[3] }  // analytics -> cache
+  { id: 8, source: graphNodes.value[5], target: graphNodes.value[3] }, // analytics -> cache
 ])
 
 // 计算属性
 const filteredServices = computed(() => {
-  return services.value.filter(service => {
+  return services.value.filter((service) => {
     if (serviceFilter.value.search && !service.name.toLowerCase().includes(serviceFilter.value.search.toLowerCase())) {
       return false
     }
@@ -1090,9 +425,10 @@ const filteredServices = computed(() => {
 })
 
 // 方法
-const registerService = () => {
-  if (!newService.value.name) return
-  
+function registerService() {
+  if (!newService.value.name)
+return
+
   const service = {
     id: Date.now(),
     name: newService.value.name,
@@ -1107,165 +443,167 @@ const registerService = () => {
     accessCount: 0,
     avgResolutionTime: Math.floor(Math.random() * 20) + 5,
     successRate: 100,
-    errorCount: 0
+    errorCount: 0,
   }
-  
+
   services.value.push(service)
-  
+
   // 更新统计
   containerStats.value.totalServices++
   if (service.status === 'active') {
     containerStats.value.activeInstances++
   }
   containerStats.value.dependencies += service.dependencies.length
-  
+
   // 重置表单
   resetForm()
-  
+
   if (engine) {
     engine.emit('service:registered', service)
   }
 }
 
-const validateService = () => {
+function validateService() {
   // 验证服务配置
   const errors = []
-  
+
   if (!newService.value.name) {
     errors.push('服务名称不能为空')
   }
-  
+
   if (services.value.some(s => s.name === newService.value.name)) {
     errors.push('服务名称已存在')
   }
-  
+
   try {
     new Function(newService.value.implementation)
-  } catch (error) {
+  }
+ catch (error) {
     errors.push('服务实现代码语法错误')
   }
-  
+
   if (errors.length > 0) {
-    alert('验证失败:\n' + errors.join('\n'))
-  } else {
+    alert(`验证失败:\n${errors.join('\n')}`)
+  }
+ else {
     alert('服务配置验证通过！')
   }
 }
 
-const resetForm = () => {
+function resetForm() {
   newService.value = {
     name: '',
     type: 'singleton',
     lifecycle: 'application',
     dependencies: '',
-    implementation: newService.value.implementation // 保留实现代码
+    implementation: newService.value.implementation, // 保留实现代码
   }
 }
 
-const loadTemplate = (template: any) => {
+function loadTemplate(template: any) {
   newService.value.name = template.name.toLowerCase().replace(/\s+/g, '')
   newService.value.type = template.type
   newService.value.dependencies = template.dependencies.join(', ')
   newService.value.implementation = template.implementation
 }
 
-const resolveService = async (service: any) => {
+async function resolveService(service: any) {
   // 模拟服务解析
   service.lastAccessed = Date.now()
   service.accessCount++
-  
+
   // 模拟解析时间
   const resolutionTime = Math.floor(Math.random() * 50) + 5
-  
+
   if (engine) {
     engine.emit('service:resolved', {
       name: service.name,
-      resolutionTime
+      resolutionTime,
     })
   }
-  
+
   // 更新平均解析时间
   service.avgResolutionTime = Math.floor((service.avgResolutionTime + resolutionTime) / 2)
 }
 
-const inspectService = (service: any) => {
+function inspectService(service: any) {
   inspectedService.value = service
   activeInspectionTab.value = 'info'
 }
 
-const unregisterService = (service: any) => {
+function unregisterService(service: any) {
   const index = services.value.findIndex(s => s.id === service.id)
   if (index > -1) {
     services.value.splice(index, 1)
-    
+
     // 更新统计
     containerStats.value.totalServices--
     if (service.status === 'active') {
       containerStats.value.activeInstances--
     }
     containerStats.value.dependencies -= service.dependencies.length
-    
+
     if (engine) {
       engine.emit('service:unregistered', { name: service.name })
     }
   }
 }
 
-const refreshContainer = () => {
+function refreshContainer() {
   // 刷新容器状态
-  services.value.forEach(service => {
+  services.value.forEach((service) => {
     if (service.status === 'error' && Math.random() > 0.5) {
       service.status = 'active'
       containerStats.value.activeInstances++
     }
   })
-  
+
   if (engine) {
     engine.emit('container:refreshed')
   }
 }
 
-const clearContainer = () => {
+function clearContainer() {
   if (confirm('确定要清空容器吗？这将注销所有服务。')) {
     services.value = []
     containerStats.value = {
       totalServices: 0,
       activeInstances: 0,
       dependencies: 0,
-      avgResolutionTime: 0
+      avgResolutionTime: 0,
     }
-    
+
     if (engine) {
       engine.emit('container:cleared')
     }
   }
 }
 
-const exportContainer = () => {
+function exportContainer() {
   const data = {
     services: services.value,
     stats: containerStats.value,
-    exportedAt: new Date().toISOString()
+    exportedAt: new Date().toISOString(),
   }
-  
+
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
-  
+
   const a = document.createElement('a')
   a.href = url
   a.download = `di-container-${new Date().toISOString().slice(0, 10)}.json`
   document.body.appendChild(a)
   a.click()
   document.body.removeChild(a)
-  
+
   URL.revokeObjectURL(url)
 }
 
-const selectNode = (node: any) => {
+function selectNode(node: any) {
   selectedNode.value = selectedNode.value?.id === node.id ? null : node
 }
 
-const layoutGraph = () => {
+function layoutGraph() {
   // 重新布局图形
   graphNodes.value.forEach((node, index) => {
     const angle = (index / graphNodes.value.length) * 2 * Math.PI
@@ -1275,63 +613,63 @@ const layoutGraph = () => {
   })
 }
 
-const centerGraph = () => {
+function centerGraph() {
   // 居中显示图形
   const centerX = 400
   const centerY = 300
-  
-  graphNodes.value.forEach(node => {
+
+  graphNodes.value.forEach((node) => {
     node.x = centerX + (node.x - centerX) * 0.8
     node.y = centerY + (node.y - centerY) * 0.8
   })
 }
 
-const exportGraph = () => {
+function exportGraph() {
   // 导出图形为SVG
   const svg = document.querySelector('.dependency-svg')
   if (svg) {
     const serializer = new XMLSerializer()
     const svgString = serializer.serializeToString(svg)
-    
+
     const blob = new Blob([svgString], { type: 'image/svg+xml' })
     const url = URL.createObjectURL(blob)
-    
+
     const a = document.createElement('a')
     a.href = url
     a.download = 'dependency-graph.svg'
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
-    
+
     URL.revokeObjectURL(url)
   }
 }
 
-const closeInspection = () => {
+function closeInspection() {
   inspectedService.value = null
 }
 
-const getStatusText = (status: string) => {
+function getStatusText(status: string) {
   const statusMap: Record<string, string> = {
     active: '活跃',
     inactive: '非活跃',
-    error: '错误'
+    error: '错误',
   }
   return statusMap[status] || status
 }
 
-const getDependencyStatus = (depName: string) => {
+function getDependencyStatus(depName: string) {
   const service = services.value.find(s => s.name === depName)
   return service ? service.status : 'missing'
 }
 
-const getServiceDependents = (service: any) => {
+function getServiceDependents(service: any) {
   return services.value
     .filter(s => s.dependencies.includes(service.name))
     .map(s => s.name)
 }
 
-const getServiceInstances = (service: any) => {
+function getServiceInstances(service: any) {
   // 模拟服务实例
   const instances = []
   for (let i = 0; i < service.instanceCount; i++) {
@@ -1340,13 +678,13 @@ const getServiceInstances = (service: any) => {
       status: service.status,
       createdAt: service.registeredAt + i * 1000,
       memoryUsage: Math.floor(Math.random() * 1000) + 500,
-      callCount: Math.floor(service.accessCount / service.instanceCount)
+      callCount: Math.floor(service.accessCount / service.instanceCount),
     })
   }
   return instances
 }
 
-const formatTime = (timestamp: number) => {
+function formatTime(timestamp: number) {
   return new Date(timestamp).toLocaleString()
 }
 
@@ -1360,6 +698,747 @@ onMounted(() => {
   }
 })
 </script>
+
+<template>
+  <div class="di-page">
+    <div class="page-header">
+      <h1>
+        <Package class="icon" />
+        依赖注入演示
+      </h1>
+      <p>展示服务注册、依赖解析和生命周期管理功能</p>
+    </div>
+
+    <!-- 服务容器概览 -->
+    <div class="section">
+      <h2 class="section-title">
+        <Box class="icon" />
+        服务容器概览
+      </h2>
+
+      <div class="container-overview">
+        <div class="overview-stats">
+          <div class="stat-card">
+            <div class="stat-icon">
+              <Package class="icon" />
+            </div>
+            <div class="stat-content">
+              <div class="stat-value">
+                {{ containerStats.totalServices }}
+              </div>
+              <div class="stat-label">
+                注册服务
+              </div>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon">
+              <Activity class="icon" />
+            </div>
+            <div class="stat-content">
+              <div class="stat-value">
+                {{ containerStats.activeInstances }}
+              </div>
+              <div class="stat-label">
+                活跃实例
+              </div>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon">
+              <GitBranch class="icon" />
+            </div>
+            <div class="stat-content">
+              <div class="stat-value">
+                {{ containerStats.dependencies }}
+              </div>
+              <div class="stat-label">
+                依赖关系
+              </div>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon">
+              <Clock class="icon" />
+            </div>
+            <div class="stat-content">
+              <div class="stat-value">
+                {{ containerStats.avgResolutionTime }}ms
+              </div>
+              <div class="stat-label">
+                平均解析时间
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="container-actions">
+          <button class="btn btn-primary" @click="refreshContainer">
+            <RefreshCw class="btn-icon" />
+            刷新容器
+          </button>
+          <button class="btn btn-danger" @click="clearContainer">
+            <Trash2 class="btn-icon" />
+            清空容器
+          </button>
+          <button class="btn btn-secondary" @click="exportContainer">
+            <Download class="btn-icon" />
+            导出配置
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 服务注册 -->
+    <div class="section">
+      <h2 class="section-title">
+        <Plus class="icon" />
+        服务注册
+      </h2>
+
+      <div class="service-registration">
+        <div class="registration-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label>服务名称</label>
+              <input
+                v-model="newService.name"
+                placeholder="输入服务名称"
+                class="form-input"
+                list="service-suggestions"
+              >
+              <datalist id="service-suggestions">
+                <option v-for="suggestion in serviceSuggestions" :key="suggestion" :value="suggestion" />
+              </datalist>
+            </div>
+
+            <div class="form-group">
+              <label>服务类型</label>
+              <select v-model="newService.type" class="form-select">
+                <option value="singleton">
+                  单例 (Singleton)
+                </option>
+                <option value="transient">
+                  瞬态 (Transient)
+                </option>
+                <option value="scoped">
+                  作用域 (Scoped)
+                </option>
+                <option value="factory">
+                  工厂 (Factory)
+                </option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>生命周期</label>
+              <select v-model="newService.lifecycle" class="form-select">
+                <option value="application">
+                  应用级
+                </option>
+                <option value="session">
+                  会话级
+                </option>
+                <option value="request">
+                  请求级
+                </option>
+                <option value="custom">
+                  自定义
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>依赖项 (用逗号分隔)</label>
+            <input
+              v-model="newService.dependencies"
+              placeholder="例如: logger, config, database"
+              class="form-input"
+            >
+          </div>
+
+          <div class="form-group">
+            <label>服务实现</label>
+            <textarea
+              v-model="newService.implementation"
+              placeholder="输入服务实现代码..."
+              class="form-textarea"
+              rows="8"
+            />
+          </div>
+
+          <div class="form-actions">
+            <button class="btn btn-primary" :disabled="!newService.name" @click="registerService">
+              <Plus class="btn-icon" />
+              注册服务
+            </button>
+            <button class="btn btn-secondary" @click="validateService">
+              <CheckCircle class="btn-icon" />
+              验证服务
+            </button>
+            <button class="btn btn-secondary" @click="resetForm">
+              <RotateCcw class="btn-icon" />
+              重置表单
+            </button>
+          </div>
+        </div>
+
+        <!-- 预设服务模板 -->
+        <div class="service-templates">
+          <h3>服务模板</h3>
+          <div class="template-list">
+            <div
+              v-for="template in serviceTemplates"
+              :key="template.name"
+              class="template-item"
+              @click="loadTemplate(template)"
+            >
+              <div class="template-icon">
+                <component :is="template.icon" class="icon" />
+              </div>
+              <div class="template-content">
+                <div class="template-name">
+                  {{ template.name }}
+                </div>
+                <div class="template-description">
+                  {{ template.description }}
+                </div>
+                <div class="template-tags">
+                  <span
+                    v-for="tag in template.tags"
+                    :key="tag"
+                    class="template-tag"
+                  >
+                    {{ tag }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 服务列表 -->
+    <div class="section">
+      <h2 class="section-title">
+        <List class="icon" />
+        注册服务列表
+      </h2>
+
+      <div class="service-manager">
+        <div class="manager-controls">
+          <div class="search-filters">
+            <input
+              v-model="serviceFilter.search"
+              placeholder="搜索服务..."
+              class="search-input"
+            >
+            <select v-model="serviceFilter.type" class="filter-select">
+              <option value="">
+                所有类型
+              </option>
+              <option value="singleton">
+                单例
+              </option>
+              <option value="transient">
+                瞬态
+              </option>
+              <option value="scoped">
+                作用域
+              </option>
+              <option value="factory">
+                工厂
+              </option>
+            </select>
+            <select v-model="serviceFilter.status" class="filter-select">
+              <option value="">
+                所有状态
+              </option>
+              <option value="active">
+                活跃
+              </option>
+              <option value="inactive">
+                非活跃
+              </option>
+              <option value="error">
+                错误
+              </option>
+            </select>
+          </div>
+
+          <div class="view-options">
+            <button
+              class="btn btn-sm"
+              :class="viewMode === 'table' ? 'btn-primary' : 'btn-secondary'"
+              @click="viewMode = 'table'"
+            >
+              <Grid class="btn-icon" />
+              表格
+            </button>
+            <button
+              class="btn btn-sm"
+              :class="viewMode === 'cards' ? 'btn-primary' : 'btn-secondary'"
+              @click="viewMode = 'cards'"
+            >
+              <Square class="btn-icon" />
+              卡片
+            </button>
+          </div>
+        </div>
+
+        <!-- 表格视图 -->
+        <div v-if="viewMode === 'table'" class="service-table">
+          <table>
+            <thead>
+              <tr>
+                <th>服务名称</th>
+                <th>类型</th>
+                <th>状态</th>
+                <th>实例数</th>
+                <th>依赖项</th>
+                <th>最后访问</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="service in filteredServices" :key="service.id">
+                <td>
+                  <div class="service-name">
+                    <div class="service-title">
+                      {{ service.name }}
+                    </div>
+                    <div class="service-description">
+                      {{ service.description }}
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <span class="type-badge" :class="service.type">
+                    {{ service.type }}
+                  </span>
+                </td>
+                <td>
+                  <span
+                    class="status-badge"
+                    :class="service.status"
+                  >
+                    <div class="status-indicator" />
+                    {{ getStatusText(service.status) }}
+                  </span>
+                </td>
+                <td>{{ service.instanceCount }}</td>
+                <td>
+                  <div class="dependencies">
+                    <span
+                      v-for="dep in service.dependencies"
+                      :key="dep"
+                      class="dependency-badge"
+                    >
+                      {{ dep }}
+                    </span>
+                  </div>
+                </td>
+                <td>{{ service.lastAccessed ? formatTime(service.lastAccessed) : '-' }}</td>
+                <td>
+                  <div class="action-buttons">
+                    <button class="btn btn-sm btn-primary" @click="resolveService(service)">
+                      <Play class="btn-icon" />
+                      解析
+                    </button>
+                    <button class="btn btn-sm btn-secondary" @click="inspectService(service)">
+                      <Eye class="btn-icon" />
+                      检查
+                    </button>
+                    <button class="btn btn-sm btn-danger" @click="unregisterService(service)">
+                      <Trash2 class="btn-icon" />
+                      注销
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 卡片视图 -->
+        <div v-else class="service-cards">
+          <div
+            v-for="service in filteredServices"
+            :key="service.id"
+            class="service-card"
+            :class="service.status"
+          >
+            <div class="card-header">
+              <div class="service-info">
+                <h3>{{ service.name }}</h3>
+                <p>{{ service.description }}</p>
+              </div>
+              <div class="service-status">
+                <span class="status-badge" :class="service.status">
+                  <div class="status-indicator" />
+                  {{ getStatusText(service.status) }}
+                </span>
+              </div>
+            </div>
+
+            <div class="card-content">
+              <div class="service-details">
+                <div class="detail-item">
+                  <span class="detail-label">类型:</span>
+                  <span class="type-badge" :class="service.type">{{ service.type }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">实例数:</span>
+                  <span class="detail-value">{{ service.instanceCount }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">生命周期:</span>
+                  <span class="detail-value">{{ service.lifecycle }}</span>
+                </div>
+              </div>
+
+              <div v-if="service.dependencies.length" class="service-dependencies">
+                <div class="detail-label">
+                  依赖项:
+                </div>
+                <div class="dependencies">
+                  <span
+                    v-for="dep in service.dependencies"
+                    :key="dep"
+                    class="dependency-badge"
+                  >
+                    {{ dep }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="card-actions">
+              <button class="btn btn-sm btn-primary" @click="resolveService(service)">
+                <Play class="btn-icon" />
+                解析
+              </button>
+              <button class="btn btn-sm btn-secondary" @click="inspectService(service)">
+                <Eye class="btn-icon" />
+                检查
+              </button>
+              <button class="btn btn-sm btn-danger" @click="unregisterService(service)">
+                <Trash2 class="btn-icon" />
+                注销
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 依赖关系图 -->
+    <div class="section">
+      <h2 class="section-title">
+        <GitBranch class="icon" />
+        依赖关系图
+      </h2>
+
+      <div class="dependency-graph">
+        <div class="graph-controls">
+          <button class="btn btn-primary" @click="layoutGraph">
+            <Shuffle class="btn-icon" />
+            重新布局
+          </button>
+          <button class="btn btn-secondary" @click="centerGraph">
+            <Target class="btn-icon" />
+            居中显示
+          </button>
+          <button class="btn btn-secondary" @click="exportGraph">
+            <Download class="btn-icon" />
+            导出图片
+          </button>
+        </div>
+
+        <div class="graph-container">
+          <svg class="dependency-svg" viewBox="0 0 800 600">
+            <!-- 服务节点 -->
+            <g
+              v-for="node in graphNodes"
+              :key="node.id"
+              class="service-node"
+              :transform="`translate(${node.x}, ${node.y})`"
+              @click="selectNode(node)"
+            >
+              <circle
+                r="30"
+                :class="{
+                  selected: selectedNode?.id === node.id,
+                  [node.status]: true,
+                }"
+              />
+              <text x="0" y="5" text-anchor="middle" font-size="12">
+                {{ node.name.length > 8 ? `${node.name.slice(0, 8)}...` : node.name }}
+              </text>
+
+              <!-- 节点详情提示 -->
+              <g v-if="selectedNode?.id === node.id" class="node-tooltip">
+                <rect x="35" y="-20" width="120" height="40" rx="4" fill="white" stroke="#d1d5db" />
+                <text x="45" y="-5" font-size="10" fill="#374151">{{ node.name }}</text>
+                <text x="45" y="8" font-size="8" fill="#6b7280">{{ node.type }}</text>
+                <text x="45" y="18" font-size="8" fill="#6b7280">实例: {{ node.instanceCount }}</text>
+              </g>
+            </g>
+
+            <!-- 依赖连线 -->
+            <g class="dependency-edges">
+              <defs>
+                <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                  <polygon points="0 0, 10 3.5, 0 7" fill="#6b7280" />
+                </marker>
+              </defs>
+
+              <line
+                v-for="edge in graphEdges"
+                :key="edge.id"
+                :x1="edge.source.x"
+                :y1="edge.source.y"
+                :x2="edge.target.x"
+                :y2="edge.target.y"
+                stroke="#6b7280"
+                stroke-width="2"
+                marker-end="url(#arrowhead)"
+                :class="{
+                  highlighted: selectedNode && (edge.source.id === selectedNode.id || edge.target.id === selectedNode.id),
+                }"
+              />
+            </g>
+          </svg>
+        </div>
+
+        <div class="graph-legend">
+          <div class="legend-item">
+            <div class="legend-color active" />
+            <span>活跃服务</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color inactive" />
+            <span>非活跃服务</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color error" />
+            <span>错误服务</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-arrow" />
+            <span>依赖关系</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 服务检查模态框 -->
+    <div v-if="inspectedService" class="modal-overlay" @click="closeInspection">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>服务检查: {{ inspectedService.name }}</h3>
+          <button class="modal-close" @click="closeInspection">
+            <X class="close-icon" />
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="inspection-tabs">
+            <button
+              v-for="tab in inspectionTabs"
+              :key="tab.id"
+              class="tab-button"
+              :class="{ active: activeInspectionTab === tab.id }"
+              @click="activeInspectionTab = tab.id"
+            >
+              <component :is="tab.icon" class="tab-icon" />
+              {{ tab.label }}
+            </button>
+          </div>
+
+          <div class="inspection-content">
+            <!-- 基本信息 -->
+            <div v-if="activeInspectionTab === 'info'" class="tab-panel">
+              <div class="info-grid">
+                <div class="info-item">
+                  <label>服务名称</label>
+                  <span>{{ inspectedService.name }}</span>
+                </div>
+                <div class="info-item">
+                  <label>服务类型</label>
+                  <span class="type-badge" :class="inspectedService.type">{{ inspectedService.type }}</span>
+                </div>
+                <div class="info-item">
+                  <label>生命周期</label>
+                  <span>{{ inspectedService.lifecycle }}</span>
+                </div>
+                <div class="info-item">
+                  <label>状态</label>
+                  <span class="status-badge" :class="inspectedService.status">
+                    <div class="status-indicator" />
+                    {{ getStatusText(inspectedService.status) }}
+                  </span>
+                </div>
+                <div class="info-item">
+                  <label>实例数量</label>
+                  <span>{{ inspectedService.instanceCount }}</span>
+                </div>
+                <div class="info-item">
+                  <label>注册时间</label>
+                  <span>{{ formatTime(inspectedService.registeredAt) }}</span>
+                </div>
+                <div class="info-item">
+                  <label>最后访问</label>
+                  <span>{{ inspectedService.lastAccessed ? formatTime(inspectedService.lastAccessed) : '从未访问' }}</span>
+                </div>
+                <div class="info-item">
+                  <label>访问次数</label>
+                  <span>{{ inspectedService.accessCount }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 依赖关系 -->
+            <div v-if="activeInspectionTab === 'dependencies'" class="tab-panel">
+              <div class="dependencies-section">
+                <h4>直接依赖</h4>
+                <div v-if="inspectedService.dependencies.length" class="dependency-list">
+                  <div
+                    v-for="dep in inspectedService.dependencies"
+                    :key="dep"
+                    class="dependency-item"
+                  >
+                    <span class="dependency-name">{{ dep }}</span>
+                    <span class="dependency-status" :class="getDependencyStatus(dep)">
+                      {{ getDependencyStatus(dep) }}
+                    </span>
+                  </div>
+                </div>
+                <div v-else class="empty-state">
+                  <Package class="empty-icon" />
+                  <p>此服务没有依赖项</p>
+                </div>
+              </div>
+
+              <div class="dependents-section">
+                <h4>被依赖</h4>
+                <div v-if="getServiceDependents(inspectedService).length" class="dependency-list">
+                  <div
+                    v-for="dependent in getServiceDependents(inspectedService)"
+                    :key="dependent"
+                    class="dependency-item"
+                  >
+                    <span class="dependency-name">{{ dependent }}</span>
+                    <span class="dependency-status active">活跃</span>
+                  </div>
+                </div>
+                <div v-else class="empty-state">
+                  <GitBranch class="empty-icon" />
+                  <p>没有其他服务依赖此服务</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- 实例信息 -->
+            <div v-if="activeInspectionTab === 'instances'" class="tab-panel">
+              <div class="instances-list">
+                <div
+                  v-for="instance in getServiceInstances(inspectedService)"
+                  :key="instance.id"
+                  class="instance-item"
+                >
+                  <div class="instance-header">
+                    <span class="instance-id">实例 #{{ instance.id }}</span>
+                    <span class="instance-status" :class="instance.status">{{ instance.status }}</span>
+                  </div>
+                  <div class="instance-details">
+                    <div class="detail-row">
+                      <span class="detail-label">创建时间:</span>
+                      <span class="detail-value">{{ formatTime(instance.createdAt) }}</span>
+                    </div>
+                    <div class="detail-row">
+                      <span class="detail-label">内存使用:</span>
+                      <span class="detail-value">{{ instance.memoryUsage }}KB</span>
+                    </div>
+                    <div class="detail-row">
+                      <span class="detail-label">调用次数:</span>
+                      <span class="detail-value">{{ instance.callCount }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 性能指标 -->
+            <div v-if="activeInspectionTab === 'performance'" class="tab-panel">
+              <div class="performance-metrics">
+                <div class="metric-card">
+                  <div class="metric-icon">
+                    <Clock class="icon" />
+                  </div>
+                  <div class="metric-content">
+                    <div class="metric-value">
+                      {{ inspectedService.avgResolutionTime }}ms
+                    </div>
+                    <div class="metric-label">
+                      平均解析时间
+                    </div>
+                  </div>
+                </div>
+
+                <div class="metric-card">
+                  <div class="metric-icon">
+                    <Activity class="icon" />
+                  </div>
+                  <div class="metric-content">
+                    <div class="metric-value">
+                      {{ inspectedService.accessCount }}
+                    </div>
+                    <div class="metric-label">
+                      总访问次数
+                    </div>
+                  </div>
+                </div>
+
+                <div class="metric-card">
+                  <div class="metric-icon">
+                    <Zap class="icon" />
+                  </div>
+                  <div class="metric-content">
+                    <div class="metric-value">
+                      {{ inspectedService.successRate }}%
+                    </div>
+                    <div class="metric-label">
+                      成功率
+                    </div>
+                  </div>
+                </div>
+
+                <div class="metric-card">
+                  <div class="metric-icon">
+                    <AlertTriangle class="icon" />
+                  </div>
+                  <div class="metric-content">
+                    <div class="metric-value">
+                      {{ inspectedService.errorCount }}
+                    </div>
+                    <div class="metric-label">
+                      错误次数
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
 
 <style scoped>
 /* 基础样式 */
@@ -2330,53 +2409,53 @@ onMounted(() => {
   .di-page {
     padding: 1rem;
   }
-  
+
   .container-overview {
     flex-direction: column;
   }
-  
+
   .overview-stats {
     grid-template-columns: 1fr;
   }
-  
+
   .service-registration {
     grid-template-columns: 1fr;
   }
-  
+
   .form-row {
     grid-template-columns: 1fr;
   }
-  
+
   .manager-controls {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .search-filters {
     flex-direction: column;
   }
-  
+
   .search-input {
     width: 100%;
   }
-  
+
   .service-cards {
     grid-template-columns: 1fr;
   }
-  
+
   .modal-content {
     width: 95%;
     margin: 1rem;
   }
-  
+
   .inspection-tabs {
     overflow-x: auto;
   }
-  
+
   .info-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .performance-metrics {
     grid-template-columns: 1fr;
   }

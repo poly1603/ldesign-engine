@@ -10,33 +10,33 @@
 // 引擎配置
 interface EngineConfig {
   // 基础配置
-  name?: string                    // 引擎名称
-  version?: string                 // 引擎版本
-  debug?: boolean                  // 调试模式
-  
+  name?: string // 引擎名称
+  version?: string // 引擎版本
+  debug?: boolean // 调试模式
+
   // 插件配置
-  plugins?: PluginConfig[]         // 预加载插件
-  autoStart?: boolean              // 自动启动
-  
+  plugins?: PluginConfig[] // 预加载插件
+  autoStart?: boolean // 自动启动
+
   // 事件配置
-  maxListeners?: number            // 最大监听器数量
-  eventTimeout?: number            // 事件超时时间
-  
+  maxListeners?: number // 最大监听器数量
+  eventTimeout?: number // 事件超时时间
+
   // 中间件配置
-  middlewareTimeout?: number       // 中间件超时时间
-  
+  middlewareTimeout?: number // 中间件超时时间
+
   // 状态配置
-  initialState?: Record<string, any>  // 初始状态
-  
+  initialState?: Record<string, any> // 初始状态
+
   // 性能配置
-  performanceMonitoring?: boolean  // 性能监控
-  memoryLimit?: number            // 内存限制
-  
+  performanceMonitoring?: boolean // 性能监控
+  memoryLimit?: number // 内存限制
+
   // 错误处理
   errorHandling?: {
-    global?: boolean               // 全局错误处理
-    retry?: number                 // 重试次数
-    timeout?: number               // 错误超时
+    global?: boolean // 全局错误处理
+    retry?: number // 重试次数
+    timeout?: number // 错误超时
   }
 }
 
@@ -89,52 +89,52 @@ interface Plugin {
   version: string
   description?: string
   author?: string
-  
+
   // 依赖关系
-  dependencies?: string[]          // 依赖的插件
-  optionalDependencies?: string[]  // 可选依赖
-  conflicts?: string[]             // 冲突的插件
-  
+  dependencies?: string[] // 依赖的插件
+  optionalDependencies?: string[] // 可选依赖
+  conflicts?: string[] // 冲突的插件
+
   // 生命周期钩子
-  install?(engine: Engine, config?: any): void | Promise<void>
-  uninstall?(engine: Engine): void | Promise<void>
-  start?(engine: Engine): void | Promise<void>
-  stop?(engine: Engine): void | Promise<void>
-  
+  install?: (engine: Engine, config?: any) => void | Promise<void>
+  uninstall?: (engine: Engine) => void | Promise<void>
+  start?: (engine: Engine) => void | Promise<void>
+  stop?: (engine: Engine) => void | Promise<void>
+
   // 配置
   config?: PluginConfig
-  
+
   // 元数据
   metadata?: PluginMetadata
 }
 
 // 插件配置
 interface PluginConfig {
-  enabled?: boolean                // 是否启用
-  priority?: number               // 优先级
-  lazy?: boolean                  // 懒加载
-  singleton?: boolean             // 单例模式
-  
+  enabled?: boolean // 是否启用
+  priority?: number // 优先级
+  lazy?: boolean // 懒加载
+  singleton?: boolean // 单例模式
+
   // 自定义配置
   [key: string]: any
 }
 
 // 插件元数据
 interface PluginMetadata {
-  tags?: string[]                 // 标签
-  category?: string               // 分类
-  homepage?: string               // 主页
-  repository?: string             // 仓库地址
-  license?: string                // 许可证
-  
+  tags?: string[] // 标签
+  category?: string // 分类
+  homepage?: string // 主页
+  repository?: string // 仓库地址
+  license?: string // 许可证
+
   // 兼容性
-  engineVersion?: string          // 引擎版本要求
-  nodeVersion?: string            // Node.js版本要求
-  
+  engineVersion?: string // 引擎版本要求
+  nodeVersion?: string // Node.js版本要求
+
   // 资源
-  assets?: string[]               // 资源文件
-  styles?: string[]               // 样式文件
-  scripts?: string[]              // 脚本文件
+  assets?: string[] // 资源文件
+  styles?: string[] // 样式文件
+  scripts?: string[] // 脚本文件
 }
 
 // 插件信息
@@ -186,42 +186,42 @@ type EventListener<T = any> = (...args: T[]) => void | Promise<void>
 
 // 事件监听器配置
 interface EventListenerConfig {
-  once?: boolean                  // 只执行一次
-  priority?: number               // 优先级
-  timeout?: number                // 超时时间
-  condition?: (...args: any[]) => boolean  // 执行条件
+  once?: boolean // 只执行一次
+  priority?: number // 优先级
+  timeout?: number // 超时时间
+  condition?: (...args: any[]) => boolean // 执行条件
 }
 
 // 事件上下文
 interface EventContext<T = any> {
-  event: string                   // 事件名称
-  args: T[]                      // 事件参数
-  timestamp: number              // 时间戳
-  source?: any                   // 事件源
-  target?: any                   // 事件目标
-  
+  event: string // 事件名称
+  args: T[] // 事件参数
+  timestamp: number // 时间戳
+  source?: any // 事件源
+  target?: any // 事件目标
+
   // 控制标志
-  cancelled?: boolean            // 是否取消
-  stopped?: boolean              // 是否停止传播
-  
+  cancelled?: boolean // 是否取消
+  stopped?: boolean // 是否停止传播
+
   // 元数据
   metadata?: EventMetadata
 }
 
 // 事件元数据
 interface EventMetadata {
-  id?: string                    // 事件ID
-  correlationId?: string         // 关联ID
-  userId?: string                // 用户ID
-  sessionId?: string             // 会话ID
-  
+  id?: string // 事件ID
+  correlationId?: string // 关联ID
+  userId?: string // 用户ID
+  sessionId?: string // 会话ID
+
   // 追踪信息
   trace?: {
     spanId: string
     traceId: string
     parentSpanId?: string
   }
-  
+
   // 自定义数据
   [key: string]: any
 }
@@ -242,30 +242,30 @@ type EventFilter<T = any> = (
 type EventTransformer<T = any, R = any> = (
   event: string,
   args: T[]
-) => { event: string; args: R[] } | Promise<{ event: string; args: R[] }>
+) => { event: string, args: R[] } | Promise<{ event: string, args: R[] }>
 
 // 事件发射器选项
 interface EventEmitterOptions {
-  maxListeners?: number          // 最大监听器数量
-  captureRejections?: boolean    // 捕获Promise拒绝
-  wildcard?: boolean             // 支持通配符
-  delimiter?: string             // 事件分隔符
-  newListener?: boolean          // 新监听器事件
-  removeListener?: boolean       // 移除监听器事件
-  verboseMemoryLeak?: boolean    // 详细内存泄漏警告
+  maxListeners?: number // 最大监听器数量
+  captureRejections?: boolean // 捕获Promise拒绝
+  wildcard?: boolean // 支持通配符
+  delimiter?: string // 事件分隔符
+  newListener?: boolean // 新监听器事件
+  removeListener?: boolean // 移除监听器事件
+  verboseMemoryLeak?: boolean // 详细内存泄漏警告
 }
 
 // 事件统计
 interface EventStats {
-  totalEvents: number            // 总事件数
-  eventTypes: Map<string, number>  // 事件类型统计
-  listeners: Map<string, number>   // 监听器统计
-  errors: number                 // 错误数量
+  totalEvents: number // 总事件数
+  eventTypes: Map<string, number> // 事件类型统计
+  listeners: Map<string, number> // 监听器统计
+  errors: number // 错误数量
   performance: {
-    averageTime: number          // 平均执行时间
-    totalTime: number            // 总执行时间
-    slowestEvent: string         // 最慢事件
-    fastestEvent: string         // 最快事件
+    averageTime: number // 平均执行时间
+    totalTime: number // 总执行时间
+    slowestEvent: string // 最慢事件
+    fastestEvent: string // 最快事件
   }
 }
 ```
@@ -284,38 +284,38 @@ type NextFunction = (error?: Error) => void | Promise<void>
 
 // 中间件上下文
 interface MiddlewareContext<T = any> {
-  request: T                     // 请求数据
-  response?: any                 // 响应数据
-  state: Record<string, any>     // 共享状态
-  
+  request: T // 请求数据
+  response?: any // 响应数据
+  state: Record<string, any> // 共享状态
+
   // 元数据
   metadata: {
-    startTime: number            // 开始时间
-    middlewareIndex: number      // 中间件索引
-    path: string[]              // 执行路径
-    correlationId?: string       // 关联ID
+    startTime: number // 开始时间
+    middlewareIndex: number // 中间件索引
+    path: string[] // 执行路径
+    correlationId?: string // 关联ID
   }
-  
+
   // 工具方法
-  set(key: string, value: any): void
-  get(key: string): any
-  has(key: string): boolean
-  delete(key: string): boolean
+  set: (key: string, value: any) => void
+  get: (key: string) => any
+  has: (key: string) => boolean
+  delete: (key: string) => boolean
 }
 
 // 中间件配置
 interface MiddlewareConfig {
-  name?: string                  // 中间件名称
-  priority?: number              // 优先级
-  timeout?: number               // 超时时间
-  retries?: number               // 重试次数
-  
+  name?: string // 中间件名称
+  priority?: number // 优先级
+  timeout?: number // 超时时间
+  retries?: number // 重试次数
+
   // 执行条件
   condition?: (context: any) => boolean | Promise<boolean>
-  
+
   // 错误处理
   errorHandler?: (error: Error, context: any) => void | Promise<void>
-  
+
   // 缓存配置
   cache?: {
     enabled: boolean
@@ -336,23 +336,23 @@ interface MiddlewareInfo {
   name: string
   middleware: Middleware
   config: MiddlewareConfig
-  
+
   // 统计信息
   stats: {
-    executions: number           // 执行次数
-    totalTime: number            // 总执行时间
-    averageTime: number          // 平均执行时间
-    errors: number               // 错误次数
-    lastExecution: number        // 最后执行时间
+    executions: number // 执行次数
+    totalTime: number // 总执行时间
+    averageTime: number // 平均执行时间
+    errors: number // 错误次数
+    lastExecution: number // 最后执行时间
   }
 }
 
 // 中间件管道
 interface MiddlewarePipeline<T = any> {
-  use(middleware: Middleware<T>, config?: MiddlewareConfig): this
-  remove(name: string): boolean
-  execute(context: T): Promise<T>
-  clear(): this
+  use: (middleware: Middleware<T>, config?: MiddlewareConfig) => this
+  remove: (name: string) => boolean
+  execute: (context: T) => Promise<T>
+  clear: () => this
 }
 ```
 
@@ -382,19 +382,19 @@ type StateTransformer<T = StateValue, R = StateValue> = (
 interface StateConfig<T = StateValue> {
   // 验证
   validator?: StateValidator<T>
-  
+
   // 转换
   transformer?: StateTransformer<T>
-  
+
   // 持久化
   persistent?: boolean
-  
+
   // 只读
   readonly?: boolean
-  
+
   // 默认值
   defaultValue?: T
-  
+
   // 元数据
   metadata?: {
     description?: string
@@ -406,36 +406,36 @@ interface StateConfig<T = StateValue> {
 // 状态管理器接口
 interface StateManager {
   // 基础操作
-  set<T = StateValue>(key: string, value: T, config?: StateConfig<T>): void
-  get<T = StateValue>(key: string): T | undefined
-  has(key: string): boolean
-  delete(key: string): boolean
-  clear(): void
-  
+  set: <T = StateValue>(key: string, value: T, config?: StateConfig<T>) => void
+  get: <T = StateValue>(key: string) => T | undefined
+  has: (key: string) => boolean
+  delete: (key: string) => boolean
+  clear: () => void
+
   // 批量操作
-  setMany(states: Record<string, StateValue>): void
-  getMany(keys: string[]): Record<string, StateValue>
-  deleteMany(keys: string[]): void
-  
+  setMany: (states: Record<string, StateValue>) => void
+  getMany: (keys: string[]) => Record<string, StateValue>
+  deleteMany: (keys: string[]) => void
+
   // 监听
-  watch<T = StateValue>(key: string, listener: StateChangeListener<T>): () => void
-  unwatch(key: string, listener?: StateChangeListener): void
-  
+  watch: <T = StateValue>(key: string, listener: StateChangeListener<T>) => () => void
+  unwatch: (key: string, listener?: StateChangeListener) => void
+
   // 计算属性
-  computed<T = StateValue>(
+  computed: <T = StateValue>(
     key: string,
     dependencies: string[],
     computer: (...values: any[]) => T
-  ): () => void
-  
+  ) => () => void
+
   // 状态快照
-  snapshot(): Record<string, StateValue>
-  restore(snapshot: Record<string, StateValue>): void
-  
+  snapshot: () => Record<string, StateValue>
+  restore: (snapshot: Record<string, StateValue>) => void
+
   // 状态历史
-  history(key: string): StateValue[]
-  undo(key: string): boolean
-  redo(key: string): boolean
+  history: (key: string) => StateValue[]
+  undo: (key: string) => boolean
+  redo: (key: string) => boolean
 }
 
 // 状态变化事件
@@ -463,15 +463,15 @@ type DependencyFactory<T = any> = (container: Container) => T
 
 // 依赖配置
 interface DependencyConfig<T = any> {
-  scope?: DependencyScope        // 作用域
+  scope?: DependencyScope // 作用域
   factory?: DependencyFactory<T> // 工厂函数
-  value?: T                      // 直接值
-  lazy?: boolean                 // 懒加载
-  
+  value?: T // 直接值
+  lazy?: boolean // 懒加载
+
   // 生命周期
   onCreate?: (instance: T) => void
   onDestroy?: (instance: T) => void
-  
+
   // 元数据
   metadata?: {
     description?: string
@@ -483,37 +483,33 @@ interface DependencyConfig<T = any> {
 // 容器接口
 interface Container {
   // 注册
-  register<T>(
+  register: (<T>(
     identifier: DependencyIdentifier,
     config: DependencyConfig<T>
-  ): void
-  
-  register<T>(
+  ) => void) & (<T>(
     identifier: DependencyIdentifier,
     factory: DependencyFactory<T>,
     scope?: DependencyScope
-  ): void
-  
-  register<T>(
+  ) => void) & (<T>(
     identifier: DependencyIdentifier,
     value: T
-  ): void
-  
+  ) => void)
+
   // 解析
-  resolve<T>(identifier: DependencyIdentifier): T
-  resolveAll<T>(identifier: DependencyIdentifier): T[]
-  
+  resolve: <T>(identifier: DependencyIdentifier) => T
+  resolveAll: <T>(identifier: DependencyIdentifier) => T[]
+
   // 检查
-  has(identifier: DependencyIdentifier): boolean
-  
+  has: (identifier: DependencyIdentifier) => boolean
+
   // 移除
-  unregister(identifier: DependencyIdentifier): boolean
-  
+  unregister: (identifier: DependencyIdentifier) => boolean
+
   // 清理
-  clear(): void
-  
+  clear: () => void
+
   // 子容器
-  createChild(): Container
+  createChild: () => Container
 }
 
 // 注入装饰器
@@ -530,7 +526,7 @@ type InjectableDecorator = (config?: DependencyConfig) => ClassDecorator
 abstract class EngineError extends Error {
   abstract readonly code: string
   abstract readonly category: ErrorCategory
-  
+
   constructor(
     message: string,
     public readonly context?: any,
@@ -542,7 +538,7 @@ abstract class EngineError extends Error {
 }
 
 // 错误分类
-type ErrorCategory = 
+type ErrorCategory =
   | 'plugin'
   | 'event'
   | 'middleware'
@@ -559,7 +555,7 @@ type ErrorCategory =
 class PluginError extends EngineError {
   readonly code = 'PLUGIN_ERROR'
   readonly category = 'plugin' as const
-  
+
   constructor(
     message: string,
     public readonly pluginName: string,
@@ -574,7 +570,7 @@ class PluginError extends EngineError {
 class EventError extends EngineError {
   readonly code = 'EVENT_ERROR'
   readonly category = 'event' as const
-  
+
   constructor(
     message: string,
     public readonly eventName: string,
@@ -589,7 +585,7 @@ class EventError extends EngineError {
 class MiddlewareError extends EngineError {
   readonly code = 'MIDDLEWARE_ERROR'
   readonly category = 'middleware' as const
-  
+
   constructor(
     message: string,
     public readonly middlewareName: string,
@@ -604,7 +600,7 @@ class MiddlewareError extends EngineError {
 class StateError extends EngineError {
   readonly code = 'STATE_ERROR'
   readonly category = 'state' as const
-  
+
   constructor(
     message: string,
     public readonly stateKey: string,
@@ -619,7 +615,7 @@ class StateError extends EngineError {
 class ValidationError extends EngineError {
   readonly code = 'VALIDATION_ERROR'
   readonly category = 'validation' as const
-  
+
   constructor(
     message: string,
     public readonly field: string,
@@ -635,7 +631,7 @@ class ValidationError extends EngineError {
 class ConfigurationError extends EngineError {
   readonly code = 'CONFIGURATION_ERROR'
   readonly category = 'configuration' as const
-  
+
   constructor(
     message: string,
     public readonly configKey: string,
@@ -661,7 +657,7 @@ interface ErrorReport {
   timestamp: number
   context?: any
   stackTrace: string
-  
+
   // 环境信息
   environment: {
     nodeVersion: string
@@ -670,7 +666,7 @@ interface ErrorReport {
     memory: number
     uptime: number
   }
-  
+
   // 相关信息
   related?: {
     events: string[]
@@ -762,13 +758,13 @@ interface LogConfig {
     maxFiles: number
     compress: boolean
   }
-  
+
   // 过滤器
   filters?: {
     include?: string[]
     exclude?: string[]
   }
-  
+
   // 格式化
   formatter?: (log: LogEntry) => string
 }
@@ -779,7 +775,7 @@ interface LogEntry {
   message: string
   timestamp: number
   context?: any
-  
+
   // 元数据
   metadata?: {
     source?: string
@@ -793,22 +789,22 @@ interface LogEntry {
 // 缓存配置
 interface CacheConfig {
   // 基础配置
-  ttl?: number                   // 生存时间
-  maxSize?: number               // 最大大小
-  maxAge?: number                // 最大年龄
-  
+  ttl?: number // 生存时间
+  maxSize?: number // 最大大小
+  maxAge?: number // 最大年龄
+
   // 策略
   strategy?: 'lru' | 'lfu' | 'fifo' | 'lifo'
-  
+
   // 存储
   storage?: 'memory' | 'redis' | 'file'
-  
+
   // 序列化
   serializer?: {
     serialize: (value: any) => string
     deserialize: (value: string) => any
   }
-  
+
   // 事件
   onHit?: (key: string, value: any) => void
   onMiss?: (key: string) => void
@@ -819,14 +815,14 @@ interface CacheConfig {
 interface NetworkConfig {
   // 超时
   timeout?: number
-  
+
   // 重试
   retry?: {
     attempts: number
     delay: number
     backoff: 'linear' | 'exponential'
   }
-  
+
   // 代理
   proxy?: {
     host: string
@@ -836,10 +832,10 @@ interface NetworkConfig {
       password: string
     }
   }
-  
+
   // 头部
   headers?: Record<string, string>
-  
+
   // 拦截器
   interceptors?: {
     request?: (config: any) => any
@@ -855,21 +851,21 @@ interface SecurityConfig {
     type: 'jwt' | 'oauth' | 'basic' | 'custom'
     config: any
   }
-  
+
   // 授权
   authorization?: {
     roles: string[]
     permissions: string[]
     rules: AuthorizationRule[]
   }
-  
+
   // 加密
   encryption?: {
     algorithm: string
     key: string
     iv?: string
   }
-  
+
   // CORS
   cors?: {
     origin: string | string[]
@@ -877,7 +873,7 @@ interface SecurityConfig {
     headers: string[]
     credentials: boolean
   }
-  
+
   // CSP
   csp?: {
     directives: Record<string, string[]>
@@ -901,12 +897,12 @@ declare module '@ldesign/engine' {
     // 自定义方法
     customMethod?(): void
   }
-  
+
   interface EngineConfig {
     // 自定义配置
     customConfig?: any
   }
-  
+
   interface Plugin {
     // 自定义插件属性
     customProperty?: any
@@ -919,11 +915,11 @@ declare global {
     interface CustomEvents {
       'custom:event': [data: any]
     }
-    
+
     interface CustomState {
       customKey: any
     }
-    
+
     interface CustomMiddleware {
       customMiddleware: any
     }
@@ -934,22 +930,22 @@ declare global {
 type TypeGuard<T> = (value: any) => value is T
 
 // 常用类型守卫
-const isString: TypeGuard<string> = (value): value is string => 
+const isString: TypeGuard<string> = (value): value is string =>
   typeof value === 'string'
 
-const isNumber: TypeGuard<number> = (value): value is number => 
+const isNumber: TypeGuard<number> = (value): value is number =>
   typeof value === 'number' && !isNaN(value)
 
-const isObject: TypeGuard<object> = (value): value is object => 
+const isObject: TypeGuard<object> = (value): value is object =>
   value !== null && typeof value === 'object'
 
-const isArray: TypeGuard<any[]> = (value): value is any[] => 
+const isArray: TypeGuard<any[]> = (value): value is any[] =>
   Array.isArray(value)
 
-const isFunction: TypeGuard<Function> = (value): value is Function => 
+const isFunction: TypeGuard<Function> = (value): value is Function =>
   typeof value === 'function'
 
-const isPromise: TypeGuard<Promise<any>> = (value): value is Promise<any> => 
+const isPromise: TypeGuard<Promise<any>> = (value): value is Promise<any> =>
   value && typeof value.then === 'function'
 
 // 类型断言
@@ -982,18 +978,18 @@ const assertObject: TypeAssertion<object> = (value, message = 'Expected object')
 const engine = new Engine<{
   // 自定义事件类型
   events: {
-    'user:login': [user: { id: number; name: string }]
+    'user:login': [user: { id: number, name: string }]
     'data:update': [data: any, source: string]
     'error:occurred': [error: Error, context: any]
   }
-  
+
   // 自定义状态类型
   state: {
-    user: { id: number; name: string } | null
+    user: { id: number, name: string } | null
     settings: Record<string, any>
     cache: Map<string, any>
   }
-  
+
   // 自定义中间件上下文
   middleware: {
     request: {
@@ -1035,7 +1031,7 @@ engine.middleware((context, next) => {
 const myPlugin: Plugin = {
   name: 'MyPlugin',
   version: '1.0.0',
-  
+
   install(engine) {
     // engine 类型已知
     engine.on('user:login', (user) => {

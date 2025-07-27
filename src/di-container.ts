@@ -52,7 +52,8 @@ export class DIContainerImpl implements DIContainer {
         // 缓存单例
         this.singletons.set(key, instance)
         return instance as T
-      } catch (error) {
+      }
+ catch (error) {
         console.error(`Error creating instance for key '${String(key)}':`, error)
         return undefined
       }
@@ -65,9 +66,9 @@ export class DIContainerImpl implements DIContainer {
    * 检查依赖是否存在
    */
   has(key: string | symbol): boolean {
-    return this.dependencies.has(key) || 
-           this.singletons.has(key) || 
-           this.factories.has(key)
+    return this.dependencies.has(key)
+      || this.singletons.has(key)
+      || this.factories.has(key)
   }
 
   /**
@@ -79,28 +80,29 @@ export class DIContainerImpl implements DIContainer {
     if (this.dependencies.has(key)) {
       const value = this.dependencies.get(key)
       this.dependencies.delete(key)
-      
+
       // 清理弱引用
       if (typeof value === 'object' && value !== null) {
         this.weakRefs.delete(value)
       }
-      
+
       removed = true
     }
 
     if (this.singletons.has(key)) {
       const value = this.singletons.get(key)
       this.singletons.delete(key)
-      
+
       // 如果实例有销毁方法，调用它
       if (value && typeof value.destroy === 'function') {
         try {
           value.destroy()
-        } catch (error) {
+        }
+ catch (error) {
           console.error(`Error destroying instance for key '${String(key)}':`, error)
         }
       }
-      
+
       removed = true
     }
 
@@ -147,19 +149,19 @@ export class DIContainerImpl implements DIContainer {
    */
   keys(): (string | symbol)[] {
     const keys = new Set<string | symbol>()
-    
+
     for (const key of this.dependencies.keys()) {
       keys.add(key)
     }
-    
+
     for (const key of this.singletons.keys()) {
       keys.add(key)
     }
-    
+
     for (const key of this.factories.keys()) {
       keys.add(key)
     }
-    
+
     return Array.from(keys)
   }
 
@@ -179,7 +181,8 @@ export class DIContainerImpl implements DIContainer {
       if (instance && typeof instance.destroy === 'function') {
         try {
           instance.destroy()
-        } catch (error) {
+        }
+ catch (error) {
           console.error(`Error destroying instance for key '${String(key)}':`, error)
         }
       }
@@ -196,17 +199,17 @@ export class DIContainerImpl implements DIContainer {
    */
   clone(): DIContainerImpl {
     const cloned = new DIContainerImpl()
-    
+
     // 复制依赖
     for (const [key, value] of this.dependencies) {
       cloned.provide(key, value)
     }
-    
+
     // 复制工厂函数
     for (const [key, factory] of this.factories) {
       cloned.factory(key, factory)
     }
-    
+
     return cloned
   }
 
@@ -218,7 +221,7 @@ export class DIContainerImpl implements DIContainer {
     for (const [key, value] of other.dependencies) {
       this.provide(key, value)
     }
-    
+
     // 合并工厂函数
     for (const [key, factory] of other.factories) {
       this.factory(key, factory)
@@ -237,28 +240,28 @@ export class DIContainerImpl implements DIContainer {
       return {
         exists: true,
         type: 'direct',
-        value: this.dependencies.get(key)
+        value: this.dependencies.get(key),
       }
     }
-    
+
     if (this.singletons.has(key)) {
       return {
         exists: true,
         type: 'singleton',
-        value: this.singletons.get(key)
+        value: this.singletons.get(key),
       }
     }
-    
+
     if (this.factories.has(key)) {
       return {
         exists: true,
-        type: 'factory'
+        type: 'factory',
       }
     }
-    
+
     return {
       exists: false,
-      type: 'none'
+      type: 'none',
     }
   }
 
@@ -269,9 +272,9 @@ export class DIContainerImpl implements DIContainer {
     if (visited.has(key)) {
       return true // 发现循环依赖
     }
-    
+
     visited.add(key)
-    
+
     const value = this.dependencies.get(key)
     if (value && typeof value === 'object') {
       // 检查对象的依赖
@@ -280,7 +283,7 @@ export class DIContainerImpl implements DIContainer {
         return this.checkCircularDependency(dependencyKey, visited)
       }
     }
-    
+
     visited.delete(key)
     return false
   }
@@ -298,7 +301,7 @@ export class DIContainerImpl implements DIContainer {
       dependencies: this.dependencies.size,
       singletons: this.singletons.size,
       factories: this.factories.size,
-      total: this.dependencies.size + this.singletons.size + this.factories.size
+      total: this.dependencies.size + this.singletons.size + this.factories.size,
     }
   }
 

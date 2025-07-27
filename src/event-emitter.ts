@@ -19,7 +19,8 @@ export class EventEmitterImpl implements EventEmitter {
       for (const handler of handlers) {
         try {
           handler(...args)
-        } catch (error) {
+        }
+ catch (error) {
           console.error(`Error in event handler for '${event}':`, error)
         }
       }
@@ -31,7 +32,8 @@ export class EventEmitterImpl implements EventEmitter {
       for (const handler of onceHandlers) {
         try {
           handler(...args)
-        } catch (error) {
+        }
+ catch (error) {
           console.error(`Error in once event handler for '${event}':`, error)
         }
       }
@@ -57,9 +59,9 @@ export class EventEmitterImpl implements EventEmitter {
     // 检查监听器数量限制
     if (handlers.size >= this.maxListeners) {
       console.warn(
-        `MaxListenersExceededWarning: Possible EventEmitter memory leak detected. ` +
-        `${handlers.size + 1} ${event} listeners added. ` +
-        `Use setMaxListeners() to increase limit.`
+        `MaxListenersExceededWarning: Possible EventEmitter memory leak detected. `
+        + `${handlers.size + 1} ${event} listeners added. `
+        + `Use setMaxListeners() to increase limit.`,
       )
     }
 
@@ -126,7 +128,8 @@ export class EventEmitterImpl implements EventEmitter {
     if (event) {
       this.events.delete(event)
       this.onceEvents.delete(event)
-    } else {
+    }
+ else {
       this.events.clear()
       this.onceEvents.clear()
     }
@@ -186,14 +189,14 @@ export class EventEmitterImpl implements EventEmitter {
     const handlers = this.events.get(event)
     const onceHandlers = this.onceEvents.get(event)
     const result: EventHandler[] = []
-    
+
     if (handlers) {
       result.push(...handlers)
     }
     if (onceHandlers) {
       result.push(...onceHandlers)
     }
-    
+
     return result
   }
 

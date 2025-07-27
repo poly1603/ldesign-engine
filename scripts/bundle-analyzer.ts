@@ -205,14 +205,15 @@ return '0 B'
 
       console.log(
         `${status} ${limit.name}: ${color(
-          `${result.totalGzipSizeFormatted} / ${this.formatSize(limit.max)} (${percentage}%)`
-        )}`
+          `${result.totalGzipSizeFormatted} / ${this.formatSize(limit.max)} (${percentage}%)`,
+        )}`,
       )
 
       if (result.totalGzipSize > limit.max) {
         hasWarnings = true
         console.log(chalk.red(`   超出限制 ${this.formatSize(result.totalGzipSize - limit.max)}`))
-      } else if (percentage > 80) {
+      }
+ else if (percentage > 80) {
         hasWarnings = true
         console.log(chalk.yellow(`   接近限制，建议优化`))
       }
@@ -280,8 +281,8 @@ return '0 B'
     console.log(chalk.white(`   文件总数: ${report.summary.totalFiles}`))
     console.log(chalk.white(`   原始大小: ${report.summary.totalSizeFormatted}`))
     console.log(chalk.white(`   Gzip 大小: ${report.summary.totalGzipSizeFormatted}`))
-    
-    const compressionRatio = report.summary.totalSize > 0 
+
+    const compressionRatio = report.summary.totalSize > 0
       ? Math.round((1 - report.summary.totalGzipSize / report.summary.totalSize) * 100)
       : 0
     console.log(chalk.white(`   压缩比例: ${compressionRatio}%`))
@@ -295,7 +296,7 @@ return '0 B'
     try {
       this.analyzeBuildOutput()
       const isWithinLimits = this.checkSizeLimits()
-      
+
       if (!isWithinLimits) {
         this.generateOptimizationSuggestions()
       }
@@ -305,12 +306,13 @@ return '0 B'
       this.saveReport(report)
 
       console.log(chalk.green.bold('✅ Bundle 分析完成!'))
-      
+
       if (!isWithinLimits) {
         console.log(chalk.yellow('⚠️  发现大小限制警告，请查看上述建议'))
         process.exit(1)
       }
-    } catch (error) {
+    }
+ catch (error) {
       console.error(chalk.red('❌ Bundle 分析失败:'), error)
       process.exit(1)
     }

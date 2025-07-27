@@ -8,24 +8,24 @@
 
 ```typescript
 // 格式：namespace:action
-'user:login'        // 用户登录
-'user:logout'       // 用户登出
-'file:upload'       // 文件上传
-'file:download'     // 文件下载
-'data:received'     // 数据接收
-'data:processed'    // 数据处理完成
+'user:login' // 用户登录
+'user:logout' // 用户登出
+'file:upload' // 文件上传
+'file:download' // 文件下载
+'data:received' // 数据接收
+'data:processed' // 数据处理完成
 
 // 格式：component:event
-'modal:open'        // 模态框打开
-'modal:close'       // 模态框关闭
-'form:submit'       // 表单提交
-'form:validate'     // 表单验证
+'modal:open' // 模态框打开
+'modal:close' // 模态框关闭
+'form:submit' // 表单提交
+'form:validate' // 表单验证
 
 // 格式：lifecycle:stage
-'app:start'         // 应用启动
-'app:ready'         // 应用就绪
-'plugin:install'    // 插件安装
-'plugin:uninstall'  // 插件卸载
+'app:start' // 应用启动
+'app:ready' // 应用就绪
+'plugin:install' // 插件安装
+'plugin:uninstall' // 插件卸载
 ```
 
 ### 事件命名最佳实践
@@ -50,10 +50,10 @@ const engine = new Engine({
 
 // 定义事件类型
 interface CustomEvents {
-  'user:profile-updated': { userId: number; changes: Record<string, any> }
-  'notification:show': { message: string; type: 'info' | 'warning' | 'error' | 'success' }
-  'task:completed': { taskId: string; result: any; duration: number }
-  'system:maintenance': { startTime: Date; estimatedDuration: number }
+  'user:profile-updated': { userId: number, changes: Record<string, any> }
+  'notification:show': { message: string, type: 'info' | 'warning' | 'error' | 'success' }
+  'task:completed': { taskId: string, result: any, duration: number }
+  'system:maintenance': { startTime: Date, estimatedDuration: number }
 }
 
 // 扩展引擎类型
@@ -143,17 +143,18 @@ engine.emit('task:completed', {
 // 异步事件处理
 engine.on('data:process', async (data) => {
   console.log('开始处理数据...')
-  
+
   try {
     const result = await processLargeDataSet(data)
-    
+
     // 发布处理完成事件
     engine.emit('data:processed', {
       originalData: data,
       result,
       timestamp: new Date()
     })
-  } catch (error) {
+  }
+ catch (error) {
     // 发布处理失败事件
     engine.emit('data:process-failed', {
       originalData: data,
@@ -174,13 +175,13 @@ console.log('所有验证器执行完成:', results)
 // 带条件的事件发布
 class ConditionalEventEmitter {
   constructor(private engine: Engine) {}
-  
+
   emitUserAction(action: string, user: any, condition?: () => boolean) {
     if (condition && !condition()) {
       console.log('条件不满足，跳过事件发布')
       return
     }
-    
+
     this.engine.emit('user:action', {
       action,
       user,
@@ -203,13 +204,13 @@ emitter.emitUserAction('profile-update', user, () => user.isAuthenticated)
 // 监听用户登录事件
 engine.on('user:login', (data) => {
   console.log('用户登录事件:', data)
-  
+
   // 更新用户状态
   engine.setState('currentUser', data.user)
-  
+
   // 记录登录日志
   logUserActivity('login', data)
-  
+
   // 发送欢迎通知
   engine.emit('notification:show', {
     message: `欢迎回来，${data.user.name}！`,
@@ -221,11 +222,11 @@ engine.on('user:login', (data) => {
 engine.on('file:upload', (data) => {
   if (data.status === 'completed') {
     console.log(`文件 ${data.file.name} 上传完成`)
-    
+
     // 更新文件列表
     const files = engine.getState('uploadedFiles') || []
     engine.setState('uploadedFiles', [...files, data.file])
-    
+
     // 发布文件处理事件
     engine.emit('file:process', data.file)
   }
@@ -238,13 +239,13 @@ engine.on('file:upload', (data) => {
 // 只监听一次的事件
 engine.once('app:ready', () => {
   console.log('应用已准备就绪，执行初始化操作')
-  
+
   // 加载用户配置
   loadUserPreferences()
-  
+
   // 启动后台任务
   startBackgroundTasks()
-  
+
   // 显示欢迎界面
   showWelcomeScreen()
 })
@@ -288,26 +289,26 @@ engine.on('data:validate', (data) => {
 // 拦截并修改事件数据
 engine.intercept('message:send', (message) => {
   console.log('拦截消息发送事件')
-  
+
   // 添加时间戳
   const modifiedMessage = {
     ...message,
     timestamp: new Date().toISOString(),
     id: generateMessageId()
   }
-  
+
   // 内容过滤
   if (containsInappropriateContent(modifiedMessage.content)) {
     modifiedMessage.content = filterContent(modifiedMessage.content)
     modifiedMessage.filtered = true
   }
-  
+
   // 加密敏感信息
   if (modifiedMessage.sensitive) {
     modifiedMessage.content = encrypt(modifiedMessage.content)
     modifiedMessage.encrypted = true
   }
-  
+
   return modifiedMessage
 })
 
@@ -322,7 +323,7 @@ engine.intercept('user:action', (action) => {
       allowedActions: ['view', 'read']
     }
   }
-  
+
   return action
 })
 ```
@@ -335,35 +336,35 @@ engine.intercept('file:delete', (fileInfo) => {
   // 检查文件是否可以删除
   if (fileInfo.protected || fileInfo.inUse) {
     console.log('文件受保护或正在使用，取消删除操作')
-    
+
     // 发布错误事件
     engine.emit('file:delete-failed', {
       file: fileInfo,
       reason: fileInfo.protected ? 'protected' : 'in-use'
     })
-    
+
     // 返回 null 取消事件
     return null
   }
-  
+
   return fileInfo
 })
 
 // 带确认的事件取消
 engine.intercept('app:shutdown', async (shutdownInfo) => {
   const hasUnsavedChanges = await checkUnsavedChanges()
-  
+
   if (hasUnsavedChanges) {
     const confirmed = await showConfirmDialog(
       '有未保存的更改，确定要退出吗？'
     )
-    
+
     if (!confirmed) {
       console.log('用户取消了关闭操作')
       return null // 取消关闭
     }
   }
-  
+
   return shutdownInfo
 })
 ```
@@ -378,42 +379,44 @@ class EventChain {
   constructor(private engine: Engine) {
     this.setupEventChain()
   }
-  
+
   private setupEventChain() {
     // 步骤1：数据接收
     this.engine.on('data:received', (data) => {
       console.log('步骤1：数据接收')
       this.engine.emit('data:validate', data)
     })
-    
+
     // 步骤2：数据验证
     this.engine.on('data:validate', (data) => {
       console.log('步骤2：数据验证')
       if (this.isValidData(data)) {
         this.engine.emit('data:transform', data)
-      } else {
+      }
+ else {
         this.engine.emit('data:validation-failed', data)
       }
     })
-    
+
     // 步骤3：数据转换
     this.engine.on('data:transform', (data) => {
       console.log('步骤3：数据转换')
       const transformedData = this.transformData(data)
       this.engine.emit('data:save', transformedData)
     })
-    
+
     // 步骤4：数据保存
     this.engine.on('data:save', async (data) => {
       console.log('步骤4：数据保存')
       try {
         await this.saveData(data)
         this.engine.emit('data:saved', data)
-      } catch (error) {
+      }
+ catch (error) {
         this.engine.emit('data:save-failed', { data, error })
       }
     })
-    
+
     // 步骤5：完成处理
     this.engine.on('data:saved', (data) => {
       console.log('步骤5：处理完成')
@@ -423,11 +426,11 @@ class EventChain {
       })
     })
   }
-  
+
   private isValidData(data: any): boolean {
     return data && typeof data === 'object' && data.id
   }
-  
+
   private transformData(data: any): any {
     return {
       ...data,
@@ -435,7 +438,7 @@ class EventChain {
       processedAt: new Date()
     }
   }
-  
+
   private async saveData(data: any): Promise<void> {
     // 模拟数据保存
     await new Promise(resolve => setTimeout(resolve, 100))
@@ -460,26 +463,27 @@ class ParallelEventProcessor {
   constructor(private engine: Engine) {
     this.setupParallelProcessing()
   }
-  
+
   private setupParallelProcessing() {
     this.engine.on('batch:process', async (batch) => {
       console.log(`开始并行处理 ${batch.items.length} 个项目`)
-      
+
       // 并行处理所有项目
-      const promises = batch.items.map(item => 
+      const promises = batch.items.map(item =>
         this.processItem(item)
       )
-      
+
       try {
         const results = await Promise.all(promises)
-        
+
         this.engine.emit('batch:completed', {
           batch,
           results,
           successCount: results.filter(r => r.success).length,
           failureCount: results.filter(r => !r.success).length
         })
-      } catch (error) {
+      }
+ catch (error) {
         this.engine.emit('batch:failed', {
           batch,
           error: error.message
@@ -487,26 +491,27 @@ class ParallelEventProcessor {
       }
     })
   }
-  
+
   private async processItem(item: any): Promise<any> {
     try {
       // 模拟异步处理
       await new Promise(resolve => setTimeout(resolve, Math.random() * 1000))
-      
+
       // 发布单个项目完成事件
       this.engine.emit('item:processed', {
         item,
         result: `处理结果: ${item.id}`,
         timestamp: new Date()
       })
-      
+
       return { success: true, item, result: `处理结果: ${item.id}` }
-    } catch (error) {
+    }
+ catch (error) {
       this.engine.emit('item:failed', {
         item,
         error: error.message
       })
-      
+
       return { success: false, item, error: error.message }
     }
   }
@@ -538,69 +543,69 @@ class EventLogger {
     timestamp: Date
     listeners: number
   }> = []
-  
+
   constructor(private engine: Engine) {
     this.setupLogging()
   }
-  
+
   private setupLogging() {
     // 拦截所有事件进行日志记录
     const originalEmit = this.engine.emit.bind(this.engine)
-    
+
     this.engine.emit = (event: string, data?: any) => {
       const listenerCount = this.engine.listenerCount(event)
-      
+
       this.logs.push({
         event,
         data,
         timestamp: new Date(),
         listeners: listenerCount
       })
-      
+
       console.log(`[EVENT] ${event}`, {
         data,
         listeners: listenerCount,
         timestamp: new Date().toISOString()
       })
-      
+
       return originalEmit(event, data)
     }
   }
-  
+
   getLogs(filter?: {
     event?: string
     since?: Date
     limit?: number
   }): typeof this.logs {
     let filteredLogs = this.logs
-    
+
     if (filter?.event) {
-      filteredLogs = filteredLogs.filter(log => 
+      filteredLogs = filteredLogs.filter(log =>
         log.event.includes(filter.event!)
       )
     }
-    
+
     if (filter?.since) {
-      filteredLogs = filteredLogs.filter(log => 
+      filteredLogs = filteredLogs.filter(log =>
         log.timestamp >= filter.since!
       )
     }
-    
+
     if (filter?.limit) {
       filteredLogs = filteredLogs.slice(-filter.limit)
     }
-    
+
     return filteredLogs
   }
-  
+
   getEventStats(): Record<string, {
     count: number
     lastEmitted: Date
     avgListeners: number
   }> {
     const stats: Record<string, any> = {}
-    
-    this.logs.forEach(log => {
+
+    this.logs.forEach((log) => {
       if (!stats[log.event]) {
         stats[log.event] = {
           count: 0,
@@ -608,19 +613,19 @@ class EventLogger {
           totalListeners: 0
         }
       }
-      
+
       stats[log.event].count++
       stats[log.event].lastEmitted = log.timestamp
       stats[log.event].totalListeners += log.listeners
     })
-    
+
     // 计算平均监听器数量
-    Object.keys(stats).forEach(event => {
-      stats[event].avgListeners = 
-        stats[event].totalListeners / stats[event].count
+    Object.keys(stats).forEach((event) => {
+      stats[event].avgListeners
+        = stats[event].totalListeners / stats[event].count
       delete stats[event].totalListeners
     })
-    
+
     return stats
   }
 }
@@ -633,7 +638,7 @@ setInterval(() => {
     since: new Date(Date.now() - 60000), // 最近1分钟
     limit: 10
   })
-  
+
   if (recentLogs.length > 0) {
     console.log('最近的事件:', recentLogs)
   }
@@ -657,40 +662,41 @@ class EventPerformanceMonitor {
     maxTime: number
     minTime: number
   }> = new Map()
-  
+
   constructor(private engine: Engine) {
     this.setupMonitoring()
   }
-  
+
   private setupMonitoring() {
     // 监控事件处理时间
     const originalOn = this.engine.on.bind(this.engine)
-    
+
     this.engine.on = (event: string, listener: Function, options?: any) => {
       const wrappedListener = async (...args: any[]) => {
         const startTime = performance.now()
-        
+
         try {
           const result = await listener(...args)
           const endTime = performance.now()
           const duration = endTime - startTime
-          
+
           this.recordMetric(event, duration)
-          
+
           return result
-        } catch (error) {
+        }
+ catch (error) {
           const endTime = performance.now()
           const duration = endTime - startTime
-          
+
           this.recordMetric(event, duration)
           throw error
         }
       }
-      
+
       return originalOn(event, wrappedListener, options)
     }
   }
-  
+
   private recordMetric(event: string, duration: number) {
     if (!this.metrics.has(event)) {
       this.metrics.set(event, {
@@ -700,14 +706,14 @@ class EventPerformanceMonitor {
         minTime: Infinity
       })
     }
-    
+
     const metric = this.metrics.get(event)!
     metric.totalTime += duration
     metric.count++
     metric.maxTime = Math.max(metric.maxTime, duration)
     metric.minTime = Math.min(metric.minTime, duration)
   }
-  
+
   getPerformanceReport(): Record<string, {
     avgTime: number
     maxTime: number
@@ -716,7 +722,7 @@ class EventPerformanceMonitor {
     totalTime: number
   }> {
     const report: Record<string, any> = {}
-    
+
     this.metrics.forEach((metric, event) => {
       report[event] = {
         avgTime: metric.totalTime / metric.count,
@@ -726,14 +732,14 @@ class EventPerformanceMonitor {
         totalTime: metric.totalTime
       }
     })
-    
+
     return report
   }
-  
+
   getSlowEvents(threshold: number = 100): string[] {
     const report = this.getPerformanceReport()
-    
-    return Object.keys(report).filter(event => 
+
+    return Object.keys(report).filter(event =>
       report[event].avgTime > threshold
     )
   }
@@ -744,11 +750,11 @@ const performanceMonitor = new EventPerformanceMonitor(engine)
 // 定期检查性能
 setInterval(() => {
   const slowEvents = performanceMonitor.getSlowEvents(50) // 50ms阈值
-  
+
   if (slowEvents.length > 0) {
     console.warn('检测到慢事件:', slowEvents)
     const report = performanceMonitor.getPerformanceReport()
-    slowEvents.forEach(event => {
+    slowEvents.forEach((event) => {
       console.warn(`事件 ${event}:`, report[event])
     })
   }
@@ -766,14 +772,14 @@ interface WellDesignedEvent {
   id: string
   timestamp: Date
   source: string
-  
+
   // 具体的业务数据
   payload: {
     userId: number
     action: string
     details: Record<string, any>
   }
-  
+
   // 元数据
   metadata: {
     version: string
@@ -796,7 +802,7 @@ interface PoorEvent {
 engine.on('error', (error, context) => {
   console.error('事件处理错误:', error)
   console.error('错误上下文:', context)
-  
+
   // 发送错误报告
   engine.emit('error:report', {
     error: {
@@ -812,7 +818,7 @@ engine.on('error', (error, context) => {
 // 优雅的错误恢复
 engine.on('data:process-failed', (failureInfo) => {
   console.log('数据处理失败，尝试恢复...')
-  
+
   // 重试逻辑
   setTimeout(() => {
     engine.emit('data:retry', {
@@ -834,9 +840,9 @@ class AutoCleanupEventManager {
     listener: Function
     cleanup: () => void
   }> = []
-  
+
   constructor(private engine: Engine) {}
-  
+
   addListener(event: string, listener: Function, options?: {
     once?: boolean
     timeout?: number
@@ -845,23 +851,24 @@ class AutoCleanupEventManager {
       this.engine.off(event, listener)
       this.listeners = this.listeners.filter(l => l.listener !== listener)
     }
-    
+
     this.listeners.push({ event, listener, cleanup })
-    
+
     if (options?.once) {
       this.engine.once(event, listener)
-    } else {
+    }
+ else {
       this.engine.on(event, listener)
     }
-    
+
     // 设置超时清理
     if (options?.timeout) {
       setTimeout(cleanup, options.timeout)
     }
-    
+
     return cleanup
   }
-  
+
   cleanup() {
     this.listeners.forEach(({ cleanup }) => cleanup())
     this.listeners = []

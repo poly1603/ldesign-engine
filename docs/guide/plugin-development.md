@@ -19,37 +19,37 @@
 ```typescript
 interface Plugin {
   // 基本信息
-  name: string                    // 插件唯一标识
-  version: string                 // 插件版本
-  description?: string            // 插件描述
-  author?: string                 // 插件作者
-  license?: string                // 插件许可证
-  homepage?: string               // 插件主页
-  keywords?: string[]             // 插件关键词
-  
+  name: string // 插件唯一标识
+  version: string // 插件版本
+  description?: string // 插件描述
+  author?: string // 插件作者
+  license?: string // 插件许可证
+  homepage?: string // 插件主页
+  keywords?: string[] // 插件关键词
+
   // 依赖关系
-  dependencies?: string[]         // 必需依赖
-  peerDependencies?: string[]     // 对等依赖
+  dependencies?: string[] // 必需依赖
+  peerDependencies?: string[] // 对等依赖
   optionalDependencies?: string[] // 可选依赖
-  
+
   // 生命周期钩子
   install: (engine: Engine) => void | Promise<void>
   uninstall?: (engine: Engine) => void | Promise<void>
   enable?: (engine: Engine) => void | Promise<void>
   disable?: (engine: Engine) => void | Promise<void>
-  
+
   // 配置
-  config?: any                    // 默认配置
-  schema?: JSONSchema             // 配置验证模式
-  
+  config?: any // 默认配置
+  schema?: JSONSchema // 配置验证模式
+
   // 元数据
-  tags?: string[]                 // 插件标签
-  category?: string               // 插件分类
-  priority?: number               // 加载优先级
-  
+  tags?: string[] // 插件标签
+  category?: string // 插件分类
+  priority?: number // 加载优先级
+
   // 兼容性
   engines?: {
-    '@ldesign/engine': string     // 支持的引擎版本
+    '@ldesign/engine': string // 支持的引擎版本
   }
 }
 ```
@@ -224,9 +224,9 @@ export const configSchema = {
 
 ```typescript
 // src/plugin.ts
-import { Plugin, Engine } from '@ldesign/engine'
 import { Notification, NotificationConfig } from './types'
-import { defaultConfig, configSchema } from './config'
+import { configSchema, defaultConfig } from './config'
+import { Engine, Plugin } from '@ldesign/engine'
 
 export class NotificationPlugin implements Plugin {
   name = 'notification-plugin'
@@ -234,61 +234,61 @@ export class NotificationPlugin implements Plugin {
   description = '通知管理插件'
   author = 'Your Name'
   license = 'MIT'
-  
+
   config = defaultConfig
   schema = configSchema
-  
+
   private engine!: Engine
   private config!: NotificationConfig
   private notifications: Notification[] = []
   private container?: HTMLElement
-  
+
   async install(engine: Engine): Promise<void> {
     this.engine = engine
     this.config = { ...defaultConfig, ...engine.getPluginConfig(this.name) }
-    
+
     // 创建通知容器
     this.createContainer()
-    
+
     // 注册方法
     engine.addMethod('notify', this.notify.bind(this))
     engine.addMethod('clearNotifications', this.clearNotifications.bind(this))
     engine.addMethod('getNotifications', this.getNotifications.bind(this))
-    
+
     // 注册事件监听器
     engine.on('notification:show', this.onNotificationShow.bind(this))
     engine.on('notification:hide', this.onNotificationHide.bind(this))
-    
+
     console.log('Notification Plugin 安装完成')
   }
-  
+
   async uninstall(engine: Engine): Promise<void> {
     // 清理 DOM
     if (this.container) {
       this.container.remove()
     }
-    
+
     // 移除方法
     engine.removeMethod('notify')
     engine.removeMethod('clearNotifications')
     engine.removeMethod('getNotifications')
-    
+
     // 移除事件监听器
     engine.off('notification:show', this.onNotificationShow)
     engine.off('notification:hide', this.onNotificationHide)
-    
+
     console.log('Notification Plugin 卸载完成')
   }
-  
+
   async enable(engine: Engine): Promise<void> {
     console.log('Notification Plugin 已启用')
   }
-  
+
   async disable(engine: Engine): Promise<void> {
     this.clearNotifications()
     console.log('Notification Plugin 已禁用')
   }
-  
+
   // 公共方法
   notify(notification: Omit<Notification, 'id'>): string {
     const id = this.generateId()
@@ -297,33 +297,33 @@ export class NotificationPlugin implements Plugin {
       duration: this.config.duration,
       ...notification
     }
-    
+
     // 检查通知数量限制
     if (this.notifications.length >= this.config.maxNotifications) {
       this.removeOldestNotification()
     }
-    
+
     this.notifications.push(fullNotification)
     this.renderNotification(fullNotification)
-    
+
     // 播放声音
     if (this.config.enableSound) {
       this.playNotificationSound()
     }
-    
+
     // 自动隐藏
     if (fullNotification.duration && fullNotification.duration > 0) {
       setTimeout(() => {
         this.hideNotification(id)
       }, fullNotification.duration)
     }
-    
+
     // 触发事件
     this.engine.emit('notification:show', fullNotification)
-    
+
     return id
   }
-  
+
   hideNotification(id: string): void {
     const index = this.notifications.findIndex(n => n.id === id)
     if (index !== -1) {
@@ -333,19 +333,19 @@ export class NotificationPlugin implements Plugin {
       this.engine.emit('notification:hide', notification)
     }
   }
-  
+
   clearNotifications(): void {
-    this.notifications.forEach(notification => {
+    this.notifications.forEach((notification) => {
       this.removeNotificationElement(notification.id)
     })
     this.notifications = []
     this.engine.emit('notification:clear')
   }
-  
+
   getNotifications(): Notification[] {
     return [...this.notifications]
   }
-  
+
   // 私有方法
   private createContainer(): void {
     this.container = document.createElement('div')
@@ -358,7 +358,7 @@ export class NotificationPlugin implements Plugin {
     `
     document.body.appendChild(this.container)
   }
-  
+
   private getPositionStyles(): string {
     switch (this.config.position) {
       case 'top-right':
@@ -373,10 +373,11 @@ export class NotificationPlugin implements Plugin {
         return 'top: 20px; right: 20px;'
     }
   }
-  
+
   private renderNotification(notification: Notification): void {
-    if (!this.container) return
-    
+    if (!this.container)
+return
+
     const element = document.createElement('div')
     element.id = `notification-${notification.id}`
     element.className = `notification notification-${notification.type}`
@@ -390,7 +391,7 @@ export class NotificationPlugin implements Plugin {
       max-width: 400px;
       animation: slideIn 0.3s ease-out;
     `
-    
+
     element.innerHTML = `
       <div class="notification-header">
         <h4 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600;">
@@ -414,13 +415,13 @@ export class NotificationPlugin implements Plugin {
       </div>
       ${notification.actions ? this.renderActions(notification.actions) : ''}
     `
-    
+
     // 添加关闭事件
     const closeBtn = element.querySelector('.notification-close')
     closeBtn?.addEventListener('click', () => {
       this.hideNotification(notification.id)
     })
-    
+
     // 添加动作事件
     notification.actions?.forEach((action, index) => {
       const actionBtn = element.querySelector(`[data-action="${index}"]`)
@@ -429,15 +430,15 @@ export class NotificationPlugin implements Plugin {
         this.hideNotification(notification.id)
       })
     })
-    
+
     this.container.appendChild(element)
   }
-  
+
   private renderActions(actions: NotificationAction[]): string {
     return `
       <div class="notification-actions" style="margin-top: 12px;">
         ${actions.map((action, index) => `
-          <button 
+          <button
             data-action="${index}"
             style="
               background: ${action.style === 'primary' ? '#007bff' : '#6c757d'};
@@ -456,7 +457,7 @@ export class NotificationPlugin implements Plugin {
       </div>
     `
   }
-  
+
   private removeNotificationElement(id: string): void {
     const element = document.getElementById(`notification-${id}`)
     if (element) {
@@ -466,42 +467,42 @@ export class NotificationPlugin implements Plugin {
       }, 300)
     }
   }
-  
+
   private removeOldestNotification(): void {
     if (this.notifications.length > 0) {
       const oldest = this.notifications[0]
       this.hideNotification(oldest.id)
     }
   }
-  
+
   private generateId(): string {
     return `notification-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
   }
-  
+
   private playNotificationSound(): void {
     // 创建简单的通知声音
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
     const oscillator = audioContext.createOscillator()
     const gainNode = audioContext.createGain()
-    
+
     oscillator.connect(gainNode)
     gainNode.connect(audioContext.destination)
-    
+
     oscillator.frequency.setValueAtTime(800, audioContext.currentTime)
     oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1)
-    
+
     gainNode.gain.setValueAtTime(0.3, audioContext.currentTime)
     gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2)
-    
+
     oscillator.start(audioContext.currentTime)
     oscillator.stop(audioContext.currentTime + 0.2)
   }
-  
+
   // 事件处理器
   private onNotificationShow(notification: Notification): void {
     console.log('通知显示:', notification.title)
   }
-  
+
   private onNotificationHide(notification: Notification): void {
     console.log('通知隐藏:', notification.title)
   }
@@ -525,8 +526,8 @@ export default notificationPlugin
 
 ```typescript
 // 使用示例
-import { Engine } from '@ldesign/engine'
 import { notificationPlugin } from './my-plugin'
+import { Engine } from '@ldesign/engine'
 
 const engine = new Engine({
   name: 'my-app',
@@ -577,7 +578,7 @@ engine.notify({
 export class DataProviderPlugin implements Plugin {
   name = 'data-provider'
   version = '1.0.0'
-  
+
   install(engine: Engine) {
     // 注册数据服务
     engine.registerService('dataService', {
@@ -585,13 +586,13 @@ export class DataProviderPlugin implements Plugin {
         const response = await fetch(url)
         return response.json()
       },
-      
+
       async saveData(data: any) {
         // 保存数据逻辑
         return { success: true, id: Date.now() }
       }
     })
-    
+
     // 发布数据事件
     engine.addMethod('publishData', (data: any) => {
       engine.emit('data:published', data)
@@ -603,25 +604,25 @@ export class DataProviderPlugin implements Plugin {
 export class DataConsumerPlugin implements Plugin {
   name = 'data-consumer'
   version = '1.0.0'
-  dependencies = ['data-provider']  // 依赖数据提供者插件
-  
+  dependencies = ['data-provider'] // 依赖数据提供者插件
+
   install(engine: Engine) {
     // 获取数据服务
     const dataService = engine.getService('dataService')
-    
+
     // 监听数据事件
     engine.on('data:published', (data) => {
       console.log('收到数据:', data)
       this.processData(data)
     })
-    
+
     // 添加数据处理方法
     engine.addMethod('processRemoteData', async (url: string) => {
       const data = await dataService.fetchData(url)
       return this.processData(data)
     })
   }
-  
+
   private processData(data: any) {
     // 数据处理逻辑
     return { ...data, processed: true, timestamp: Date.now() }
@@ -635,7 +636,7 @@ export class DataConsumerPlugin implements Plugin {
 export class ConfigurablePlugin implements Plugin {
   name = 'configurable-plugin'
   version = '1.0.0'
-  
+
   // 默认配置
   config = {
     apiUrl: 'https://api.example.com',
@@ -643,10 +644,10 @@ export class ConfigurablePlugin implements Plugin {
     retries: 3,
     cache: {
       enabled: true,
-      ttl: 300000  // 5分钟
+      ttl: 300000 // 5分钟
     }
   }
-  
+
   // 配置验证模式
   schema = {
     type: 'object',
@@ -664,45 +665,45 @@ export class ConfigurablePlugin implements Plugin {
     },
     required: ['apiUrl', 'timeout', 'retries']
   }
-  
+
   private currentConfig: any
-  
+
   install(engine: Engine) {
     // 获取合并后的配置
     this.currentConfig = engine.getPluginConfig(this.name)
-    
+
     // 监听配置变化
     engine.on('plugin:config-updated', ({ pluginName, config }) => {
       if (pluginName === this.name) {
         this.onConfigUpdated(config)
       }
     })
-    
+
     // 添加配置相关方法
     engine.addMethod('getPluginConfig', () => this.currentConfig)
     engine.addMethod('updatePluginConfig', (newConfig: any) => {
       engine.updatePluginConfig(this.name, newConfig)
     })
   }
-  
+
   private onConfigUpdated(newConfig: any) {
     const oldConfig = this.currentConfig
     this.currentConfig = newConfig
-    
+
     // 处理配置变化
     if (oldConfig.apiUrl !== newConfig.apiUrl) {
       this.reinitializeApiClient()
     }
-    
+
     if (oldConfig.cache.enabled !== newConfig.cache.enabled) {
       this.toggleCache(newConfig.cache.enabled)
     }
   }
-  
+
   private reinitializeApiClient() {
     // 重新初始化 API 客户端
   }
-  
+
   private toggleCache(enabled: boolean) {
     // 切换缓存状态
   }
@@ -715,58 +716,58 @@ export class ConfigurablePlugin implements Plugin {
 export class LifecyclePlugin implements Plugin {
   name = 'lifecycle-plugin'
   version = '1.0.0'
-  
+
   private resources: any[] = []
   private timers: NodeJS.Timeout[] = []
   private eventListeners: Array<{ event: string, handler: Function }> = []
-  
+
   async install(engine: Engine): Promise<void> {
     console.log('插件安装开始')
-    
+
     // 初始化资源
     await this.initializeResources()
-    
+
     // 注册事件监听器
     this.registerEventListeners(engine)
-    
+
     // 启动定时任务
     this.startTimers()
-    
+
     console.log('插件安装完成')
   }
-  
+
   async uninstall(engine: Engine): Promise<void> {
     console.log('插件卸载开始')
-    
+
     // 清理定时器
     this.clearTimers()
-    
+
     // 移除事件监听器
     this.removeEventListeners(engine)
-    
+
     // 清理资源
     await this.cleanupResources()
-    
+
     console.log('插件卸载完成')
   }
-  
+
   async enable(engine: Engine): Promise<void> {
     console.log('插件启用')
     // 恢复功能
     this.startTimers()
   }
-  
+
   async disable(engine: Engine): Promise<void> {
     console.log('插件禁用')
     // 暂停功能
     this.clearTimers()
   }
-  
+
   private async initializeResources(): Promise<void> {
     // 初始化数据库连接、文件句柄等
     this.resources.push(/* 资源对象 */)
   }
-  
+
   private async cleanupResources(): Promise<void> {
     // 清理所有资源
     for (const resource of this.resources) {
@@ -776,48 +777,48 @@ export class LifecyclePlugin implements Plugin {
     }
     this.resources = []
   }
-  
+
   private registerEventListeners(engine: Engine): void {
     const handlers = [
       { event: 'app:start', handler: this.onAppStart.bind(this) },
       { event: 'app:stop', handler: this.onAppStop.bind(this) }
     ]
-    
+
     handlers.forEach(({ event, handler }) => {
       engine.on(event, handler)
       this.eventListeners.push({ event, handler })
     })
   }
-  
+
   private removeEventListeners(engine: Engine): void {
     this.eventListeners.forEach(({ event, handler }) => {
       engine.off(event, handler)
     })
     this.eventListeners = []
   }
-  
+
   private startTimers(): void {
     // 启动定时任务
     const timer = setInterval(() => {
       this.performPeriodicTask()
-    }, 60000)  // 每分钟执行一次
-    
+    }, 60000) // 每分钟执行一次
+
     this.timers.push(timer)
   }
-  
+
   private clearTimers(): void {
     this.timers.forEach(timer => clearInterval(timer))
     this.timers = []
   }
-  
+
   private onAppStart(): void {
     console.log('应用启动，插件响应')
   }
-  
+
   private onAppStop(): void {
     console.log('应用停止，插件响应')
   }
-  
+
   private performPeriodicTask(): void {
     console.log('执行周期性任务')
   }
@@ -830,110 +831,110 @@ export class LifecyclePlugin implements Plugin {
 
 ```typescript
 // tests/unit/notification-plugin.test.ts
-import { Engine } from '@ldesign/engine'
 import { NotificationPlugin } from '../../src/plugin'
+import { Engine } from '@ldesign/engine'
 
 describe('NotificationPlugin', () => {
   let engine: Engine
   let plugin: NotificationPlugin
-  
+
   beforeEach(() => {
     // 模拟 DOM 环境
     document.body.innerHTML = ''
-    
+
     engine = new Engine({
       name: 'test-engine',
       version: '1.0.0'
     })
-    
+
     plugin = new NotificationPlugin()
   })
-  
+
   afterEach(async () => {
     if (engine.hasPlugin(plugin.name)) {
       await engine.uninstallPlugin(plugin.name)
     }
   })
-  
+
   test('应该正确安装插件', async () => {
     await engine.registerPlugin(plugin)
     await engine.installPlugin(plugin.name)
-    
+
     expect(engine.hasPlugin(plugin.name)).toBe(true)
     expect(engine.hasMethod('notify')).toBe(true)
     expect(engine.hasMethod('clearNotifications')).toBe(true)
   })
-  
+
   test('应该能够显示通知', async () => {
     await engine.registerPlugin(plugin)
     await engine.installPlugin(plugin.name)
-    
+
     const notificationId = engine.notify({
       type: 'info',
       title: '测试通知',
       message: '这是一条测试消息'
     })
-    
+
     expect(notificationId).toBeDefined()
     expect(engine.getNotifications()).toHaveLength(1)
-    
+
     const notification = engine.getNotifications()[0]
     expect(notification.title).toBe('测试通知')
     expect(notification.message).toBe('这是一条测试消息')
     expect(notification.type).toBe('info')
   })
-  
+
   test('应该能够隐藏通知', async () => {
     await engine.registerPlugin(plugin)
     await engine.installPlugin(plugin.name)
-    
+
     const notificationId = engine.notify({
       type: 'info',
       title: '测试通知',
       message: '这是一条测试消息'
     })
-    
+
     expect(engine.getNotifications()).toHaveLength(1)
-    
+
     engine.hideNotification(notificationId)
-    
+
     expect(engine.getNotifications()).toHaveLength(0)
   })
-  
+
   test('应该限制通知数量', async () => {
     await engine.registerPlugin(plugin, {
       maxNotifications: 2
     })
     await engine.installPlugin(plugin.name)
-    
+
     // 添加 3 个通知
     engine.notify({ type: 'info', title: '通知1', message: '消息1' })
     engine.notify({ type: 'info', title: '通知2', message: '消息2' })
     engine.notify({ type: 'info', title: '通知3', message: '消息3' })
-    
+
     // 应该只有 2 个通知（最新的两个）
     const notifications = engine.getNotifications()
     expect(notifications).toHaveLength(2)
     expect(notifications[0].title).toBe('通知2')
     expect(notifications[1].title).toBe('通知3')
   })
-  
+
   test('应该触发正确的事件', async () => {
     await engine.registerPlugin(plugin)
     await engine.installPlugin(plugin.name)
-    
+
     const showHandler = jest.fn()
     const hideHandler = jest.fn()
-    
+
     engine.on('notification:show', showHandler)
     engine.on('notification:hide', hideHandler)
-    
+
     const notificationId = engine.notify({
       type: 'info',
       title: '测试通知',
       message: '测试消息'
     })
-    
+
     expect(showHandler).toHaveBeenCalledWith(
       expect.objectContaining({
         id: notificationId,
@@ -941,9 +942,9 @@ describe('NotificationPlugin', () => {
         message: '测试消息'
       })
     )
-    
+
     engine.hideNotification(notificationId)
-    
+
     expect(hideHandler).toHaveBeenCalledWith(
       expect.objectContaining({
         id: notificationId,
@@ -959,40 +960,40 @@ describe('NotificationPlugin', () => {
 
 ```typescript
 // tests/integration/plugin-integration.test.ts
-import { Engine } from '@ldesign/engine'
 import { NotificationPlugin } from '../../src/plugin'
-import { DataProviderPlugin, DataConsumerPlugin } from '../fixtures/test-plugins'
+import { DataConsumerPlugin, DataProviderPlugin } from '../fixtures/test-plugins'
+import { Engine } from '@ldesign/engine'
 
 describe('插件集成测试', () => {
   let engine: Engine
-  
+
   beforeEach(() => {
     engine = new Engine({
       name: 'integration-test',
       version: '1.0.0'
     })
   })
-  
+
   test('多个插件应该能够协同工作', async () => {
     const notificationPlugin = new NotificationPlugin()
     const dataProvider = new DataProviderPlugin()
     const dataConsumer = new DataConsumerPlugin()
-    
+
     // 注册插件
     await engine.registerPlugins([
       dataProvider,
       dataConsumer,
       notificationPlugin
     ])
-    
+
     // 安装插件
     await engine.installPlugin('data-provider')
     await engine.installPlugin('data-consumer')
     await engine.installPlugin('notification-plugin')
-    
+
     // 测试插件间通信
     const testData = { id: 1, name: 'Test Data' }
-    
+
     // 监听数据处理完成事件
     engine.on('data:processed', (processedData) => {
       // 显示处理完成通知
@@ -1002,13 +1003,13 @@ describe('插件集成测试', () => {
         message: `处理了数据: ${processedData.name}`
       })
     })
-    
+
     // 发布数据
     engine.publishData(testData)
-    
+
     // 验证通知是否显示
     await new Promise(resolve => setTimeout(resolve, 100))
-    
+
     const notifications = engine.getNotifications()
     expect(notifications).toHaveLength(1)
     expect(notifications[0].title).toBe('数据处理完成')
@@ -1132,25 +1133,26 @@ export default {
 export class RobustPlugin implements Plugin {
   name = 'robust-plugin'
   version = '1.0.0'
-  
+
   async install(engine: Engine): Promise<void> {
     try {
       await this.initializePlugin(engine)
-    } catch (error) {
+    }
+ catch (error) {
       // 记录错误但不阻止其他插件
       console.error(`插件 ${this.name} 安装失败:`, error)
-      
+
       // 触发错误事件
       engine.emit('plugin:install-failed', {
         plugin: this.name,
         error
       })
-      
+
       // 可以选择抛出错误或继续
       throw error
     }
   }
-  
+
   private async initializePlugin(engine: Engine): Promise<void> {
     // 插件初始化逻辑
   }
@@ -1163,49 +1165,49 @@ export class RobustPlugin implements Plugin {
 export class OptimizedPlugin implements Plugin {
   name = 'optimized-plugin'
   version = '1.0.0'
-  
+
   private cache = new Map()
   private debounceTimers = new Map()
-  
+
   install(engine: Engine) {
     // 使用防抖优化频繁操作
     engine.addMethod('debouncedOperation', this.debounce((data: any) => {
       this.performOperation(data)
     }, 300))
-    
+
     // 使用缓存优化重复计算
     engine.addMethod('cachedComputation', (input: string) => {
       if (this.cache.has(input)) {
         return this.cache.get(input)
       }
-      
+
       const result = this.expensiveComputation(input)
       this.cache.set(input, result)
       return result
     })
   }
-  
+
   private debounce(func: Function, delay: number) {
     return (...args: any[]) => {
       const key = JSON.stringify(args)
-      
+
       if (this.debounceTimers.has(key)) {
         clearTimeout(this.debounceTimers.get(key))
       }
-      
+
       const timer = setTimeout(() => {
         func.apply(this, args)
         this.debounceTimers.delete(key)
       }, delay)
-      
+
       this.debounceTimers.set(key, timer)
     }
   }
-  
+
   private performOperation(data: any): void {
     // 执行操作
   }
-  
+
   private expensiveComputation(input: string): any {
     // 昂贵的计算
     return { result: input.toUpperCase() }
@@ -1231,8 +1233,8 @@ npm install @your-org/notification-plugin
 ## 使用
 
 ```typescript
-import { Engine } from '@ldesign/engine'
 import { notificationPlugin } from '@your-org/notification-plugin'
+import { Engine } from '@ldesign/engine'
 
 const engine = new Engine({
   name: 'my-app',

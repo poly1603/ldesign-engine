@@ -12,20 +12,20 @@
 // ❌ 不好的做法 - 插件职责过多
 class MegaPlugin implements Plugin {
   name = 'mega-plugin'
-  
+
   install(engine: Engine) {
     // 用户管理
     engine.addMethod('login', this.login)
     engine.addMethod('logout', this.logout)
-    
+
     // 数据存储
     engine.addMethod('saveData', this.saveData)
     engine.addMethod('loadData', this.loadData)
-    
+
     // 网络请求
     engine.addMethod('httpGet', this.httpGet)
     engine.addMethod('httpPost', this.httpPost)
-    
+
     // 通知系统
     engine.addMethod('notify', this.notify)
   }
@@ -34,7 +34,7 @@ class MegaPlugin implements Plugin {
 // ✅ 好的做法 - 职责分离
 class AuthPlugin implements Plugin {
   name = 'auth-plugin'
-  
+
   install(engine: Engine) {
     engine.addMethod('login', this.login)
     engine.addMethod('logout', this.logout)
@@ -44,7 +44,7 @@ class AuthPlugin implements Plugin {
 
 class StoragePlugin implements Plugin {
   name = 'storage-plugin'
-  
+
   install(engine: Engine) {
     engine.addMethod('saveData', this.saveData)
     engine.addMethod('loadData', this.loadData)
@@ -54,7 +54,7 @@ class StoragePlugin implements Plugin {
 
 class HttpPlugin implements Plugin {
   name = 'http-plugin'
-  
+
   install(engine: Engine) {
     engine.registerService('http', new HttpService())
   }
@@ -73,22 +73,22 @@ class UserService {
     private storageService: StorageService,
     private logger: Logger
   ) {}
-  
+
   async getUser(id: string): Promise<User> {
     this.logger.info(`获取用户: ${id}`)
-    
+
     // 先尝试从缓存获取
     const cached = await this.storageService.get(`user:${id}`)
     if (cached) {
       return cached
     }
-    
+
     // 从服务器获取
     const user = await this.httpService.get(`/users/${id}`)
-    
+
     // 缓存结果
     await this.storageService.set(`user:${id}`, user, 300000)
-    
+
     return user
   }
 }
@@ -97,12 +97,12 @@ class UserService {
 class UserPlugin implements Plugin {
   name = 'user-plugin'
   dependencies = ['http-plugin', 'storage-plugin', 'logger-plugin']
-  
+
   install(engine: Engine) {
     const httpService = engine.getService('http')
     const storageService = engine.getService('storage')
     const logger = engine.getService('logger')
-    
+
     const userService = new UserService(httpService, storageService, logger)
     engine.registerService('userService', userService)
   }
@@ -117,21 +117,21 @@ class UserPlugin implements Plugin {
 // ✅ 好的做法 - 事件驱动
 class AuthPlugin implements Plugin {
   name = 'auth-plugin'
-  
+
   install(engine: Engine) {
     engine.addMethod('login', async (credentials) => {
       const user = await this.authenticate(credentials)
-      
+
       // 触发登录成功事件
       engine.emit('user:login', user)
-      
+
       return user
     })
-    
+
     engine.addMethod('logout', () => {
       const user = engine.getState('currentUser')
       engine.setState('currentUser', null)
-      
+
       // 触发登出事件
       engine.emit('user:logout', user)
     })
@@ -141,13 +141,13 @@ class AuthPlugin implements Plugin {
 // 其他插件监听事件
 class AnalyticsPlugin implements Plugin {
   name = 'analytics-plugin'
-  
+
   install(engine: Engine) {
     // 监听用户行为事件
     engine.on('user:login', (user) => {
       this.trackEvent('user_login', { userId: user.id })
     })
-    
+
     engine.on('user:logout', (user) => {
       this.trackEvent('user_logout', { userId: user?.id })
     })
@@ -156,7 +156,7 @@ class AnalyticsPlugin implements Plugin {
 
 class NotificationPlugin implements Plugin {
   name = 'notification-plugin'
-  
+
   install(engine: Engine) {
     engine.on('user:login', (user) => {
       engine.notify({
@@ -179,107 +179,109 @@ class NotificationPlugin implements Plugin {
 class WellDesignedPlugin implements Plugin {
   name = 'well-designed-plugin'
   version = '1.0.0'
-  
+
   private resources: any[] = []
   private eventListeners: Array<{ event: string, handler: Function }> = []
   private timers: NodeJS.Timeout[] = []
-  
+
   async install(engine: Engine): Promise<void> {
     try {
       // 初始化资源
       await this.initializeResources()
-      
+
       // 注册事件监听器
       this.registerEventListeners(engine)
-      
+
       // 注册服务和方法
       this.registerServices(engine)
-      
+
       // 启动定时任务
       this.startTimers()
-      
+
       console.log(`${this.name} 安装成功`)
-    } catch (error) {
+    }
+ catch (error) {
       console.error(`${this.name} 安装失败:`, error)
       // 清理已创建的资源
       await this.cleanup()
       throw error
     }
   }
-  
+
   async uninstall(engine: Engine): Promise<void> {
     try {
       // 清理定时器
       this.clearTimers()
-      
+
       // 移除事件监听器
       this.removeEventListeners(engine)
-      
+
       // 注销服务
       this.unregisterServices(engine)
-      
+
       // 清理资源
       await this.cleanup()
-      
+
       console.log(`${this.name} 卸载成功`)
-    } catch (error) {
+    }
+ catch (error) {
       console.error(`${this.name} 卸载失败:`, error)
       throw error
     }
   }
-  
+
   async enable(engine: Engine): Promise<void> {
     // 启用插件功能
     this.startTimers()
     console.log(`${this.name} 已启用`)
   }
-  
+
   async disable(engine: Engine): Promise<void> {
     // 禁用插件功能
     this.clearTimers()
     console.log(`${this.name} 已禁用`)
   }
-  
+
   private async initializeResources(): Promise<void> {
     // 初始化数据库连接、文件句柄等
   }
-  
+
   private registerEventListeners(engine: Engine): void {
     const handlers = [
       { event: 'app:start', handler: this.onAppStart.bind(this) },
       { event: 'app:stop', handler: this.onAppStop.bind(this) }
     ]
-    
+
     handlers.forEach(({ event, handler }) => {
       engine.on(event, handler)
       this.eventListeners.push({ event, handler })
     })
   }
-  
+
   private removeEventListeners(engine: Engine): void {
     this.eventListeners.forEach(({ event, handler }) => {
       engine.off(event, handler)
     })
     this.eventListeners = []
   }
-  
+
   private registerServices(engine: Engine): void {
     // 注册服务
   }
-  
+
   private unregisterServices(engine: Engine): void {
     // 注销服务
   }
-  
+
   private startTimers(): void {
     // 启动定时任务
   }
-  
+
   private clearTimers(): void {
     this.timers.forEach(timer => clearTimeout(timer))
     this.timers = []
   }
-  
+
   private async cleanup(): Promise<void> {
     // 清理所有资源
     for (const resource of this.resources) {
@@ -289,11 +291,11 @@ class WellDesignedPlugin implements Plugin {
     }
     this.resources = []
   }
-  
+
   private onAppStart(): void {
     // 应用启动处理
   }
-  
+
   private onAppStop(): void {
     // 应用停止处理
   }
@@ -318,7 +320,7 @@ interface DatabaseConfig {
 class DatabasePlugin implements Plugin {
   name = 'database-plugin'
   version = '1.0.0'
-  
+
   // 默认配置
   config: DatabaseConfig = {
     host: 'localhost',
@@ -329,7 +331,7 @@ class DatabasePlugin implements Plugin {
     ssl: false,
     timeout: 30000
   }
-  
+
   // 配置验证模式
   schema = {
     type: 'object',
@@ -344,28 +346,28 @@ class DatabasePlugin implements Plugin {
     },
     required: ['host', 'port', 'database', 'username', 'password']
   }
-  
+
   install(engine: Engine) {
     const config = this.validateConfig(engine.getPluginConfig(this.name))
-    
+
     // 使用验证后的配置
     const database = new Database(config)
     engine.registerService('database', database)
   }
-  
+
   private validateConfig(userConfig: any): DatabaseConfig {
     const config = { ...this.config, ...userConfig }
-    
+
     // 这里可以使用 JSON Schema 验证库
     // 例如：ajv, joi 等
     if (!config.host) {
       throw new Error('数据库主机地址不能为空')
     }
-    
+
     if (config.port < 1 || config.port > 65535) {
       throw new Error('数据库端口必须在 1-65535 之间')
     }
-    
+
     return config
   }
 }
@@ -379,45 +381,47 @@ class DatabasePlugin implements Plugin {
 class RobustPlugin implements Plugin {
   name = 'robust-plugin'
   version = '1.0.0'
-  
+
   async install(engine: Engine): Promise<void> {
     try {
       await this.initializePlugin(engine)
-    } catch (error) {
+    }
+ catch (error) {
       // 记录错误
       console.error(`插件 ${this.name} 初始化失败:`, error)
-      
+
       // 触发错误事件
       engine.emit('plugin:error', {
         plugin: this.name,
         phase: 'install',
         error
       })
-      
+
       // 清理部分初始化的资源
       await this.cleanup()
-      
+
       // 重新抛出错误
       throw new PluginError(`插件 ${this.name} 安装失败`, this.name, error)
     }
   }
-  
+
   private async initializePlugin(engine: Engine): Promise<void> {
     // 添加带错误处理的方法
     engine.addMethod('safeOperation', async (data: any) => {
       try {
         return await this.performOperation(data)
-      } catch (error) {
+      }
+ catch (error) {
         // 记录错误
         console.error('操作失败:', error)
-        
+
         // 触发错误事件
         engine.emit('operation:error', {
           operation: 'safeOperation',
           data,
           error
         })
-        
+
         // 返回错误结果而不是抛出异常
         return {
           success: false,
@@ -425,29 +429,30 @@ class RobustPlugin implements Plugin {
         }
       }
     })
-    
+
     // 添加重试机制
     engine.addMethod('operationWithRetry', async (data: any, maxRetries = 3) => {
       let lastError: Error
-      
+
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
           return await this.performOperation(data)
-        } catch (error) {
+        }
+ catch (error) {
           lastError = error as Error
           console.warn(`操作失败 (尝试 ${attempt}/${maxRetries}):`, error.message)
-          
+
           if (attempt < maxRetries) {
             // 指数退避
-            await this.delay(Math.pow(2, attempt) * 1000)
+            await this.delay(2 ** attempt * 1000)
           }
         }
       }
-      
+
       throw new Error(`操作在 ${maxRetries} 次尝试后仍然失败: ${lastError.message}`)
     })
   }
-  
+
   private async performOperation(data: any): Promise<any> {
     // 模拟可能失败的操作
     if (Math.random() < 0.3) {
@@ -455,11 +460,11 @@ class RobustPlugin implements Plugin {
     }
     return { success: true, data }
   }
-  
+
   private delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms))
   }
-  
+
   private async cleanup(): Promise<void> {
     // 清理资源
   }
@@ -493,7 +498,7 @@ interface AppState {
     isLoading: boolean
     error: string | null
   }
-  
+
   // UI 状态
   ui: {
     theme: 'light' | 'dark'
@@ -501,7 +506,7 @@ interface AppState {
     sidebarOpen: boolean
     notifications: Notification[]
   }
-  
+
   // 数据状态
   data: {
     users: {
@@ -521,7 +526,7 @@ interface AppState {
       }
     }
   }
-  
+
   // 应用配置
   config: {
     apiUrl: string
@@ -580,18 +585,18 @@ const initialState: AppState = {
 ```typescript
 class StateManager {
   constructor(private engine: Engine) {}
-  
+
   // ✅ 好的做法 - 不可变更新
   updateUser(userId: string, updates: Partial<User>): void {
     const users = this.engine.getState('data.users.items')
-    const updatedUsers = users.map(user => 
+    const updatedUsers = users.map(user =>
       user.id === userId ? { ...user, ...updates } : user
     )
-    
+
     this.engine.setState('data.users.items', updatedUsers)
     this.engine.setState('data.users.lastUpdated', Date.now())
   }
-  
+
   // ✅ 好的做法 - 批量更新
   setLoadingState(resource: string, loading: boolean, error: string | null = null): void {
     this.engine.setState(state => ({
@@ -606,7 +611,7 @@ class StateManager {
       }
     }))
   }
-  
+
   // ✅ 好的做法 - 原子操作
   addNotification(notification: Omit<Notification, 'id' | 'timestamp'>): string {
     const id = `notification-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
@@ -615,7 +620,7 @@ class StateManager {
       id,
       timestamp: Date.now()
     }
-    
+
     this.engine.setState(state => ({
       ...state,
       ui: {
@@ -623,10 +628,10 @@ class StateManager {
         notifications: [...state.ui.notifications, newNotification]
       }
     }))
-    
+
     return id
   }
-  
+
   removeNotification(id: string): void {
     this.engine.setState(state => ({
       ...state,
@@ -648,18 +653,18 @@ class OptimizedSubscriptions {
   constructor(private engine: Engine) {
     this.setupSubscriptions()
   }
-  
+
   private setupSubscriptions(): void {
     // ✅ 订阅特定路径而不是整个状态
     this.engine.subscribe('auth.user', (user) => {
       this.onUserChange(user)
     })
-    
+
     // ✅ 使用防抖避免频繁更新
     this.engine.subscribe('ui.notifications', this.debounce((notifications) => {
       this.updateNotificationUI(notifications)
     }, 100))
-    
+
     // ✅ 条件订阅
     this.engine.subscribe('data.users.items', (users) => {
       // 只在用户列表不为空时处理
@@ -668,39 +673,40 @@ class OptimizedSubscriptions {
       }
     })
   }
-  
+
   private onUserChange(user: User | null): void {
     if (user) {
       console.log('用户已登录:', user.name)
       this.loadUserPreferences(user.id)
-    } else {
+    }
+ else {
       console.log('用户已登出')
       this.clearUserData()
     }
   }
-  
+
   private updateNotificationUI(notifications: Notification[]): void {
     // 更新通知 UI
     const container = document.getElementById('notifications')
     if (container) {
-      container.innerHTML = notifications.map(n => 
+      container.innerHTML = notifications.map(n =>
         `<div class="notification notification-${n.type}">${n.message}</div>`
       ).join('')
     }
   }
-  
+
   private processUsers(users: User[]): void {
     // 处理用户列表
   }
-  
+
   private loadUserPreferences(userId: string): void {
     // 加载用户偏好
   }
-  
+
   private clearUserData(): void {
     // 清理用户数据
   }
-  
+
   private debounce<T extends (...args: any[]) => any>(
     func: T,
     delay: number
@@ -722,14 +728,14 @@ class OptimizedSubscriptions {
 // ✅ 懒加载插件
 class PluginLoader {
   private loadedPlugins = new Map<string, Plugin>()
-  
+
   async loadPlugin(name: string): Promise<Plugin> {
     if (this.loadedPlugins.has(name)) {
       return this.loadedPlugins.get(name)!
     }
-    
+
     let plugin: Plugin
-    
+
     switch (name) {
       case 'analytics':
         const { AnalyticsPlugin } = await import('./plugins/analytics')
@@ -742,7 +748,7 @@ class PluginLoader {
       default:
         throw new Error(`未知插件: ${name}`)
     }
-    
+
     this.loadedPlugins.set(name, plugin)
     return plugin
   }
@@ -765,7 +771,7 @@ engine.addMethod('enableAnalytics', async () => {
 class CacheStrategy {
   private memoryCache = new Map<string, { data: any, expiry: number }>()
   private persistentCache = new Map<string, any>()
-  
+
   // 多级缓存
   async get(key: string): Promise<any> {
     // 1. 检查内存缓存
@@ -773,7 +779,7 @@ class CacheStrategy {
     if (memoryItem && Date.now() < memoryItem.expiry) {
       return memoryItem.data
     }
-    
+
     // 2. 检查持久化缓存
     if (this.persistentCache.has(key)) {
       const data = this.persistentCache.get(key)
@@ -781,25 +787,25 @@ class CacheStrategy {
       this.setMemoryCache(key, data, 5 * 60 * 1000) // 5分钟
       return data
     }
-    
+
     return null
   }
-  
+
   set(key: string, data: any, memoryTTL = 5 * 60 * 1000, persistent = false): void {
     this.setMemoryCache(key, data, memoryTTL)
-    
+
     if (persistent) {
       this.persistentCache.set(key, data)
     }
   }
-  
+
   private setMemoryCache(key: string, data: any, ttl: number): void {
     this.memoryCache.set(key, {
       data,
       expiry: Date.now() + ttl
     })
   }
-  
+
   clear(): void {
     this.memoryCache.clear()
     this.persistentCache.clear()
@@ -813,21 +819,21 @@ class CacheStrategy {
 class BatchProcessor {
   private batches = new Map<string, any[]>()
   private timers = new Map<string, NodeJS.Timeout>()
-  
+
   // 批处理操作
   addToBatch(batchKey: string, item: any, processor: (items: any[]) => void, delay = 100): void {
     if (!this.batches.has(batchKey)) {
       this.batches.set(batchKey, [])
     }
-    
+
     this.batches.get(batchKey)!.push(item)
-    
+
     // 清除之前的定时器
     const existingTimer = this.timers.get(batchKey)
     if (existingTimer) {
       clearTimeout(existingTimer)
     }
-    
+
     // 设置新的定时器
     const timer = setTimeout(() => {
       const items = this.batches.get(batchKey) || []
@@ -837,10 +843,10 @@ class BatchProcessor {
       }
       this.timers.delete(batchKey)
     }, delay)
-    
+
     this.timers.set(batchKey, timer)
   }
-  
+
   // 防抖函数
   debounce<T extends (...args: any[]) => any>(
     func: T,
@@ -852,12 +858,12 @@ class BatchProcessor {
       if (existingTimer) {
         clearTimeout(existingTimer)
       }
-      
+
       const timer = setTimeout(() => {
         func.apply(this, args)
         this.timers.delete(key)
       }, delay)
-      
+
       this.timers.set(key, timer)
     }
   }
@@ -867,7 +873,7 @@ class BatchProcessor {
 const batchProcessor = new BatchProcessor()
 
 // 批处理日志
-const logBatch = (logs: string[]) => {
+function logBatch(logs: string[]) {
   console.log('批量日志:', logs)
 }
 
@@ -887,55 +893,55 @@ batchProcessor.addToBatch('logs', 'Log message 3', logBatch)
 describe('UserPlugin', () => {
   let engine: Engine
   let userPlugin: UserPlugin
-  
+
   beforeEach(() => {
     engine = new Engine({ name: 'test', version: '1.0.0' })
     userPlugin = new UserPlugin()
   })
-  
+
   afterEach(async () => {
     if (engine.hasPlugin(userPlugin.name)) {
       await engine.uninstallPlugin(userPlugin.name)
     }
   })
-  
+
   test('应该正确安装插件', async () => {
     await engine.registerPlugin(userPlugin)
     await engine.installPlugin(userPlugin.name)
-    
+
     expect(engine.hasPlugin(userPlugin.name)).toBe(true)
     expect(engine.hasMethod('login')).toBe(true)
     expect(engine.hasMethod('logout')).toBe(true)
   })
-  
+
   test('应该能够登录用户', async () => {
     await engine.registerPlugin(userPlugin)
     await engine.installPlugin(userPlugin.name)
-    
+
     const mockUser = { id: 1, name: 'John', email: 'john@example.com' }
-    
+
     // 模拟登录
     const result = await engine.login({
       email: 'john@example.com',
       password: 'password'
     })
-    
+
     expect(result).toEqual(mockUser)
     expect(engine.getState('auth.user')).toEqual(mockUser)
   })
-  
+
   test('应该触发登录事件', async () => {
     await engine.registerPlugin(userPlugin)
     await engine.installPlugin(userPlugin.name)
-    
+
     const loginHandler = jest.fn()
     engine.on('user:login', loginHandler)
-    
+
     await engine.login({
       email: 'john@example.com',
       password: 'password'
     })
-    
+
     expect(loginHandler).toHaveBeenCalledWith(
       expect.objectContaining({
         email: 'john@example.com'
@@ -951,38 +957,38 @@ describe('UserPlugin', () => {
 // 多插件集成测试
 describe('插件集成测试', () => {
   let engine: Engine
-  
+
   beforeEach(() => {
     engine = new Engine({ name: 'integration-test', version: '1.0.0' })
   })
-  
+
   test('多个插件应该能够协同工作', async () => {
     const authPlugin = new AuthPlugin()
     const analyticsPlugin = new AnalyticsPlugin()
     const notificationPlugin = new NotificationPlugin()
-    
+
     // 注册插件
     await engine.registerPlugins([
       authPlugin,
       analyticsPlugin,
       notificationPlugin
     ])
-    
+
     // 安装插件
     await engine.installPlugin('auth-plugin')
     await engine.installPlugin('analytics-plugin')
     await engine.installPlugin('notification-plugin')
-    
+
     // 测试插件间通信
     const analyticsTrackSpy = jest.spyOn(analyticsPlugin, 'track')
     const notificationShowSpy = jest.spyOn(notificationPlugin, 'show')
-    
+
     // 执行登录
     await engine.login({ email: 'test@example.com', password: 'password' })
-    
+
     // 验证分析插件记录了登录事件
     expect(analyticsTrackSpy).toHaveBeenCalledWith('user_login', expect.any(Object))
-    
+
     // 验证通知插件显示了登录通知
     expect(notificationShowSpy).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -1000,7 +1006,7 @@ describe('插件集成测试', () => {
 // E2E 测试
 describe('应用端到端测试', () => {
   let engine: Engine
-  
+
   beforeEach(async () => {
     // 设置完整的应用环境
     engine = new Engine({
@@ -1011,7 +1017,7 @@ describe('应用端到端测试', () => {
         ui: { theme: 'light', notifications: [] }
       }
     })
-    
+
     // 注册所有必要的插件
     await engine.use([
       new AuthPlugin(),
@@ -1019,35 +1025,35 @@ describe('应用端到端测试', () => {
       new StoragePlugin(),
       new NotificationPlugin()
     ])
-    
+
     await engine.start()
   })
-  
+
   afterEach(async () => {
     await engine.stop()
   })
-  
+
   test('完整的用户登录流程', async () => {
     // 1. 初始状态检查
     expect(engine.getState('auth.user')).toBeNull()
-    
+
     // 2. 开始登录
     const loginPromise = engine.login({
       email: 'test@example.com',
       password: 'password'
     })
-    
+
     // 3. 检查加载状态
     expect(engine.getState('auth.isLoading')).toBe(true)
-    
+
     // 4. 等待登录完成
     const user = await loginPromise
-    
+
     // 5. 验证最终状态
     expect(engine.getState('auth.user')).toEqual(user)
     expect(engine.getState('auth.isLoading')).toBe(false)
     expect(engine.getState('auth.error')).toBeNull()
-    
+
     // 6. 验证通知
     const notifications = engine.getState('ui.notifications')
     expect(notifications).toHaveLength(1)
@@ -1064,14 +1070,14 @@ describe('应用端到端测试', () => {
 // 环境配置管理
 class EnvironmentConfig {
   private config: any
-  
+
   constructor() {
     this.config = this.loadConfig()
   }
-  
+
   private loadConfig(): any {
     const env = process.env.NODE_ENV || 'development'
-    
+
     const baseConfig = {
       app: {
         name: 'MyApp',
@@ -1085,7 +1091,7 @@ class EnvironmentConfig {
         ttl: 5 * 60 * 1000
       }
     }
-    
+
     const envConfigs = {
       development: {
         api: {
@@ -1116,26 +1122,26 @@ class EnvironmentConfig {
         logLevel: 'warn'
       }
     }
-    
+
     return {
       ...baseConfig,
       ...envConfigs[env],
       env
     }
   }
-  
+
   get(path: string): any {
     return path.split('.').reduce((obj, key) => obj?.[key], this.config)
   }
-  
+
   isDevelopment(): boolean {
     return this.config.env === 'development'
   }
-  
+
   isProduction(): boolean {
     return this.config.env === 'production'
   }
-  
+
   isTest(): boolean {
     return this.config.env === 'test'
   }
@@ -1149,13 +1155,13 @@ class EnvironmentConfig {
 class ErrorMonitoring {
   private errorQueue: any[] = []
   private isOnline = navigator.onLine
-  
+
   constructor(private config: { apiUrl: string, apiKey: string }) {
     this.setupErrorHandlers()
     this.setupNetworkMonitoring()
     this.startErrorReporting()
   }
-  
+
   private setupErrorHandlers(): void {
     // 捕获未处理的 Promise 拒绝
     window.addEventListener('unhandledrejection', (event) => {
@@ -1166,7 +1172,7 @@ class ErrorMonitoring {
         timestamp: Date.now()
       })
     })
-    
+
     // 捕获未捕获的异常
     window.addEventListener('error', (event) => {
       this.reportError({
@@ -1180,18 +1186,18 @@ class ErrorMonitoring {
       })
     })
   }
-  
+
   private setupNetworkMonitoring(): void {
     window.addEventListener('online', () => {
       this.isOnline = true
       this.flushErrorQueue()
     })
-    
+
     window.addEventListener('offline', () => {
       this.isOnline = false
     })
   }
-  
+
   reportError(error: any): void {
     const errorReport = {
       ...error,
@@ -1200,14 +1206,15 @@ class ErrorMonitoring {
       userId: this.getCurrentUserId(),
       sessionId: this.getSessionId()
     }
-    
+
     if (this.isOnline) {
       this.sendErrorReport(errorReport)
-    } else {
+    }
+ else {
       this.errorQueue.push(errorReport)
     }
   }
-  
+
   private async sendErrorReport(error: any): Promise<void> {
     try {
       await fetch(`${this.config.apiUrl}/errors`, {
@@ -1218,19 +1225,20 @@ class ErrorMonitoring {
         },
         body: JSON.stringify(error)
       })
-    } catch (err) {
+    }
+ catch (err) {
       console.error('Failed to send error report:', err)
       this.errorQueue.push(error)
     }
   }
-  
+
   private flushErrorQueue(): void {
     while (this.errorQueue.length > 0) {
       const error = this.errorQueue.shift()
       this.sendErrorReport(error)
     }
   }
-  
+
   private startErrorReporting(): void {
     // 定期发送错误报告
     setInterval(() => {
@@ -1239,12 +1247,12 @@ class ErrorMonitoring {
       }
     }, 30000) // 每30秒尝试一次
   }
-  
+
   private getCurrentUserId(): string | null {
     // 获取当前用户ID
     return localStorage.getItem('userId')
   }
-  
+
   private getSessionId(): string {
     // 获取会话ID
     let sessionId = sessionStorage.getItem('sessionId')
@@ -1263,12 +1271,12 @@ class ErrorMonitoring {
 // 性能监控
 class PerformanceMonitoring {
   private metrics: any[] = []
-  
+
   constructor() {
     this.setupPerformanceObservers()
     this.startMetricsCollection()
   }
-  
+
   private setupPerformanceObservers(): void {
     if ('PerformanceObserver' in window) {
       // 监控页面加载性能
@@ -1283,7 +1291,7 @@ class PerformanceMonitoring {
         }
       })
       navObserver.observe({ entryTypes: ['navigation'] })
-      
+
       // 监控资源加载
       const resourceObserver = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
@@ -1296,7 +1304,7 @@ class PerformanceMonitoring {
         }
       })
       resourceObserver.observe({ entryTypes: ['resource'] })
-      
+
       // 监控长任务
       const longTaskObserver = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
@@ -1309,7 +1317,7 @@ class PerformanceMonitoring {
       longTaskObserver.observe({ entryTypes: ['longtask'] })
     }
   }
-  
+
   recordMetric(type: string, data: any): void {
     this.metrics.push({
       type,
@@ -1317,20 +1325,21 @@ class PerformanceMonitoring {
       timestamp: Date.now()
     })
   }
-  
+
   private startMetricsCollection(): void {
     // 定期收集和发送性能指标
     setInterval(() => {
       this.sendMetrics()
     }, 60000) // 每分钟发送一次
   }
-  
+
   private async sendMetrics(): Promise<void> {
-    if (this.metrics.length === 0) return
-    
+    if (this.metrics.length === 0)
+return
+
     const metricsToSend = [...this.metrics]
     this.metrics = []
-    
+
     try {
       await fetch('/api/metrics', {
         method: 'POST',
@@ -1343,7 +1352,8 @@ class PerformanceMonitoring {
           timestamp: Date.now()
         })
       })
-    } catch (error) {
+    }
+ catch (error) {
       console.error('Failed to send metrics:', error)
       // 重新加入队列
       this.metrics.unshift(...metricsToSend)

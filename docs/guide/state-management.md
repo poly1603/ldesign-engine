@@ -120,10 +120,10 @@ engine.setState('user.profile', {
 })
 
 // 使用函数更新
-engine.setState('user.loginCount', (current) => (current || 0) + 1)
+engine.setState('user.loginCount', current => (current || 0) + 1)
 
 // 条件设置
-engine.setStateIf('user.lastLogin', Date.now(), (current) => !current)
+engine.setStateIf('user.lastLogin', Date.now(), current => !current)
 ```
 
 ### 批量更新
@@ -139,7 +139,7 @@ engine.updateState({
 
 // 使用函数批量更新
 engine.updateState({
-  'user.loginCount': (current) => (current || 0) + 1,
+  'user.loginCount': current => (current || 0) + 1,
   'user.lastLogin': () => Date.now(),
   'app.sessionId': () => generateSessionId()
 })
@@ -148,12 +148,14 @@ engine.updateState({
 try {
   await engine.updateStateTransaction({
     'user.balance': (current) => {
-      if (current < 100) throw new Error('余额不足')
+      if (current < 100)
+throw new Error('余额不足')
       return current - 100
     },
-    'user.purchases': (current) => [...(current || []), newPurchase]
+    'user.purchases': current => [...(current || []), newPurchase]
   })
-} catch (error) {
+}
+ catch (error) {
   console.error('状态更新失败:', error)
 }
 ```
@@ -223,7 +225,7 @@ engine.onStateChangeDeep('user', (changes) => {
 // 条件监听
 engine.onStateChangeIf(
   'user.balance',
-  (balance) => balance < 100, // 条件：余额小于100
+  balance => balance < 100, // 条件：余额小于100
   (balance) => {
     console.warn('余额不足:', balance)
     showLowBalanceWarning()
@@ -308,7 +310,7 @@ engine.defineComputed('user.isVip', {
 
 engine.defineComputed('ui.isDarkMode', {
   dependencies: ['ui.theme'],
-  compute: (theme) => theme === 'dark'
+  compute: theme => theme === 'dark'
 })
 
 // 使用计算属性
@@ -340,7 +342,7 @@ engine.defineDerived('dashboard.stats', {
     }
   },
   cache: true, // 启用缓存
-  ttl: 60000   // 缓存1分钟
+  ttl: 60000 // 缓存1分钟
 })
 
 // 异步派生状态
@@ -364,7 +366,7 @@ engine.defineDerivedAsync('user.recommendations', {
 // 定义选择器
 const userSelectors = {
   // 基本选择器
-  getCurrentUser: (state) => state.user,
+  getCurrentUser: state => state.user,
 
   // 计算选择器
   getAuthenticatedUser: (state) => {
@@ -432,8 +434,8 @@ const engine = new Engine({
 
     // 序列化配置
     serializer: {
-      serialize: (state) => JSON.stringify(state),
-      deserialize: (data) => JSON.parse(data)
+      serialize: state => JSON.stringify(state),
+      deserialize: data => JSON.parse(data)
     }
   }
 })
@@ -472,9 +474,12 @@ engine.setPersistenceAdapter(new CustomStorageAdapter())
 // 条件持久化
 engine.setPersistenceCondition((path, value, oldValue) => {
   // 只持久化重要变化
-  if (path.startsWith('user.temp')) return false
-  if (path === 'ui.scrollPosition') return false
-  if (typeof value === 'function') return false
+  if (path.startsWith('user.temp'))
+return false
+  if (path === 'ui.scrollPosition')
+return false
+  if (typeof value === 'function')
+return false
 
   return true
 })
@@ -555,7 +560,8 @@ try {
     age: 25,
     isAuthenticated: true
   })
-} catch (error) {
+}
+ catch (error) {
   console.error('状态验证失败:', error.message)
 }
 
@@ -591,7 +597,7 @@ engine.addStateConstraint('user.balance', {
 engine.addStateConstraint('user.age', {
   min: 0,
   max: 150,
-  transform: (age) => Math.floor(age) // 自动转换为整数
+  transform: age => Math.floor(age) // 自动转换为整数
 })
 
 // 状态依赖约束
@@ -727,23 +733,23 @@ console.log(stats)
 // 定义状态机
 class UserStateMachine {
   private states = {
-    'guest': {
+    guest: {
       login: 'authenticating',
       register: 'registering'
     },
-    'authenticating': {
+    authenticating: {
       success: 'authenticated',
       failure: 'guest'
     },
-    'authenticated': {
+    authenticated: {
       logout: 'guest',
       suspend: 'suspended'
     },
-    'suspended': {
+    suspended: {
       reactivate: 'authenticated',
       delete: 'deleted'
     },
-    'deleted': {}
+    deleted: {}
   }
 
   constructor(private engine: Engine) {
@@ -765,7 +771,8 @@ class UserStateMachine {
     if (nextState) {
       this.engine.setState('user.state', nextState)
       return true
-    } else {
+    }
+ else {
       console.warn(`无效的状态转换: ${currentState} -> ${action}`)
       return false
     }
@@ -801,7 +808,7 @@ class StateSync {
 
   private setupSync() {
     this.engines.forEach((engine, index) => {
-      this.syncPaths.forEach(path => {
+      this.syncPaths.forEach((path) => {
         engine.onStateChange(path, (newValue) => {
           // 同步到其他引擎
           this.engines.forEach((otherEngine, otherIndex) => {
@@ -815,7 +822,7 @@ class StateSync {
   }
 
   syncState(path: string, value: any) {
-    this.engines.forEach(engine => {
+    this.engines.forEach((engine) => {
       engine.setState(path, value, { sync: false })
     })
   }
@@ -896,12 +903,12 @@ const badState = {
 
 ```typescript
 // ✅ 不可变更新
-engine.setState('user.preferences', (current) => ({
+engine.setState('user.preferences', current => ({
   ...current,
   theme: 'dark'
 }))
 
-engine.setState('data.users.items', (current) => [
+engine.setState('data.users.items', current => [
   ...current,
   newUser
 ])
@@ -964,12 +971,14 @@ engine.registerStateValidator('user.email', (email) => {
 try {
   await engine.updateStateTransaction({
     'user.balance': (current) => {
-      if (current < amount) throw new Error('余额不足')
+      if (current < amount)
+throw new Error('余额不足')
       return current - amount
     },
-    'user.transactions': (current) => [...current, transaction]
+    'user.transactions': current => [...current, transaction]
   })
-} catch (error) {
+}
+ catch (error) {
   console.error('交易失败:', error)
   showErrorMessage(error.message)
 }

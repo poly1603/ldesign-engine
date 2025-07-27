@@ -26,7 +26,7 @@ const deploymentChecks: DeploymentCheck[] = [
         'VITE_APP_TITLE',
         'NODE_ENV'
       ]
-      
+
       return requiredEnvs.every(env => process.env[env])
     }
   },
@@ -35,13 +35,13 @@ const deploymentChecks: DeploymentCheck[] = [
     required: true,
     description: '检查构建产物是否存在且完整',
     check: async () => {
-      const fs = await import('fs')
-      const path = await import('path')
-      
+      const fs = await import('node:fs')
+      const path = await import('node:path')
+
       const distDir = path.resolve(process.cwd(), 'dist')
       const requiredFiles = ['index.html', 'assets']
-      
-      return requiredFiles.every(file => 
+
+      return requiredFiles.every(file =>
         fs.existsSync(path.join(distDir, file))
       )
     }
@@ -52,10 +52,11 @@ const deploymentChecks: DeploymentCheck[] = [
     description: '检查依赖包是否存在安全漏洞',
     check: async () => {
       try {
-        const { execSync } = await import('child_process')
+        const { execSync } = await import('node:child_process')
         execSync('npm audit --audit-level=high', { stdio: 'pipe' })
         return true
-      } catch {
+      }
+ catch {
         return false
       }
     }
@@ -66,11 +67,12 @@ const deploymentChecks: DeploymentCheck[] = [
     description: '检查代码是否通过 ESLint 和类型检查',
     check: async () => {
       try {
-        const { execSync } = await import('child_process')
+        const { execSync } = await import('node:child_process')
         execSync('npm run lint', { stdio: 'pipe' })
         execSync('npm run type-check', { stdio: 'pipe' })
         return true
-      } catch {
+      }
+ catch {
         return false
       }
     }
@@ -81,18 +83,19 @@ const deploymentChecks: DeploymentCheck[] = [
     description: '检查测试覆盖率是否达到要求',
     check: async () => {
       try {
-        const { execSync } = await import('child_process')
-        const output = execSync('npm run test:coverage', { 
+        const { execSync } = await import('node:child_process')
+        const output = execSync('npm run test:coverage', {
           encoding: 'utf8',
           stdio: 'pipe'
         })
-        
+
         // 解析覆盖率报告
         const coverageMatch = output.match(/All files\s+\|\s+(\d+\.?\d*)%/)
-        const coverage = coverageMatch ? parseFloat(coverageMatch[1]) : 0
-        
+        const coverage = coverageMatch ? Number.parseFloat(coverageMatch[1]) : 0
+
         return coverage >= 80 // 要求 80% 覆盖率
-      } catch {
+      }
+ catch {
         return false
       }
     }
@@ -101,44 +104,46 @@ const deploymentChecks: DeploymentCheck[] = [
 
 async function runDeploymentChecks(): Promise<void> {
   console.log('🔍 开始部署前检查...')
-  
+
   const results = await Promise.all(
     deploymentChecks.map(async (check) => {
       try {
         const passed = await check.check()
         return { ...check, passed }
-      } catch (error) {
+      }
+ catch (error) {
         return { ...check, passed: false, error }
       }
     })
   )
-  
+
   console.log('\n📋 检查结果:')
-  console.log('=' .repeat(60))
-  
+  console.log('='.repeat(60))
+
   let hasRequiredFailures = false
-  
-  results.forEach(result => {
+
+  results.forEach((result) => {
     const status = result.passed ? '✅' : '❌'
     const required = result.required ? '[必需]' : '[可选]'
-    
+
     console.log(`${status} ${required} ${result.name}: ${result.description}`)
-    
+
     if (!result.passed && result.required) {
       hasRequiredFailures = true
     }
-    
+
     if (result.error) {
       console.log(`   错误: ${result.error}`)
     }
   })
-  
-  console.log('\n' + '=' .repeat(60))
-  
+
+  console.log(`\n${'='.repeat(60)}`)
+
   if (hasRequiredFailures) {
     console.error('❌ 部署前检查失败，请修复必需项后重试')
     process.exit(1)
-  } else {
+  }
+ else {
     console.log('✅ 部署前检查通过，可以继续部署')
   }
 }
@@ -190,7 +195,7 @@ server {
     listen 80;
     listen [::]:80;
     server_name example.com www.example.com;
-    
+
     # 重定向到 HTTPS
     return 301 https://$server_name$request_uri;
 }
@@ -199,7 +204,7 @@ server {
     listen 443 ssl http2;
     listen [::]:443 ssl http2;
     server_name example.com www.example.com;
-    
+
     # SSL 配置
     ssl_certificate /etc/ssl/certs/cert.pem;
     ssl_certificate_key /etc/ssl/private/key.pem;
@@ -208,7 +213,7 @@ server {
     ssl_prefer_server_ciphers off;
     ssl_session_cache shared:SSL:10m;
     ssl_session_timeout 10m;
-    
+
     # 安全头
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-Content-Type-Options "nosniff" always;
@@ -216,11 +221,11 @@ server {
     add_header Referrer-Policy "no-referrer-when-downgrade" always;
     add_header Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline'" always;
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
-    
+
     # 根目录
     root /var/www/ldesign-engine/dist;
     index index.html;
-    
+
     # Gzip 压缩
     gzip on;
     gzip_vary on;
@@ -237,7 +242,7 @@ server {
         application/xml+rss
         application/atom+xml
         image/svg+xml;
-    
+
     # Brotli 压缩（如果支持）
     brotli on;
     brotli_comp_level 6;
@@ -250,27 +255,27 @@ server {
         application/xml
         application/xml+rss
         text/javascript;
-    
+
     # 静态资源缓存
     location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
         expires 1y;
         add_header Cache-Control "public, immutable";
         add_header Vary "Accept-Encoding";
-        
+
         # 预压缩文件
         location ~* \.(js|css)$ {
             gzip_static on;
             brotli_static on;
         }
     }
-    
+
     # HTML 文件缓存
     location ~* \.html$ {
         expires 1h;
         add_header Cache-Control "public, must-revalidate";
         add_header Vary "Accept-Encoding";
     }
-    
+
     # API 代理
     location /api/ {
         proxy_pass http://backend-server;
@@ -282,36 +287,36 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_cache_bypass $http_upgrade;
-        
+
         # 超时设置
         proxy_connect_timeout 30s;
         proxy_send_timeout 30s;
         proxy_read_timeout 30s;
     }
-    
+
     # SPA 路由支持
     location / {
         try_files $uri $uri/ /index.html;
-        
+
         # 预加载关键资源
         location = /index.html {
             add_header Link "</assets/main.js>; rel=preload; as=script";
             add_header Link "</assets/main.css>; rel=preload; as=style";
         }
     }
-    
+
     # 健康检查
     location /health {
         access_log off;
         return 200 "healthy\n";
         add_header Content-Type text/plain;
     }
-    
+
     # 禁止访问敏感文件
     location ~ /\. {
         deny all;
     }
-    
+
     location ~ /(package\.json|package-lock\.json|yarn\.lock)$ {
         deny all;
     }
@@ -333,7 +338,7 @@ upstream backend-server {
 <VirtualHost *:80>
     ServerName example.com
     ServerAlias www.example.com
-    
+
     # 重定向到 HTTPS
     Redirect permanent / https://example.com/
 </VirtualHost>
@@ -342,20 +347,20 @@ upstream backend-server {
     ServerName example.com
     ServerAlias www.example.com
     DocumentRoot /var/www/ldesign-engine/dist
-    
+
     # SSL 配置
     SSLEngine on
     SSLCertificateFile /etc/ssl/certs/cert.pem
     SSLCertificateKeyFile /etc/ssl/private/key.pem
     SSLProtocol all -SSLv3 -TLSv1 -TLSv1.1
     SSLCipherSuite ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384
-    
+
     # 安全头
     Header always set X-Frame-Options "SAMEORIGIN"
     Header always set X-Content-Type-Options "nosniff"
     Header always set X-XSS-Protection "1; mode=block"
     Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
-    
+
     # 压缩
     LoadModule deflate_module modules/mod_deflate.so
     <Location />
@@ -365,26 +370,26 @@ upstream backend-server {
         SetEnvIfNoCase Request_URI \
             \.(?:exe|t?gz|zip|bz2|sit|rar)$ no-gzip dont-vary
     </Location>
-    
+
     # 缓存配置
     <LocationMatch "\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$">
         ExpiresActive On
         ExpiresDefault "access plus 1 year"
         Header set Cache-Control "public, immutable"
     </LocationMatch>
-    
+
     <LocationMatch "\.html$">
         ExpiresActive On
         ExpiresDefault "access plus 1 hour"
         Header set Cache-Control "public, must-revalidate"
     </LocationMatch>
-    
+
     # SPA 路由支持
     <Directory "/var/www/ldesign-engine/dist">
         Options Indexes FollowSymLinks
         AllowOverride All
         Require all granted
-        
+
         RewriteEngine On
         RewriteBase /
         RewriteRule ^index\.html$ - [L]
@@ -392,12 +397,12 @@ upstream backend-server {
         RewriteCond %{REQUEST_FILENAME} !-d
         RewriteRule . /index.html [L]
     </Directory>
-    
+
     # API 代理
     ProxyPreserveHost On
     ProxyPass /api/ http://localhost:8080/
     ProxyPassReverse /api/ http://localhost:8080/
-    
+
     # 日志
     ErrorLog ${APACHE_LOG_DIR}/ldesign-engine_error.log
     CustomLog ${APACHE_LOG_DIR}/ldesign-engine_access.log combined
@@ -487,8 +492,8 @@ services:
       target: production
     container_name: ldesign-engine-frontend
     ports:
-      - "80:80"
-      - "443:443"
+      - '80:80'
+      - '443:443'
     volumes:
       - ./ssl:/etc/ssl:ro
       - ./logs:/var/log/nginx
@@ -500,17 +505,17 @@ services:
     networks:
       - app-network
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.frontend.rule=Host(`example.com`)"
-      - "traefik.http.routers.frontend.tls=true"
-      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
-  
+      - traefik.enable=true
+      - traefik.http.routers.frontend.rule=Host(`example.com`)
+      - traefik.http.routers.frontend.tls=true
+      - traefik.http.routers.frontend.tls.certresolver=letsencrypt
+
   # 后端 API
   backend:
     image: ldesign-engine-api:latest
     container_name: ldesign-engine-backend
     ports:
-      - "8080:8080"
+      - '8080:8080'
     environment:
       - NODE_ENV=production
       - DATABASE_URL=${DATABASE_URL}
@@ -523,11 +528,11 @@ services:
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: [CMD, curl, -f, 'http://localhost:8080/health']
       interval: 30s
       timeout: 10s
       retries: 3
-  
+
   # 数据库
   database:
     image: postgres:15-alpine
@@ -543,11 +548,11 @@ services:
     networks:
       - app-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      test: [CMD-SHELL, 'pg_isready -U ${DB_USER} -d ${DB_NAME}']
       interval: 30s
       timeout: 10s
       retries: 3
-  
+
   # Redis 缓存
   redis:
     image: redis:7-alpine
@@ -559,35 +564,35 @@ services:
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [CMD, redis-cli, ping]
       interval: 30s
       timeout: 10s
       retries: 3
-  
+
   # 监控
   prometheus:
     image: prom/prometheus:latest
     container_name: ldesign-engine-prometheus
     ports:
-      - "9090:9090"
+      - '9090:9090'
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.console.libraries=/etc/prometheus/console_libraries
+      - --web.console.templates=/etc/prometheus/consoles
     restart: unless-stopped
     networks:
       - app-network
-  
+
   # 日志收集
   grafana:
     image: grafana/grafana:latest
     container_name: ldesign-engine-grafana
     ports:
-      - "3001:3000"
+      - '3001:3000'
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
     volumes:
@@ -624,9 +629,9 @@ metadata:
   name: ldesign-engine-config
   namespace: ldesign-engine
 data:
-  NODE_ENV: "production"
-  API_BASE_URL: "https://api.example.com"
-  LOG_LEVEL: "info"
+  NODE_ENV: production
+  API_BASE_URL: 'https://api.example.com'
+  LOG_LEVEL: info
 
 ---
 # k8s/secret.yaml
@@ -661,42 +666,42 @@ spec:
         app: ldesign-engine-frontend
     spec:
       containers:
-      - name: frontend
-        image: ldesign-engine:latest
-        ports:
-        - containerPort: 80
-        envFrom:
-        - configMapRef:
-            name: ldesign-engine-config
-        - secretRef:
-            name: ldesign-engine-secret
-        resources:
-          requests:
-            memory: "128Mi"
-            cpu: "100m"
-          limits:
-            memory: "256Mi"
-            cpu: "200m"
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 80
-          initialDelaySeconds: 30
-          periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /health
-            port: 80
-          initialDelaySeconds: 5
-          periodSeconds: 5
-        securityContext:
-          runAsNonRoot: true
-          runAsUser: 1001
-          allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: true
-          capabilities:
-            drop:
-            - ALL
+        - name: frontend
+          image: ldesign-engine:latest
+          ports:
+            - containerPort: 80
+          envFrom:
+            - configMapRef:
+                name: ldesign-engine-config
+            - secretRef:
+                name: ldesign-engine-secret
+          resources:
+            requests:
+              memory: 128Mi
+              cpu: 100m
+            limits:
+              memory: 256Mi
+              cpu: 200m
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
 
 ---
 # k8s/service.yaml
@@ -709,9 +714,9 @@ spec:
   selector:
     app: ldesign-engine-frontend
   ports:
-  - protocol: TCP
-    port: 80
-    targetPort: 80
+    - protocol: TCP
+      port: 80
+      targetPort: 80
   type: ClusterIP
 
 ---
@@ -722,27 +727,27 @@ metadata:
   name: ldesign-engine-ingress
   namespace: ldesign-engine
   annotations:
-    kubernetes.io/ingress.class: "nginx"
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
-    nginx.ingress.kubernetes.io/ssl-redirect: "true"
-    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
-    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: 'true'
+    nginx.ingress.kubernetes.io/force-ssl-redirect: 'true'
+    nginx.ingress.kubernetes.io/proxy-body-size: 10m
 spec:
   tls:
-  - hosts:
-    - example.com
-    secretName: ldesign-engine-tls
+    - hosts:
+        - example.com
+      secretName: ldesign-engine-tls
   rules:
-  - host: example.com
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: ldesign-engine-frontend-service
-            port:
-              number: 80
+    - host: example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ldesign-engine-frontend-service
+                port:
+                  number: 80
 
 ---
 # k8s/hpa.yaml
@@ -759,18 +764,18 @@ spec:
   minReplicas: 2
   maxReplicas: 10
   metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 70
-  - type: Resource
-    resource:
-      name: memory
-      target:
-        type: Utilization
-        averageUtilization: 80
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
 ```
 
 ## CDN 配置
@@ -779,23 +784,23 @@ spec:
 
 ```javascript
 // cloudflare-worker.js
-addEventListener('fetch', event => {
+addEventListener('fetch', (event) => {
   event.respondWith(handleRequest(event.request))
 })
 
 async function handleRequest(request) {
   const url = new URL(request.url)
-  
+
   // 静态资源缓存策略
   if (isStaticAsset(url.pathname)) {
     return handleStaticAsset(request)
   }
-  
+
   // API 请求
   if (url.pathname.startsWith('/api/')) {
     return handleApiRequest(request)
   }
-  
+
   // SPA 路由
   return handleSpaRouting(request)
 }
@@ -808,44 +813,44 @@ function isStaticAsset(pathname) {
 async function handleStaticAsset(request) {
   const cache = caches.default
   const cacheKey = new Request(request.url, request)
-  
+
   // 检查缓存
   let response = await cache.match(cacheKey)
-  
+
   if (!response) {
     // 从源站获取
     response = await fetch(request)
-    
+
     if (response.ok) {
       // 设置缓存头
       const headers = new Headers(response.headers)
       headers.set('Cache-Control', 'public, max-age=31536000, immutable')
       headers.set('Vary', 'Accept-Encoding')
-      
+
       response = new Response(response.body, {
         status: response.status,
         statusText: response.statusText,
         headers
       })
-      
+
       // 缓存响应
       event.waitUntil(cache.put(cacheKey, response.clone()))
     }
   }
-  
+
   return response
 }
 
 async function handleApiRequest(request) {
   // API 请求不缓存，直接转发
   const response = await fetch(request)
-  
+
   // 添加 CORS 头
   const headers = new Headers(response.headers)
   headers.set('Access-Control-Allow-Origin', '*')
   headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
   headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-  
+
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
@@ -855,13 +860,13 @@ async function handleApiRequest(request) {
 
 async function handleSpaRouting(request) {
   const url = new URL(request.url)
-  
+
   // 对于 SPA 路由，返回 index.html
   if (!url.pathname.includes('.')) {
-    const indexRequest = new Request(url.origin + '/index.html', request)
+    const indexRequest = new Request(`${url.origin}/index.html`, request)
     return fetch(indexRequest)
   }
-  
+
   return fetch(request)
 }
 ```
@@ -979,37 +984,38 @@ class ApplicationMonitoring {
   private config: MonitoringConfig
   private metrics: Map<string, number> = new Map()
   private errors: Array<any> = []
-  
+
   constructor(config: MonitoringConfig) {
     this.config = config
     this.setupMonitoring()
   }
-  
+
   private setupMonitoring() {
-    if (!this.config.enabled) return
-    
+    if (!this.config.enabled)
+return
+
     // 性能监控
     this.setupPerformanceMonitoring()
-    
+
     // 错误监控
     this.setupErrorMonitoring()
-    
+
     // 用户行为监控
     this.setupUserBehaviorMonitoring()
-    
+
     // 定期发送数据
     setInterval(() => {
       this.sendMetrics()
     }, 30000) // 每30秒发送一次
   }
-  
+
   private setupPerformanceMonitoring() {
     // 页面加载性能
     if (typeof window !== 'undefined' && window.performance) {
       window.addEventListener('load', () => {
         setTimeout(() => {
           const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming
-          
+
           this.recordMetric('page_load_time', navigation.loadEventEnd - navigation.fetchStart)
           this.recordMetric('dom_content_loaded', navigation.domContentLoadedEventEnd - navigation.fetchStart)
           this.recordMetric('first_paint', this.getFirstPaint())
@@ -1017,7 +1023,7 @@ class ApplicationMonitoring {
         }, 0)
       })
     }
-    
+
     // 资源加载性能
     if (typeof window !== 'undefined') {
       const observer = new PerformanceObserver((list) => {
@@ -1028,11 +1034,11 @@ class ApplicationMonitoring {
           }
         })
       })
-      
+
       observer.observe({ entryTypes: ['resource'] })
     }
   }
-  
+
   private setupErrorMonitoring() {
     // 全局错误捕获
     if (typeof window !== 'undefined') {
@@ -1047,7 +1053,7 @@ class ApplicationMonitoring {
           timestamp: new Date().toISOString()
         })
       })
-      
+
       window.addEventListener('unhandledrejection', (event) => {
         this.recordError({
           type: 'unhandled_promise_rejection',
@@ -1057,7 +1063,7 @@ class ApplicationMonitoring {
         })
       })
     }
-    
+
     // 引擎错误监控
     if (this.engine) {
       this.engine.on('error', (error, context) => {
@@ -1071,17 +1077,18 @@ class ApplicationMonitoring {
       })
     }
   }
-  
+
   private setupUserBehaviorMonitoring() {
-    if (typeof window === 'undefined') return
-    
+    if (typeof window === 'undefined')
+return
+
     // 页面访问
     this.recordEvent('page_view', {
       url: window.location.href,
       referrer: document.referrer,
       timestamp: new Date().toISOString()
     })
-    
+
     // 用户交互
     document.addEventListener('click', (event) => {
       const target = event.target as HTMLElement
@@ -1094,70 +1101,76 @@ class ApplicationMonitoring {
         })
       }
     })
-    
+
     // 页面停留时间
-    let startTime = Date.now()
+    const startTime = Date.now()
     window.addEventListener('beforeunload', () => {
       const duration = Date.now() - startTime
       this.recordMetric('page_duration', duration)
     })
   }
-  
+
   private getFirstPaint(): number {
     const paintEntries = performance.getEntriesByType('paint')
     const firstPaint = paintEntries.find(entry => entry.name === 'first-paint')
     return firstPaint ? firstPaint.startTime : 0
   }
-  
+
   private getFirstContentfulPaint(): number {
     const paintEntries = performance.getEntriesByType('paint')
     const firstContentfulPaint = paintEntries.find(entry => entry.name === 'first-contentful-paint')
     return firstContentfulPaint ? firstContentfulPaint.startTime : 0
   }
-  
+
   private getResourceType(url: string): string {
-    if (url.endsWith('.js')) return 'javascript'
-    if (url.endsWith('.css')) return 'stylesheet'
-    if (url.match(/\.(png|jpg|jpeg|gif|svg|webp)$/)) return 'image'
-    if (url.match(/\.(woff|woff2|ttf|eot)$/)) return 'font'
+    if (url.endsWith('.js'))
+return 'javascript'
+    if (url.endsWith('.css'))
+return 'stylesheet'
+    if (url.match(/\.(png|jpg|jpeg|gif|svg|webp)$/))
+return 'image'
+    if (url.match(/\.(woff|woff2|ttf|eot)$/))
+return 'font'
     return 'other'
   }
-  
+
   private recordMetric(name: string, value: number) {
     this.metrics.set(name, value)
   }
-  
+
   private recordError(error: any) {
     this.errors.push(error)
-    
+
     // 立即发送严重错误
     if (this.isCriticalError(error)) {
       this.sendErrorImmediately(error)
     }
   }
-  
+
   private recordEvent(name: string, data: any) {
     // 采样
-    if (Math.random() > this.config.sampleRate) return
-    
+    if (Math.random() > this.config.sampleRate)
+return
+
     this.sendEvent(name, data)
   }
-  
+
   private isCriticalError(error: any): boolean {
     const criticalPatterns = [
       'ChunkLoadError',
       'Network Error',
       'Authentication Failed'
     ]
-    
-    return criticalPatterns.some(pattern => 
+
+    return criticalPatterns.some(pattern =>
       error.message?.includes(pattern)
     )
   }
-  
+
   private async sendMetrics() {
-    if (this.metrics.size === 0 && this.errors.length === 0) return
-    
+    if (this.metrics.size === 0 && this.errors.length === 0)
+return
+
     const payload = {
       timestamp: new Date().toISOString(),
       environment: this.config.environment,
@@ -1166,7 +1179,7 @@ class ApplicationMonitoring {
       userAgent: navigator.userAgent,
       url: window.location.href
     }
-    
+
     try {
       await fetch(this.config.endpoint, {
         method: 'POST',
@@ -1176,17 +1189,18 @@ class ApplicationMonitoring {
         },
         body: JSON.stringify(payload)
       })
-      
+
       // 清空已发送的指标
       this.metrics.clear()
-    } catch (error) {
+    }
+ catch (error) {
       console.error('发送监控数据失败:', error)
     }
   }
-  
+
   private async sendErrorImmediately(error: any) {
     try {
-      await fetch(this.config.endpoint + '/errors', {
+      await fetch(`${this.config.endpoint}/errors`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1200,14 +1214,15 @@ class ApplicationMonitoring {
           url: window.location.href
         })
       })
-    } catch (sendError) {
+    }
+ catch (sendError) {
       console.error('发送错误数据失败:', sendError)
     }
   }
-  
+
   private async sendEvent(name: string, data: any) {
     try {
-      await fetch(this.config.endpoint + '/events', {
+      await fetch(`${this.config.endpoint}/events`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1222,7 +1237,8 @@ class ApplicationMonitoring {
           url: window.location.href
         })
       })
-    } catch (error) {
+    }
+ catch (error) {
       console.error('发送事件数据失败:', error)
     }
   }
@@ -1264,87 +1280,87 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-      
+          cache: npm
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Run linting
         run: npm run lint
-      
+
       - name: Run type checking
         run: npm run type-check
-      
+
       - name: Run tests
         run: npm run test:coverage
-      
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
           file: ./coverage/lcov.info
-  
+
   build:
     needs: test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
-    
+
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-      
+          cache: npm
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Build application
         run: npm run build
         env:
           VITE_API_BASE_URL: ${{ secrets.PROD_API_BASE_URL }}
           VITE_CDN_BASE_URL: ${{ secrets.PROD_CDN_BASE_URL }}
-      
+
       - name: Run security audit
         run: npm audit --audit-level=high
-      
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v3
         with:
           name: dist
           path: dist/
-  
+
   docker:
     needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
-    
+
     permissions:
       contents: read
       packages: write
-    
+
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Download build artifacts
         uses: actions/download-artifact@v3
         with:
           name: dist
           path: dist/
-      
+
       - name: Log in to Container Registry
         uses: docker/login-action@v2
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v4
@@ -1355,7 +1371,7 @@ jobs:
             type=ref,event=pr
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
-      
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
@@ -1363,19 +1379,19 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-  
+
   deploy:
     needs: [build, docker]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
-    
+
     environment:
       name: production
       url: https://example.com
-    
+
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Deploy to Kubernetes
         uses: azure/k8s-deploy@v1
         with:
@@ -1389,18 +1405,18 @@ jobs:
           images: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           kubeconfig: ${{ secrets.KUBE_CONFIG }}
-      
+
       - name: Verify deployment
         run: |
           kubectl rollout status deployment/ldesign-engine-frontend -n ldesign-engine
           kubectl get services -n ldesign-engine
-      
+
       - name: Run smoke tests
         run: |
           sleep 30
           curl -f https://example.com/health || exit 1
           curl -f https://example.com/ || exit 1
-      
+
       - name: Notify deployment
         uses: 8398a7/action-slack@v3
         with:

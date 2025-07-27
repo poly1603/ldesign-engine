@@ -151,9 +151,9 @@
             }
             // 检查监听器数量限制
             if (handlers.size >= this.maxListeners) {
-                console.warn(`MaxListenersExceededWarning: Possible EventEmitter memory leak detected. ` +
-                    `${handlers.size + 1} ${event} listeners added. ` +
-                    `Use setMaxListeners() to increase limit.`);
+                console.warn(`MaxListenersExceededWarning: Possible EventEmitter memory leak detected. `
+                    + `${handlers.size + 1} ${event} listeners added. `
+                    + `Use setMaxListeners() to increase limit.`);
             }
             handlers.add(handler);
             // 返回取消订阅函数
@@ -3097,8 +3097,8 @@
                     if (perf.enabled !== undefined && typeof perf.enabled !== 'boolean') {
                         return false;
                     }
-                    if (perf.sampleRate !== undefined &&
-                        (typeof perf.sampleRate !== 'number' || perf.sampleRate < 0 || perf.sampleRate > 1)) {
+                    if (perf.sampleRate !== undefined
+                        && (typeof perf.sampleRate !== 'number' || perf.sampleRate < 0 || perf.sampleRate > 1)) {
                         return false;
                     }
                 }
@@ -3163,7 +3163,7 @@
         reset(newConfig) {
             const oldConfig = { ...this.config };
             // 清空当前配置
-            Object.keys(this.config).forEach(key => {
+            Object.keys(this.config).forEach((key) => {
                 delete this.config[key];
             });
             // 设置新配置
@@ -3194,7 +3194,7 @@
         notifyWatchers(key, newValue, oldValue) {
             const watchers = this.watchers.get(key);
             if (watchers) {
-                watchers.forEach(callback => {
+                watchers.forEach((callback) => {
                     try {
                         callback(newValue, oldValue);
                     }
@@ -3208,7 +3208,7 @@
          * 通知更新监听器
          */
         notifyUpdateWatchers(updates, oldConfig) {
-            Object.keys(updates).forEach(key => {
+            Object.keys(updates).forEach((key) => {
                 const newValue = get(updates, key);
                 const oldValue = get(oldConfig, key);
                 if (newValue !== oldValue) {
@@ -3221,7 +3221,7 @@
          */
         notifyResetWatchers(newConfig, oldConfig) {
             const allKeys = new Set([...Object.keys(newConfig), ...Object.keys(oldConfig)]);
-            allKeys.forEach(key => {
+            allKeys.forEach((key) => {
                 const newValue = get(newConfig, key);
                 const oldValue = get(oldConfig, key);
                 if (newValue !== oldValue) {
@@ -3236,7 +3236,7 @@
             // 清除所有监听器
             this.watchers.clear();
             // 取消所有Vue watch
-            this.unwatchFns.forEach(unwatchFns => {
+            this.unwatchFns.forEach((unwatchFns) => {
                 unwatchFns.forEach(fn => fn());
             });
             this.unwatchFns.clear();
@@ -3322,9 +3322,9 @@
          * 检查依赖是否存在
          */
         has(key) {
-            return this.dependencies.has(key) ||
-                this.singletons.has(key) ||
-                this.factories.has(key);
+            return this.dependencies.has(key)
+                || this.singletons.has(key)
+                || this.factories.has(key);
         }
         /**
          * 移除依赖
@@ -3464,25 +3464,25 @@
                 return {
                     exists: true,
                     type: 'direct',
-                    value: this.dependencies.get(key)
+                    value: this.dependencies.get(key),
                 };
             }
             if (this.singletons.has(key)) {
                 return {
                     exists: true,
                     type: 'singleton',
-                    value: this.singletons.get(key)
+                    value: this.singletons.get(key),
                 };
             }
             if (this.factories.has(key)) {
                 return {
                     exists: true,
-                    type: 'factory'
+                    type: 'factory',
                 };
             }
             return {
                 exists: false,
-                type: 'none'
+                type: 'none',
             };
         }
         /**
@@ -3512,7 +3512,7 @@
                 dependencies: this.dependencies.size,
                 singletons: this.singletons.size,
                 factories: this.factories.size,
-                total: this.dependencies.size + this.singletons.size + this.factories.size
+                total: this.dependencies.size + this.singletons.size + this.factories.size,
             };
         }
         /**
@@ -3567,7 +3567,7 @@
                 middleware,
                 priority: options.priority || 0,
                 name: options.name,
-                once: options.once || false
+                once: options.once || false,
             };
             // 按优先级插入
             const insertIndex = middlewareList.findIndex(item => item.priority < middlewareInfo.priority);
@@ -3649,7 +3649,7 @@
             };
             await next();
             // 移除一次性中间件
-            toRemove.forEach(middlewareInfo => {
+            toRemove.forEach((middlewareInfo) => {
                 const list = this.middlewares.get(hook);
                 if (list) {
                     const index = list.indexOf(middlewareInfo);
@@ -3739,7 +3739,7 @@
             return middlewareList.map(({ name, priority, once }) => ({
                 name,
                 priority,
-                once
+                once,
             }));
         }
         /**
@@ -3754,7 +3754,7 @@
                 'beforeUpdate',
                 'updated',
                 'beforeUnmount',
-                'unmounted'
+                'unmounted',
             ];
             return validHooks.includes(hook);
         }
@@ -3776,7 +3776,7 @@
                 hooks: this.middlewares.size,
                 middlewares: this.count(),
                 executing: this.executing.size,
-                executionCount: this.getExecutionStats()
+                executionCount: this.getExecutionStats(),
             };
         }
         /**
@@ -3786,7 +3786,7 @@
             return {
                 hooks: this.middlewares.size,
                 middlewares: this.count(),
-                executing: this.executing.size
+                executing: this.executing.size,
             };
         }
         /**
@@ -3866,7 +3866,7 @@
                     plugin,
                     options,
                     installed: false,
-                    installTime: Date.now()
+                    installTime: Date.now(),
                 };
                 // 执行安装
                 await this.installPlugin(pluginInfo, engine);
@@ -3879,7 +3879,7 @@
                 engine.emit('plugin:installed', {
                     name: plugin.name,
                     plugin,
-                    options
+                    options,
                 });
             }
             catch (error) {
@@ -3937,7 +3937,7 @@
                 // 发射卸载事件
                 engine.emit('plugin:uninstalled', {
                     name: pluginName,
-                    plugin: pluginInfo.plugin
+                    plugin: pluginInfo.plugin,
                 });
             }
             catch (error) {
@@ -4097,7 +4097,7 @@
                 plugin,
                 dependencies: [...dependencies],
                 dependents: [],
-                installed: true
+                installed: true,
             };
             this.dependencyGraph.set(plugin.name, node);
             // 更新依赖关系
@@ -4116,7 +4116,7 @@
                 total: this.plugins.size,
                 installed: Array.from(this.plugins.values()).filter(p => p.installed).length,
                 installing: this.installing.size,
-                uninstalling: this.uninstalling.size
+                uninstalling: this.uninstalling.size,
             };
         }
         /**
@@ -4126,7 +4126,7 @@
             return {
                 plugins: this.plugins.size,
                 dependencyNodes: this.dependencyGraph.size,
-                installOrder: this.installOrder.length
+                installOrder: this.installOrder.length,
             };
         }
         /**
@@ -4453,7 +4453,7 @@
                 template: '<div id="engine-root"><slot /></div>',
                 setup() {
                     return {};
-                }
+                },
             };
         }
         /**
@@ -4466,7 +4466,7 @@
                     app: this._app,
                     config: this.config,
                     state: this._state,
-                    hook
+                    hook,
                 };
                 await this.middlewareManager.execute(hook, context);
             }
@@ -4522,8 +4522,8 @@
                     di: this.diContainer.getMemoryUsage(),
                     events: this.eventEmitter.eventNames().reduce((total, event) => {
                         return total + this.eventEmitter.listenerCount(event);
-                    }, 0)
-                }
+                    }, 0),
+                },
             };
         }
         /**
@@ -4555,7 +4555,7 @@
             }
             return {
                 healthy: issues.length === 0,
-                issues
+                issues,
             };
         }
     }
@@ -4600,7 +4600,7 @@
                 trackMemory: config.trackMemory ?? false,
                 trackTiming: config.trackTiming ?? true,
                 sampleRate: config.sampleRate ?? 1.0,
-                maxMetrics: config.maxMetrics ?? 1000
+                maxMetrics: config.maxMetrics ?? 1000,
             };
             if (this.config.enabled) {
                 this.setupPerformanceObservers();
@@ -4621,7 +4621,7 @@
             const metric = {
                 name,
                 startTime,
-                type: 'timing'
+                type: 'timing',
             };
             this.addMetric(name, metric);
         }
@@ -4695,7 +4695,7 @@
                 startTime,
                 endTime,
                 duration,
-                type: 'timing'
+                type: 'timing',
             };
             this.addMetric(name, metric);
             return duration;
@@ -4714,7 +4714,7 @@
                     startTime: metric.startTime,
                     endTime: metric.endTime,
                     duration: metric.duration,
-                    data: metric.data
+                    data: metric.data,
                 };
                 switch (metric.type) {
                     case 'timing':
@@ -4768,7 +4768,7 @@
                 name,
                 startTime: performance.now(),
                 type: 'custom',
-                data
+                data,
             };
             this.addMetric(name, metric);
         }
@@ -4785,7 +4785,7 @@
                     usedJSHeapSize: memory.usedJSHeapSize,
                     totalJSHeapSize: memory.totalJSHeapSize,
                     jsHeapSizeLimit: memory.jsHeapSizeLimit,
-                    timestamp: performance.now()
+                    timestamp: performance.now(),
                 };
             }
             return null;
@@ -4811,10 +4811,12 @@
                 timingMetrics: timingMetrics.length,
                 memorySnapshots: this.memorySnapshots.length,
                 averageDuration,
-                longestDuration: longestMetric ? {
-                    name: longestMetric.name,
-                    duration: longestMetric.duration
-                } : null
+                longestDuration: longestMetric
+                    ? {
+                        name: longestMetric.name,
+                        duration: longestMetric.duration,
+                    }
+                    : null,
             };
         }
         /**
@@ -4851,7 +4853,7 @@
                         this.addCustomMetric(`navigation:${entry.name}`, {
                             type: entry.entryType,
                             startTime: entry.startTime,
-                            duration: entry.duration
+                            duration: entry.duration,
                         });
                     }
                 });
@@ -4863,7 +4865,7 @@
                         this.addCustomMetric(`resource:${entry.name}`, {
                             type: entry.entryType,
                             startTime: entry.startTime,
-                            duration: entry.duration
+                            duration: entry.duration,
                         });
                     }
                 });
@@ -4899,7 +4901,7 @@
         destroy() {
             this.clear();
             // 断开性能观察器
-            this.observers.forEach(observer => {
+            this.observers.forEach((observer) => {
                 try {
                     observer.disconnect();
                 }
@@ -4943,7 +4945,7 @@
                 markPerformance: (name) => monitor.mark(name),
                 measurePerformance: (name, start, end) => monitor.measure(name, start, end),
                 getPerformanceMetrics: () => monitor.getMetrics(),
-                getPerformanceSummary: () => monitor.getSummary()
+                getPerformanceSummary: () => monitor.getSummary(),
             });
         },
         uninstall(engine) {
@@ -4951,7 +4953,7 @@
             if (monitor) {
                 monitor.destroy();
             }
-        }
+        },
     };
 
     /**
@@ -5004,7 +5006,7 @@
                 defaultRecoveryStrategy: config.defaultRecoveryStrategy ?? 'ignore',
                 reportToConsole: config.reportToConsole ?? true,
                 reportToServer: config.reportToServer ?? false,
-                serverEndpoint: config.serverEndpoint ?? ''
+                serverEndpoint: config.serverEndpoint ?? '',
             };
             if (this.config.enabled) {
                 this.setupGlobalErrorHandling();
@@ -5025,7 +5027,7 @@
                 userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
                 url: typeof window !== 'undefined' ? window.location.href : undefined,
                 component: context?.component,
-                hook: context?.hook
+                hook: context?.hook,
             };
             // 添加到错误列表
             this.addError(errorInfo);
@@ -5065,7 +5067,7 @@
                 byType: {},
                 byComponent: {},
                 byHook: {},
-                recent: this.errors.slice(-10)
+                recent: this.errors.slice(-10),
             };
             for (const errorInfo of this.errors) {
                 const errorType = errorInfo.error.constructor.name;
@@ -5120,7 +5122,7 @@
             }
             // 服务器报告
             if (this.config.reportToServer && this.config.serverEndpoint) {
-                this.reportToServer(errorInfo).catch(err => {
+                this.reportToServer(errorInfo).catch((err) => {
                     console.warn('Failed to report error to server:', err);
                 });
             }
@@ -5138,14 +5140,14 @@
                     url: errorInfo.url,
                     component: errorInfo.component,
                     hook: errorInfo.hook,
-                    context: errorInfo.context
+                    context: errorInfo.context,
                 };
                 await fetch(this.config.serverEndpoint, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify(payload),
                 });
             }
             catch (error) {
@@ -5226,7 +5228,7 @@
                             source,
                             lineno,
                             colno,
-                            type: 'unhandled'
+                            type: 'unhandled',
                         });
                     }
                     else {
@@ -5234,7 +5236,7 @@
                             source,
                             lineno,
                             colno,
-                            type: 'unhandled'
+                            type: 'unhandled',
                         });
                     }
                     // 调用原始处理器
@@ -5253,7 +5255,7 @@
                         : new Error(String(event.reason));
                     this.handleError(error, {
                         type: 'unhandledRejection',
-                        promise: event.promise
+                        promise: event.promise,
                     });
                     // 调用原始处理器
                     if (this.originalUnhandledRejectionHandler && typeof this.originalUnhandledRejectionHandler === 'function') {
@@ -5302,7 +5304,7 @@
                 engine.updateConfig({
                     errorHandler: (error, context) => {
                         errorHandler.handleError(error, context);
-                    }
+                    },
                 });
             }
             // 监听引擎错误事件
@@ -5322,7 +5324,7 @@
                 unregisterErrorHandler: (name) => errorHandler.unregisterHandler(name),
                 setRecoveryStrategy: (errorType, strategy) => errorHandler.setRecoveryStrategy(errorType, strategy),
                 getErrorStats: () => errorHandler.getStats(),
-                clearErrors: () => errorHandler.clearErrors()
+                clearErrors: () => errorHandler.clearErrors(),
             });
         },
         uninstall(engine) {
@@ -5330,7 +5332,7 @@
             if (errorHandler) {
                 errorHandler.destroy();
             }
-        }
+        },
     };
 
     /**
@@ -5353,7 +5355,7 @@
         version,
         description: 'A lightweight Vue 3 based application engine',
         author: 'LDesign Team',
-        license: 'MIT'
+        license: 'MIT',
     };
 
     exports.ConfigError = ConfigError;

@@ -1,4 +1,4 @@
-import type { Plugin, Engine, PerformanceMonitor } from '../types'
+import type { Engine, PerformanceMonitor, Plugin } from '../types'
 
 /**
  * 性能指标接口
@@ -44,7 +44,7 @@ export class PerformanceMonitorImpl implements PerformanceMonitor {
       trackMemory: config.trackMemory ?? false,
       trackTiming: config.trackTiming ?? true,
       sampleRate: config.sampleRate ?? 1.0,
-      maxMetrics: config.maxMetrics ?? 1000
+      maxMetrics: config.maxMetrics ?? 1000,
     }
 
     if (this.config.enabled) {
@@ -69,7 +69,7 @@ export class PerformanceMonitorImpl implements PerformanceMonitor {
     const metric: PerformanceMetric = {
       name,
       startTime,
-      type: 'timing'
+      type: 'timing',
     }
 
     this.addMetric(name, metric)
@@ -85,7 +85,7 @@ export class PerformanceMonitorImpl implements PerformanceMonitor {
 
     const endTime = performance.now()
     const startTime = this.marks.get(name)
-    
+
     if (startTime === undefined) {
       console.warn(`Performance timing '${name}' was not started`)
       return 0
@@ -93,7 +93,7 @@ export class PerformanceMonitorImpl implements PerformanceMonitor {
 
     const duration = endTime - startTime
     const metric = this.metrics.get(name)
-    
+
     if (metric) {
       metric.endTime = endTime
       metric.duration = duration
@@ -112,7 +112,7 @@ export class PerformanceMonitorImpl implements PerformanceMonitor {
     }
 
     const timestamp = performance.now()
-    
+
     if (typeof performance.mark === 'function') {
       performance.mark(name)
     }
@@ -133,13 +133,15 @@ export class PerformanceMonitorImpl implements PerformanceMonitor {
 
     if (startMark) {
       startTime = this.marks.get(startMark) ?? 0
-    } else {
+    }
+ else {
       startTime = 0
     }
 
     if (endMark) {
       endTime = this.marks.get(endMark) ?? performance.now()
-    } else {
+    }
+ else {
       endTime = performance.now()
     }
 
@@ -148,7 +150,8 @@ export class PerformanceMonitorImpl implements PerformanceMonitor {
     if (typeof performance.measure === 'function' && startMark && endMark) {
       try {
         performance.measure(name, startMark, endMark)
-      } catch (error) {
+      }
+ catch (error) {
         console.warn(`Failed to create performance measure '${name}':`, error)
       }
     }
@@ -158,7 +161,7 @@ export class PerformanceMonitorImpl implements PerformanceMonitor {
       startTime,
       endTime,
       duration,
-      type: 'timing'
+      type: 'timing',
     }
 
     this.addMetric(name, metric)
@@ -170,7 +173,7 @@ export class PerformanceMonitorImpl implements PerformanceMonitor {
    */
   getMetrics(): Record<string, any> {
     const result: Record<string, any> = {}
-    
+
     // 计时指标
     const timingMetrics: Record<string, any> = {}
     const memoryMetrics: Record<string, any> = {}
@@ -181,7 +184,7 @@ export class PerformanceMonitorImpl implements PerformanceMonitor {
         startTime: metric.startTime,
         endTime: metric.endTime,
         duration: metric.duration,
-        data: metric.data
+        data: metric.data,
       }
 
       switch (metric.type) {
@@ -223,11 +226,11 @@ export class PerformanceMonitorImpl implements PerformanceMonitor {
     this.metrics.clear()
     this.marks.clear()
     this.memorySnapshots.length = 0
-    
+
     if (typeof performance.clearMarks === 'function') {
       performance.clearMarks()
     }
-    
+
     if (typeof performance.clearMeasures === 'function') {
       performance.clearMeasures()
     }
@@ -245,7 +248,7 @@ export class PerformanceMonitorImpl implements PerformanceMonitor {
       name,
       startTime: performance.now(),
       type: 'custom',
-      data
+      data,
     }
 
     this.addMetric(name, metric)
@@ -265,7 +268,7 @@ export class PerformanceMonitorImpl implements PerformanceMonitor {
         usedJSHeapSize: memory.usedJSHeapSize,
         totalJSHeapSize: memory.totalJSHeapSize,
         jsHeapSizeLimit: memory.jsHeapSizeLimit,
-        timestamp: performance.now()
+        timestamp: performance.now(),
       }
     }
 
@@ -280,16 +283,16 @@ export class PerformanceMonitorImpl implements PerformanceMonitor {
     timingMetrics: number
     memorySnapshots: number
     averageDuration: number
-    longestDuration: { name: string; duration: number } | null
+    longestDuration: { name: string, duration: number } | null
   } {
     const timingMetrics = Array.from(this.metrics.values())
       .filter(m => m.type === 'timing' && m.duration !== undefined)
-    
+
     const durations = timingMetrics.map(m => m.duration!)
-    const averageDuration = durations.length > 0 
-      ? durations.reduce((sum, d) => sum + d, 0) / durations.length 
+    const averageDuration = durations.length > 0
+      ? durations.reduce((sum, d) => sum + d, 0) / durations.length
       : 0
-    
+
     const longestMetric = timingMetrics.reduce((longest, current) => {
       if (!longest || (current.duration! > longest.duration!)) {
         return current
@@ -302,10 +305,12 @@ export class PerformanceMonitorImpl implements PerformanceMonitor {
       timingMetrics: timingMetrics.length,
       memorySnapshots: this.memorySnapshots.length,
       averageDuration,
-      longestDuration: longestMetric ? {
+      longestDuration: longestMetric
+? {
         name: longestMetric.name,
-        duration: longestMetric.duration!
-      } : null
+        duration: longestMetric.duration!,
+      }
+: null,
     }
   }
 
@@ -347,7 +352,7 @@ export class PerformanceMonitorImpl implements PerformanceMonitor {
           this.addCustomMetric(`navigation:${entry.name}`, {
             type: entry.entryType,
             startTime: entry.startTime,
-            duration: entry.duration
+            duration: entry.duration,
           })
         }
       })
@@ -360,14 +365,14 @@ export class PerformanceMonitorImpl implements PerformanceMonitor {
           this.addCustomMetric(`resource:${entry.name}`, {
             type: entry.entryType,
             startTime: entry.startTime,
-            duration: entry.duration
+            duration: entry.duration,
           })
         }
       })
       resourceObserver.observe({ entryTypes: ['resource'] })
       this.observers.push(resourceObserver)
-
-    } catch (error) {
+    }
+ catch (error) {
       console.warn('Failed to setup performance observers:', error)
     }
   }
@@ -380,7 +385,7 @@ export class PerformanceMonitorImpl implements PerformanceMonitor {
       const memoryInfo = this.getMemoryUsage()
       if (memoryInfo) {
         this.memorySnapshots.push(memoryInfo)
-        
+
         // 限制快照数量
         if (this.memorySnapshots.length > 100) {
           this.memorySnapshots.shift()
@@ -390,7 +395,7 @@ export class PerformanceMonitorImpl implements PerformanceMonitor {
 
     // 每5秒记录一次内存使用情况
     setInterval(trackMemory, 5000)
-    
+
     // 立即记录一次
     trackMemory()
   }
@@ -400,12 +405,13 @@ export class PerformanceMonitorImpl implements PerformanceMonitor {
    */
   destroy(): void {
     this.clear()
-    
+
     // 断开性能观察器
-    this.observers.forEach(observer => {
+    this.observers.forEach((observer) => {
       try {
         observer.disconnect()
-      } catch (error) {
+      }
+ catch (error) {
         console.warn('Error disconnecting performance observer:', error)
       }
     })
@@ -420,47 +426,47 @@ export const performancePlugin: Plugin = {
   name: 'performance',
   install(engine: Engine, options: any = {}) {
     const monitor = new PerformanceMonitorImpl(options)
-    
+
     // 注入性能监控器
     engine.provide('performance', monitor)
-    
+
     // 监控引擎生命周期
     engine.addMiddleware('beforeMount', async (_context, next) => {
       monitor.start('engine:mount')
       await next()
     })
-    
+
     engine.addMiddleware('mounted', async (_context, next) => {
       monitor.end('engine:mount')
       await next()
     })
-    
+
     engine.addMiddleware('beforeUnmount', async (_context, next) => {
       monitor.start('engine:unmount')
       await next()
     })
-    
+
     engine.addMiddleware('unmounted', async (_context, next) => {
       monitor.end('engine:unmount')
       await next()
     })
-    
+
     // 添加性能API到引擎
     Object.assign(engine, {
       startTiming: (name: string) => monitor.start(name),
       endTiming: (name: string) => monitor.end(name),
       markPerformance: (name: string) => monitor.mark(name),
-      measurePerformance: (name: string, start?: string, end?: string) => 
+      measurePerformance: (name: string, start?: string, end?: string) =>
         monitor.measure(name, start, end),
       getPerformanceMetrics: () => monitor.getMetrics(),
-      getPerformanceSummary: () => monitor.getSummary()
+      getPerformanceSummary: () => monitor.getSummary(),
     })
   },
-  
+
   uninstall(engine: Engine) {
     const monitor = engine.inject<PerformanceMonitorImpl>('performance')
     if (monitor) {
       monitor.destroy()
     }
-  }
+  },
 }

@@ -275,13 +275,14 @@ return '0 B'
       console.log(chalk.green.bold('\n✅ 清理完成!'))
       console.log(chalk.white(`清理项目: ${this.cleanedItems.length} 项`))
       console.log(chalk.white(`节省空间: ${this.formatSize(savedSize)}`))
-      
+
       if (options.includeDeps) {
         console.log(chalk.yellow('\n💡 提示: 运行 `pnpm install` 重新安装依赖'))
       }
-      
+
       console.log(chalk.yellow('\n💡 提示: 运行 `pnpm build` 重新构建项目'))
-    } catch (error) {
+    }
+ catch (error) {
       console.error(chalk.red('❌ 清理过程中发生错误:'), error)
       process.exit(1)
     }

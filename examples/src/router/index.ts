@@ -15,8 +15,8 @@ const routes = [
     component: HomePage,
     meta: {
       title: '首页',
-      description: '引擎状态概览和功能导航'
-    }
+      description: '引擎状态概览和功能导航',
+    },
   },
   {
     path: '/plugins',
@@ -24,8 +24,8 @@ const routes = [
     component: PluginsPage,
     meta: {
       title: '插件系统',
-      description: '插件管理、依赖关系和动态加载'
-    }
+      description: '插件管理、依赖关系和动态加载',
+    },
   },
   {
     path: '/middleware',
@@ -33,8 +33,8 @@ const routes = [
     component: MiddlewarePage,
     meta: {
       title: '中间件系统',
-      description: '生命周期管理和性能监控'
-    }
+      description: '生命周期管理和性能监控',
+    },
   },
   {
     path: '/events',
@@ -42,8 +42,8 @@ const routes = [
     component: EventsPage,
     meta: {
       title: '事件系统',
-      description: '事件发布、监听和流可视化'
-    }
+      description: '事件发布、监听和流可视化',
+    },
   },
   {
     path: '/di',
@@ -51,8 +51,8 @@ const routes = [
     component: DIPage,
     meta: {
       title: '依赖注入',
-      description: '服务容器和依赖关系管理'
-    }
+      description: '服务容器和依赖关系管理',
+    },
   },
   {
     path: '/config',
@@ -60,8 +60,8 @@ const routes = [
     component: ConfigPage,
     meta: {
       title: '配置管理',
-      description: '配置编辑、监听和历史记录'
-    }
+      description: '配置编辑、监听和历史记录',
+    },
   },
   {
     path: '/error-handling',
@@ -69,8 +69,8 @@ const routes = [
     component: ErrorHandlingPage,
     meta: {
       title: '错误处理',
-      description: '错误监控、处理和恢复策略'
-    }
+      description: '错误监控、处理和恢复策略',
+    },
   },
   {
     path: '/performance',
@@ -78,14 +78,14 @@ const routes = [
     component: PerformancePage,
     meta: {
       title: '性能监控',
-      description: '性能指标、基准测试和优化建议'
-    }
-  }
+      description: '性能指标、基准测试和优化建议',
+    },
+  },
 ]
 
 const router = createRouter({
   history: createWebHistory(),
-  routes
+  routes,
 })
 
 // 路由守卫
@@ -93,10 +93,11 @@ router.beforeEach((to, from, next) => {
   // 设置页面标题
   if (to.meta?.title) {
     document.title = `${to.meta.title} - LDesign Engine Demo`
-  } else {
+  }
+ else {
     document.title = 'LDesign Engine Demo'
   }
-  
+
   next()
 })
 

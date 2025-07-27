@@ -1,213 +1,10 @@
-<template>
-  <div id="app">
-    <!-- 顶部导航栏 -->
-    <nav class="navbar">
-      <div class="nav-container">
-        <div class="nav-brand">
-          <router-link to="/" class="brand-link">
-            <Zap class="brand-icon" />
-            <span class="brand-text">LDesign Engine</span>
-          </router-link>
-          <span class="brand-subtitle">演示应用</span>
-        </div>
-        
-        <div class="nav-menu">
-          <router-link 
-            v-for="route in navigationRoutes" 
-            :key="route.path"
-            :to="route.path"
-            class="nav-link"
-            :class="{ active: $route.path === route.path }"
-          >
-            <component :is="route.icon" class="nav-icon" />
-            <span class="nav-text">{{ route.meta.title }}</span>
-          </router-link>
-        </div>
-        
-        <div class="nav-actions">
-          <!-- 引擎状态指示器 -->
-          <div class="engine-status" :class="engineStatus">
-            <div class="status-dot"></div>
-            <span class="status-text">{{ getStatusText(engineStatus) }}</span>
-          </div>
-          
-          <!-- 主题切换 -->
-          <button @click="toggleTheme" class="theme-toggle" :title="`切换到${isDark ? '浅色' : '深色'}主题`">
-            <component :is="isDark ? 'Sun' : 'Moon'" class="theme-icon" />
-          </button>
-          
-          <!-- 设置按钮 -->
-          <button @click="openSettings" class="settings-btn" title="设置">
-            <Settings class="settings-icon" />
-          </button>
-        </div>
-      </div>
-    </nav>
-    
-    <!-- 主要内容区域 -->
-    <main class="main-content">
-      <router-view v-slot="{ Component }">
-        <transition name="page" mode="out-in">
-          <component :is="Component" />
-        </transition>
-      </router-view>
-    </main>
-    
-    <!-- 全局通知 -->
-    <div v-if="notifications.length > 0" class="notifications">
-      <div 
-        v-for="notification in notifications" 
-        :key="notification.id"
-        class="notification"
-        :class="notification.type"
-      >
-        <component :is="getNotificationIcon(notification.type)" class="notification-icon" />
-        <div class="notification-content">
-          <div class="notification-title">{{ notification.title }}</div>
-          <div class="notification-message">{{ notification.message }}</div>
-        </div>
-        <button @click="dismissNotification(notification.id)" class="notification-close">
-          <X class="close-icon" />
-        </button>
-      </div>
-    </div>
-    
-    <!-- 设置模态框 -->
-    <div v-if="showSettings" class="modal-overlay" @click="closeSettings">
-      <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <h2>应用设置</h2>
-          <button @click="closeSettings" class="modal-close">
-            <X class="close-icon" />
-          </button>
-        </div>
-        
-        <div class="modal-body">
-          <div class="setting-group">
-            <h3>外观设置</h3>
-            <div class="setting-item">
-              <label class="setting-label">
-                <input 
-                  v-model="isDark"
-                  type="checkbox"
-                  class="setting-checkbox"
-                  @change="toggleTheme"
-                />
-                深色主题
-              </label>
-            </div>
-            <div class="setting-item">
-              <label class="setting-label">
-                <input 
-                  v-model="settings.animations"
-                  type="checkbox"
-                  class="setting-checkbox"
-                />
-                启用动画效果
-              </label>
-            </div>
-          </div>
-          
-          <div class="setting-group">
-            <h3>性能设置</h3>
-            <div class="setting-item">
-              <label class="setting-label">
-                <input 
-                  v-model="settings.autoRefresh"
-                  type="checkbox"
-                  class="setting-checkbox"
-                />
-                自动刷新数据
-              </label>
-            </div>
-            <div class="setting-item">
-              <label class="setting-label">刷新间隔 (秒)</label>
-              <input 
-                v-model.number="settings.refreshInterval"
-                type="number"
-                min="1"
-                max="60"
-                class="setting-input"
-              />
-            </div>
-          </div>
-          
-          <div class="setting-group">
-            <h3>开发者选项</h3>
-            <div class="setting-item">
-              <label class="setting-label">
-                <input 
-                  v-model="settings.debugMode"
-                  type="checkbox"
-                  class="setting-checkbox"
-                />
-                调试模式
-              </label>
-            </div>
-            <div class="setting-item">
-              <label class="setting-label">
-                <input 
-                  v-model="settings.showPerformanceMetrics"
-                  type="checkbox"
-                  class="setting-checkbox"
-                />
-                显示性能指标
-              </label>
-            </div>
-          </div>
-        </div>
-        
-        <div class="modal-footer">
-          <button @click="resetSettings" class="btn btn-secondary">
-            重置设置
-          </button>
-          <button @click="saveSettings" class="btn btn-primary">
-            保存设置
-          </button>
-        </div>
-      </div>
-    </div>
-    
-    <!-- 性能指标悬浮窗 -->
-    <div v-if="settings.showPerformanceMetrics" class="performance-overlay">
-      <div class="performance-metrics">
-        <div class="metric-item">
-          <span class="metric-label">FPS:</span>
-          <span class="metric-value">{{ performanceMetrics.fps }}</span>
-        </div>
-        <div class="metric-item">
-          <span class="metric-label">内存:</span>
-          <span class="metric-value">{{ performanceMetrics.memory }}MB</span>
-        </div>
-        <div class="metric-item">
-          <span class="metric-label">CPU:</span>
-          <span class="metric-value">{{ performanceMetrics.cpu }}%</span>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { ref, computed, inject, onMounted, onUnmounted, watch } from 'vue'
+import { computed, inject, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import {
-  Zap,
-  Home,
-  Puzzle,
-  Layers,
-  Radio,
-  GitBranch,
-  Settings as SettingsIcon,
-  AlertTriangle,
-  Activity,
-  Sun,
-  Moon,
   Settings,
   X,
-  CheckCircle,
-  Info,
-  AlertCircle
+  Zap,
 } from 'lucide-vue-next'
 
 // 注入引擎和服务
@@ -234,7 +31,7 @@ const navigationRoutes = [
   { path: '/di', icon: 'GitBranch', meta: { title: '依赖注入' } },
   { path: '/config', icon: 'SettingsIcon', meta: { title: '配置管理' } },
   { path: '/error-handling', icon: 'AlertTriangle', meta: { title: '错误处理' } },
-  { path: '/performance', icon: 'Activity', meta: { title: '性能监控' } }
+  { path: '/performance', icon: 'Activity', meta: { title: '性能监控' } },
 ]
 
 // 应用设置
@@ -243,14 +40,14 @@ const settings = ref({
   autoRefresh: true,
   refreshInterval: 5,
   debugMode: false,
-  showPerformanceMetrics: false
+  showPerformanceMetrics: false,
 })
 
 // 性能指标
 const performanceMetrics = ref({
   fps: 60,
   memory: 128,
-  cpu: 45
+  cpu: 45,
 })
 
 // 计算属性
@@ -260,105 +57,106 @@ const currentPageTitle = computed(() => {
 })
 
 // 方法
-const getStatusText = (status: string) => {
+function getStatusText(status: string) {
   const statusMap = {
     running: '运行中',
     stopped: '已停止',
     error: '错误',
-    loading: '加载中'
+    loading: '加载中',
   }
   return statusMap[status] || status
 }
 
-const toggleTheme = () => {
+function toggleTheme() {
   isDark.value = !isDark.value
-  
+
   if (theme) {
     theme.setTheme(isDark.value ? 'dark' : 'light')
   }
-  
+
   // 更新 CSS 变量
   document.documentElement.setAttribute('data-theme', isDark.value ? 'dark' : 'light')
 }
 
-const openSettings = () => {
+function openSettings() {
   showSettings.value = true
 }
 
-const closeSettings = () => {
+function closeSettings() {
   showSettings.value = false
 }
 
-const saveSettings = () => {
+function saveSettings() {
   // 保存设置到本地存储
   localStorage.setItem('app-settings', JSON.stringify(settings.value))
-  
+
   // 应用设置
   if (settings.value.showPerformanceMetrics && !performanceInterval) {
     startPerformanceMonitoring()
-  } else if (!settings.value.showPerformanceMetrics && performanceInterval) {
+  }
+ else if (!settings.value.showPerformanceMetrics && performanceInterval) {
     stopPerformanceMonitoring()
   }
-  
+
   showNotification({
     type: 'success',
     title: '设置已保存',
-    message: '您的设置已成功保存'
+    message: '您的设置已成功保存',
   })
-  
+
   closeSettings()
 }
 
-const resetSettings = () => {
+function resetSettings() {
   settings.value = {
     animations: true,
     autoRefresh: true,
     refreshInterval: 5,
     debugMode: false,
-    showPerformanceMetrics: false
+    showPerformanceMetrics: false,
   }
-  
+
   showNotification({
     type: 'info',
     title: '设置已重置',
-    message: '所有设置已恢复为默认值'
+    message: '所有设置已恢复为默认值',
   })
 }
 
-const showNotification = (notificationData: any) => {
+function showNotification(notificationData: any) {
   const id = Date.now()
   const newNotification = {
     id,
     ...notificationData,
-    timestamp: Date.now()
+    timestamp: Date.now(),
   }
-  
+
   notifications.value.push(newNotification)
-  
+
   // 自动移除通知
   setTimeout(() => {
     dismissNotification(id)
   }, 5000)
 }
 
-const dismissNotification = (id: number) => {
+function dismissNotification(id: number) {
   const index = notifications.value.findIndex(n => n.id === id)
   if (index > -1) {
     notifications.value.splice(index, 1)
   }
 }
 
-const getNotificationIcon = (type: string) => {
+function getNotificationIcon(type: string) {
   const iconMap = {
     success: 'CheckCircle',
     error: 'AlertCircle',
     warning: 'AlertTriangle',
-    info: 'Info'
+    info: 'Info',
   }
   return iconMap[type] || 'Info'
 }
 
-const startPerformanceMonitoring = () => {
+function startPerformanceMonitoring() {
   performanceInterval = setInterval(() => {
     // 模拟性能指标更新
     performanceMetrics.value.fps = Math.floor(Math.random() * 10) + 55
@@ -367,25 +165,26 @@ const startPerformanceMonitoring = () => {
   }, 1000)
 }
 
-const stopPerformanceMonitoring = () => {
+function stopPerformanceMonitoring() {
   if (performanceInterval) {
     clearInterval(performanceInterval)
     performanceInterval = null
   }
 }
 
-const loadSettings = () => {
+function loadSettings() {
   const savedSettings = localStorage.getItem('app-settings')
   if (savedSettings) {
     try {
       settings.value = { ...settings.value, ...JSON.parse(savedSettings) }
-    } catch (error) {
+    }
+ catch (error) {
       console.warn('Failed to load settings:', error)
     }
   }
 }
 
-const updateEngineStatus = () => {
+function updateEngineStatus() {
   if (engine) {
     const state = engine.state
     engineStatus.value = state === 'mounted' ? 'running' : state
@@ -396,7 +195,8 @@ const updateEngineStatus = () => {
 watch(() => settings.value.showPerformanceMetrics, (newValue) => {
   if (newValue) {
     startPerformanceMonitoring()
-  } else {
+  }
+ else {
     stopPerformanceMonitoring()
   }
 })
@@ -405,36 +205,36 @@ watch(() => settings.value.showPerformanceMetrics, (newValue) => {
 onMounted(() => {
   // 加载设置
   loadSettings()
-  
+
   // 初始化主题
   const savedTheme = localStorage.getItem('theme')
   if (savedTheme) {
     isDark.value = savedTheme === 'dark'
     document.documentElement.setAttribute('data-theme', savedTheme)
   }
-  
+
   // 监听引擎事件
   if (engine) {
     engine.on('*', (eventName: string, data: any) => {
       if (settings.value.debugMode) {
         console.log('Engine Event:', eventName, data)
       }
-      
+
       // 更新引擎状态
       updateEngineStatus()
     })
-    
+
     // 初始状态更新
     updateEngineStatus()
   }
-  
+
   // 监听通知服务
   if (notification) {
     notification.on('notification', (data: any) => {
       showNotification(data)
     })
   }
-  
+
   // 启动性能监控（如果启用）
   if (settings.value.showPerformanceMetrics) {
     startPerformanceMonitoring()
@@ -445,6 +245,200 @@ onUnmounted(() => {
   stopPerformanceMonitoring()
 })
 </script>
+
+<template>
+  <div id="app">
+    <!-- 顶部导航栏 -->
+    <nav class="navbar">
+      <div class="nav-container">
+        <div class="nav-brand">
+          <router-link to="/" class="brand-link">
+            <Zap class="brand-icon" />
+            <span class="brand-text">LDesign Engine</span>
+          </router-link>
+          <span class="brand-subtitle">演示应用</span>
+        </div>
+
+        <div class="nav-menu">
+          <router-link
+            v-for="route in navigationRoutes"
+            :key="route.path"
+            :to="route.path"
+            class="nav-link"
+            :class="{ active: $route.path === route.path }"
+          >
+            <component :is="route.icon" class="nav-icon" />
+            <span class="nav-text">{{ route.meta.title }}</span>
+          </router-link>
+        </div>
+
+        <div class="nav-actions">
+          <!-- 引擎状态指示器 -->
+          <div class="engine-status" :class="engineStatus">
+            <div class="status-dot" />
+            <span class="status-text">{{ getStatusText(engineStatus) }}</span>
+          </div>
+
+          <!-- 主题切换 -->
+          <button class="theme-toggle" :title="`切换到${isDark ? '浅色' : '深色'}主题`" @click="toggleTheme">
+            <component :is="isDark ? 'Sun' : 'Moon'" class="theme-icon" />
+          </button>
+
+          <!-- 设置按钮 -->
+          <button class="settings-btn" title="设置" @click="openSettings">
+            <Settings class="settings-icon" />
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- 主要内容区域 -->
+    <main class="main-content">
+      <router-view v-slot="{ Component }">
+        <transition name="page" mode="out-in">
+          <component :is="Component" />
+        </transition>
+      </router-view>
+    </main>
+
+    <!-- 全局通知 -->
+    <div v-if="notifications.length > 0" class="notifications">
+      <div
+        v-for="notification in notifications"
+        :key="notification.id"
+        class="notification"
+        :class="notification.type"
+      >
+        <component :is="getNotificationIcon(notification.type)" class="notification-icon" />
+        <div class="notification-content">
+          <div class="notification-title">
+            {{ notification.title }}
+          </div>
+          <div class="notification-message">
+            {{ notification.message }}
+          </div>
+        </div>
+        <button class="notification-close" @click="dismissNotification(notification.id)">
+          <X class="close-icon" />
+        </button>
+      </div>
+    </div>
+
+    <!-- 设置模态框 -->
+    <div v-if="showSettings" class="modal-overlay" @click="closeSettings">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h2>应用设置</h2>
+          <button class="modal-close" @click="closeSettings">
+            <X class="close-icon" />
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <div class="setting-group">
+            <h3>外观设置</h3>
+            <div class="setting-item">
+              <label class="setting-label">
+                <input
+                  v-model="isDark"
+                  type="checkbox"
+                  class="setting-checkbox"
+                  @change="toggleTheme"
+                >
+                深色主题
+              </label>
+            </div>
+            <div class="setting-item">
+              <label class="setting-label">
+                <input
+                  v-model="settings.animations"
+                  type="checkbox"
+                  class="setting-checkbox"
+                >
+                启用动画效果
+              </label>
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <h3>性能设置</h3>
+            <div class="setting-item">
+              <label class="setting-label">
+                <input
+                  v-model="settings.autoRefresh"
+                  type="checkbox"
+                  class="setting-checkbox"
+                >
+                自动刷新数据
+              </label>
+            </div>
+            <div class="setting-item">
+              <label class="setting-label">刷新间隔 (秒)</label>
+              <input
+                v-model.number="settings.refreshInterval"
+                type="number"
+                min="1"
+                max="60"
+                class="setting-input"
+              >
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <h3>开发者选项</h3>
+            <div class="setting-item">
+              <label class="setting-label">
+                <input
+                  v-model="settings.debugMode"
+                  type="checkbox"
+                  class="setting-checkbox"
+                >
+                调试模式
+              </label>
+            </div>
+            <div class="setting-item">
+              <label class="setting-label">
+                <input
+                  v-model="settings.showPerformanceMetrics"
+                  type="checkbox"
+                  class="setting-checkbox"
+                >
+                显示性能指标
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-secondary" @click="resetSettings">
+            重置设置
+          </button>
+          <button class="btn btn-primary" @click="saveSettings">
+            保存设置
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 性能指标悬浮窗 -->
+    <div v-if="settings.showPerformanceMetrics" class="performance-overlay">
+      <div class="performance-metrics">
+        <div class="metric-item">
+          <span class="metric-label">FPS:</span>
+          <span class="metric-value">{{ performanceMetrics.fps }}</span>
+        </div>
+        <div class="metric-item">
+          <span class="metric-label">内存:</span>
+          <span class="metric-value">{{ performanceMetrics.memory }}MB</span>
+        </div>
+        <div class="metric-item">
+          <span class="metric-label">CPU:</span>
+          <span class="metric-value">{{ performanceMetrics.cpu }}%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
 
 <style scoped>
 /* 全局样式变量 */
@@ -983,30 +977,30 @@ onUnmounted(() => {
   .nav-container {
     padding: 0 16px;
   }
-  
+
   .nav-menu {
     display: none;
   }
-  
+
   .nav-text {
     display: none;
   }
-  
+
   .brand-subtitle {
     display: none;
   }
-  
+
   .notifications {
     right: 16px;
     left: 16px;
     max-width: none;
   }
-  
+
   .modal-content {
     margin: 16px;
     width: calc(100% - 32px);
   }
-  
+
   .performance-overlay {
     left: 16px;
   }

@@ -208,7 +208,8 @@ class ConfigManager {
       if (isSelected) {
         console.log(chalk.bgBlue.white(`❯ ${config.icon} ${config.name} ${statusIcon}`))
         console.log(chalk.bgBlue.white(`  ${config.description} - ${statusText}`))
-      } else {
+      }
+ else {
         console.log(chalk.gray(`  ${config.icon} ${config.name} ${statusIcon}`))
         console.log(chalk.gray(`  ${config.description} - ${statusText}`))
       }
@@ -240,7 +241,8 @@ class ConfigManager {
       console.log(chalk.white('  1. 重新配置 Token'))
       console.log(chalk.white('  2. 删除配置'))
       console.log(chalk.white('  3. 返回主菜单'))
-    } else {
+    }
+ else {
       console.log(chalk.red('❌ 当前状态: 未配置'))
       console.log()
       console.log(chalk.yellow('选择操作:'))
@@ -253,9 +255,9 @@ class ConfigManager {
     console.clear()
     console.log(chalk.blue.bold(`🔧 配置 ${config.name}\n`))
     console.log(chalk.yellow('请输入 Token (输入将被隐藏):'))
-    
+
     const token = await this.waitForInput()
-    
+
     if (!token.trim()) {
       console.log(chalk.red('\n❌ Token 不能为空'))
       console.log(chalk.gray('按任意键继续...'))
@@ -265,10 +267,10 @@ class ConfigManager {
 
     // 保存到 .env.local 文件
     this.saveTokenToEnvFile(config.envKey, token.trim())
-    
+
     config.isConfigured = true
     config.value = token.trim()
-    
+
     console.log(chalk.green('\n✅ Token 配置成功!'))
     console.log(chalk.gray('按任意键继续...'))
     await this.waitForKeyPress()
@@ -276,21 +278,22 @@ class ConfigManager {
 
   private saveTokenToEnvFile(envKey: string, token: string): void {
     let envContent = ''
-    
+
     if (existsSync(this.envFilePath)) {
       envContent = readFileSync(this.envFilePath, 'utf-8')
     }
 
     const lines = envContent.split('\n')
     const existingIndex = lines.findIndex(line => line.startsWith(`${envKey}=`))
-    
+
     if (existingIndex >= 0) {
       lines[existingIndex] = `${envKey}=${token}`
-    } else {
+    }
+ else {
       lines.push(`${envKey}=${token}`)
     }
 
-    writeFileSync(this.envFilePath, lines.filter(line => line.trim()).join('\n') + '\n')
+    writeFileSync(this.envFilePath, `${lines.filter(line => line.trim()).join('\n')}\n`)
   }
 
   private removeTokenFromEnvFile(envKey: string): void {
@@ -301,27 +304,28 @@ class ConfigManager {
     const envContent = readFileSync(this.envFilePath, 'utf-8')
     const lines = envContent.split('\n')
     const filteredLines = lines.filter(line => !line.startsWith(`${envKey}=`))
-    
-    writeFileSync(this.envFilePath, filteredLines.filter(line => line.trim()).join('\n') + '\n')
+
+    writeFileSync(this.envFilePath, `${filteredLines.filter(line => line.trim()).join('\n')}\n`)
   }
 
   private async removeToken(config: TokenConfig): Promise<void> {
     console.clear()
     console.log(chalk.red.bold(`🗑️  删除 ${config.name} 配置\n`))
     console.log(chalk.yellow('确认删除配置? (y/N)'))
-    
+
     const confirmation = await this.waitForKeyPress()
-    
+
     if (confirmation.toLowerCase() === 'y') {
       this.removeTokenFromEnvFile(config.envKey)
       config.isConfigured = false
       config.value = undefined
-      
+
       console.log(chalk.green('\n✅ 配置已删除'))
-    } else {
+    }
+ else {
       console.log(chalk.gray('\n取消删除'))
     }
-    
+
     console.log(chalk.gray('按任意键继续...'))
     await this.waitForKeyPress()
   }
@@ -346,7 +350,8 @@ class ConfigManager {
           case '3':
             return
         }
-      } else {
+      }
+ else {
         switch (key) {
           case '1':
             await this.configureToken(config)
@@ -384,7 +389,8 @@ class ConfigManager {
           await this.handleTokenConfig(selectedConfig)
         }
       }
-    } finally {
+    }
+ finally {
       // 恢复终端设置
       if (process.stdin.setRawMode) {
         process.stdin.setRawMode(false)

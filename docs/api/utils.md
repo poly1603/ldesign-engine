@@ -7,12 +7,12 @@
 ### 引擎工具
 
 ```typescript
-import { 
-  createEngine, 
-  isEngine, 
-  getEngineVersion, 
+import {
+  createEngine,
+  getEngineVersion,
+  isEngine,
   mergeConfigs,
-  validateConfig 
+  validateConfig
 } from '@ldesign/engine/utils'
 
 // 创建引擎实例
@@ -22,11 +22,11 @@ function createEngine(config?: EngineConfig): Engine {
 
 // 检查是否为引擎实例
 function isEngine(value: any): value is Engine {
-  return value && 
-         typeof value === 'object' && 
-         typeof value.start === 'function' &&
-         typeof value.stop === 'function' &&
-         typeof value.use === 'function'
+  return value
+    && typeof value === 'object'
+    && typeof value.start === 'function'
+    && typeof value.stop === 'function'
+    && typeof value.use === 'function'
 }
 
 // 获取引擎版本
@@ -44,19 +44,19 @@ function mergeConfigs(...configs: Partial<EngineConfig>[]): EngineConfig {
 // 验证配置
 function validateConfig(config: EngineConfig): ValidationResult {
   const errors: string[] = []
-  
+
   if (config.name && typeof config.name !== 'string') {
     errors.push('name must be a string')
   }
-  
+
   if (config.version && typeof config.version !== 'string') {
     errors.push('version must be a string')
   }
-  
+
   if (config.maxListeners && typeof config.maxListeners !== 'number') {
     errors.push('maxListeners must be a number')
   }
-  
+
   return {
     valid: errors.length === 0,
     errors
@@ -92,12 +92,12 @@ if (!validation.valid) {
 ### 插件工具
 
 ```typescript
-import { 
-  createPlugin, 
-  isPlugin, 
-  validatePlugin,
+import {
+  createPlugin,
+  isPlugin,
   resolvePluginDependencies,
-  sortPluginsByPriority 
+  sortPluginsByPriority,
+  validatePlugin
 } from '@ldesign/engine/utils'
 
 // 创建插件
@@ -105,10 +105,12 @@ function createPlugin(definition: PluginDefinition): Plugin {
   if (typeof definition === 'function') {
     // 插件工厂
     return definition()
-  } else if (typeof definition === 'object' && definition.constructor !== Object) {
+  }
+ else if (typeof definition === 'object' && definition.constructor !== Object) {
     // 插件类
     return new (definition as any)()
-  } else {
+  }
+ else {
     // 插件对象
     return definition as Plugin
   }
@@ -116,30 +118,30 @@ function createPlugin(definition: PluginDefinition): Plugin {
 
 // 检查是否为插件
 function isPlugin(value: any): value is Plugin {
-  return value &&
-         typeof value === 'object' &&
-         typeof value.name === 'string' &&
-         typeof value.version === 'string'
+  return value
+    && typeof value === 'object'
+    && typeof value.name === 'string'
+    && typeof value.version === 'string'
 }
 
 // 验证插件
 function validatePlugin(plugin: Plugin): ValidationResult {
   const errors: string[] = []
-  
+
   if (!plugin.name) {
     errors.push('Plugin name is required')
   }
-  
+
   if (!plugin.version) {
     errors.push('Plugin version is required')
   }
-  
+
   if (plugin.dependencies) {
     if (!Array.isArray(plugin.dependencies)) {
       errors.push('Plugin dependencies must be an array')
     }
   }
-  
+
   return {
     valid: errors.length === 0,
     errors
@@ -151,18 +153,18 @@ function resolvePluginDependencies(plugins: Plugin[]): Plugin[] {
   const resolved: Plugin[] = []
   const resolving = new Set<string>()
   const resolved_names = new Set<string>()
-  
+
   function resolve(plugin: Plugin) {
     if (resolved_names.has(plugin.name)) {
       return
     }
-    
+
     if (resolving.has(plugin.name)) {
       throw new Error(`Circular dependency detected: ${plugin.name}`)
     }
-    
+
     resolving.add(plugin.name)
-    
+
     // 解析依赖
     if (plugin.dependencies) {
       for (const depName of plugin.dependencies) {
@@ -173,18 +175,18 @@ function resolvePluginDependencies(plugins: Plugin[]): Plugin[] {
         resolve(dep)
       }
     }
-    
+
     resolving.delete(plugin.name)
     resolved_names.add(plugin.name)
     resolved.push(plugin)
   }
-  
+
   plugins.forEach(resolve)
   return resolved
 }
 
 // 按优先级排序插件
-function sortPluginsByPriority(plugins: Array<{ plugin: Plugin; config: PluginConfig }>): Array<{ plugin: Plugin; config: PluginConfig }> {
+function sortPluginsByPriority(plugins: Array<{ plugin: Plugin, config: PluginConfig }>): Array<{ plugin: Plugin, config: PluginConfig }> {
   return plugins.sort((a, b) => {
     const priorityA = a.config.priority || 0
     const priorityB = b.config.priority || 0
@@ -220,14 +222,14 @@ console.log('排序后的插件:', sortedPlugins.map(p => p.plugin.name))
 ### 事件工具
 
 ```typescript
-import { 
+import {
   createEventEmitter,
-  isEventEmitter,
-  parseEventName,
-  matchEventPattern,
   createEventFilter,
   debounceEvent,
-  throttleEvent 
+  isEventEmitter,
+  matchEventPattern,
+  parseEventName,
+  throttleEvent
 } from '@ldesign/engine/utils'
 
 // 创建事件发射器
@@ -237,10 +239,10 @@ function createEventEmitter(options?: EventEmitterOptions): EventEmitter {
 
 // 检查是否为事件发射器
 function isEventEmitter(value: any): value is EventEmitter {
-  return value &&
-         typeof value === 'object' &&
-         typeof value.on === 'function' &&
-         typeof value.emit === 'function'
+  return value
+    && typeof value === 'object'
+    && typeof value.on === 'function'
+    && typeof value.emit === 'function'
 }
 
 // 解析事件名称
@@ -250,14 +252,14 @@ function parseEventName(eventName: string): {
   wildcard: boolean
 } {
   const parts = eventName.split(':')
-  
+
   if (parts.length === 1) {
     return {
       name: parts[0],
       wildcard: parts[0].includes('*')
     }
   }
-  
+
   return {
     namespace: parts[0],
     name: parts.slice(1).join(':'),
@@ -271,7 +273,7 @@ function matchEventPattern(pattern: string, eventName: string): boolean {
   const regexPattern = pattern
     .replace(/\*/g, '.*')
     .replace(/\?/g, '.')
-  
+
   const regex = new RegExp(`^${regexPattern}$`)
   return regex.test(eventName)
 }
@@ -290,12 +292,12 @@ function debounceEvent<T extends any[]>(
   delay: number
 ): (...args: T) => void {
   let timeoutId: NodeJS.Timeout | null = null
-  
+
   return (...args: T) => {
     if (timeoutId) {
       clearTimeout(timeoutId)
     }
-    
+
     timeoutId = setTimeout(() => {
       emitter.emit(event, ...args)
       timeoutId = null
@@ -310,10 +312,10 @@ function throttleEvent<T extends any[]>(
   interval: number
 ): (...args: T) => void {
   let lastEmit = 0
-  
+
   return (...args: T) => {
     const now = Date.now()
-    
+
     if (now - lastEmit >= interval) {
       emitter.emit(event, ...args)
       lastEmit = now
@@ -351,13 +353,13 @@ for (let i = 0; i < 10; i++) {
 ### 中间件工具
 
 ```typescript
-import { 
-  createMiddleware,
+import {
+  cacheMiddleware,
   composeMiddleware,
   conditionalMiddleware,
+  createMiddleware,
   retryMiddleware,
-  timeoutMiddleware,
-  cacheMiddleware 
+  timeoutMiddleware
 } from '@ldesign/engine/utils'
 
 // 创建中间件
@@ -373,16 +375,16 @@ function composeMiddleware<T = any>(
 ): Middleware<T> {
   return async (context: T, next: NextFunction) => {
     let index = 0
-    
+
     const dispatch = async (): Promise<void> => {
       if (index >= middlewares.length) {
         return next()
       }
-      
+
       const middleware = middlewares[index++]
       await middleware(context, dispatch)
     }
-    
+
     await dispatch()
   }
 }
@@ -394,10 +396,11 @@ function conditionalMiddleware<T = any>(
 ): Middleware<T> {
   return async (context: T, next: NextFunction) => {
     const shouldExecute = await condition(context)
-    
+
     if (shouldExecute) {
       await middleware(context, next)
-    } else {
+    }
+ else {
       await next()
     }
   }
@@ -411,18 +414,19 @@ function retryMiddleware<T = any>(
 ): Middleware<T> {
   return async (context: T, next: NextFunction) => {
     let attempts = 0
-    
+
     while (attempts <= maxRetries) {
       try {
         await middleware(context, next)
         return
-      } catch (error) {
+      }
+ catch (error) {
         attempts++
-        
+
         if (attempts > maxRetries) {
           throw error
         }
-        
+
         console.log(`重试中间件 ${attempts}/${maxRetries}`)
         await new Promise(resolve => setTimeout(resolve, delay * attempts))
       }
@@ -441,7 +445,7 @@ function timeoutMiddleware<T = any>(
         reject(new Error(`中间件执行超时: ${timeout}ms`))
       }, timeout)
     })
-    
+
     await Promise.race([
       middleware(context, next),
       timeoutPromise
@@ -458,20 +462,20 @@ function cacheMiddleware<T = any>(
     data: any
     timestamp: number
   }>()
-  
+
   return async (context: T, next: NextFunction) => {
     const key = keyGenerator(context)
     const cached = cache.get(key)
-    
+
     if (cached && Date.now() - cached.timestamp < ttl) {
       // 使用缓存数据
       Object.assign(context, cached.data)
       return
     }
-    
+
     const originalContext = JSON.parse(JSON.stringify(context))
     await next()
-    
+
     // 缓存结果
     cache.set(key, {
       data: JSON.parse(JSON.stringify(context)),
@@ -541,14 +545,14 @@ const cachedMiddleware = cacheMiddleware(
 ### 状态工具
 
 ```typescript
-import { 
+import {
   createStateManager,
   deepClone,
-  deepMerge,
   deepEqual,
+  deepMerge,
+  deleteNestedValue,
   getNestedValue,
-  setNestedValue,
-  deleteNestedValue 
+  setNestedValue
 } from '@ldesign/engine/utils'
 
 // 创建状态管理器
@@ -561,15 +565,15 @@ function deepClone<T>(obj: T): T {
   if (obj === null || typeof obj !== 'object') {
     return obj
   }
-  
+
   if (obj instanceof Date) {
     return new Date(obj.getTime()) as any
   }
-  
-  if (obj instanceof Array) {
+
+  if (Array.isArray(obj)) {
     return obj.map(item => deepClone(item)) as any
   }
-  
+
   if (typeof obj === 'object') {
     const cloned = {} as any
     for (const key in obj) {
@@ -579,28 +583,29 @@ function deepClone<T>(obj: T): T {
     }
     return cloned
   }
-  
+
   return obj
 }
 
 // 深度合并
 function deepMerge<T extends object>(...objects: Partial<T>[]): T {
   const result = {} as T
-  
+
   for (const obj of objects) {
     for (const key in obj) {
       if (obj.hasOwnProperty(key)) {
         const value = obj[key]
-        
+
         if (value && typeof value === 'object' && !Array.isArray(value)) {
           result[key] = deepMerge(result[key] || {}, value) as any
-        } else {
+        }
+ else {
           result[key] = value as any
         }
       }
     }
   }
-  
+
   return result
 }
 
@@ -609,40 +614,40 @@ function deepEqual(a: any, b: any): boolean {
   if (a === b) {
     return true
   }
-  
+
   if (a == null || b == null) {
     return false
   }
-  
+
   if (typeof a !== typeof b) {
     return false
   }
-  
+
   if (typeof a !== 'object') {
     return false
   }
-  
+
   if (Array.isArray(a) !== Array.isArray(b)) {
     return false
   }
-  
+
   const keysA = Object.keys(a)
   const keysB = Object.keys(b)
-  
+
   if (keysA.length !== keysB.length) {
     return false
   }
-  
+
   for (const key of keysA) {
     if (!keysB.includes(key)) {
       return false
     }
-    
+
     if (!deepEqual(a[key], b[key])) {
       return false
     }
   }
-  
+
   return true
 }
 
@@ -650,14 +655,14 @@ function deepEqual(a: any, b: any): boolean {
 function getNestedValue(obj: any, path: string): any {
   const keys = path.split('.')
   let current = obj
-  
+
   for (const key of keys) {
     if (current == null || typeof current !== 'object') {
       return undefined
     }
     current = current[key]
   }
-  
+
   return current
 }
 
@@ -665,17 +670,17 @@ function getNestedValue(obj: any, path: string): any {
 function setNestedValue(obj: any, path: string, value: any): void {
   const keys = path.split('.')
   let current = obj
-  
+
   for (let i = 0; i < keys.length - 1; i++) {
     const key = keys[i]
-    
+
     if (current[key] == null || typeof current[key] !== 'object') {
       current[key] = {}
     }
-    
+
     current = current[key]
   }
-  
+
   current[keys[keys.length - 1]] = value
 }
 
@@ -683,23 +688,23 @@ function setNestedValue(obj: any, path: string, value: any): void {
 function deleteNestedValue(obj: any, path: string): boolean {
   const keys = path.split('.')
   let current = obj
-  
+
   for (let i = 0; i < keys.length - 1; i++) {
     const key = keys[i]
-    
+
     if (current[key] == null || typeof current[key] !== 'object') {
       return false
     }
-    
+
     current = current[key]
   }
-  
+
   const lastKey = keys[keys.length - 1]
   if (lastKey in current) {
     delete current[lastKey]
     return true
   }
-  
+
   return false
 }
 
@@ -741,14 +746,14 @@ console.log('删除后:', obj) // { a: { b: { d: 2 } } }
 ### 性能工具
 
 ```typescript
-import { 
+import {
   createPerformanceMonitor,
-  measureTime,
-  measureMemory,
   createProfiler,
   debounce,
-  throttle,
-  memoize 
+  measureMemory,
+  measureTime,
+  memoize,
+  throttle
 } from '@ldesign/engine/utils'
 
 // 创建性能监控器
@@ -760,20 +765,21 @@ function createPerformanceMonitor(): PerformanceMonitor {
 function measureTime<T>(
   fn: () => T | Promise<T>,
   label?: string
-): Promise<{ result: T; duration: number }> {
+): Promise<{ result: T, duration: number }> {
   return new Promise(async (resolve) => {
     const start = performance.now()
-    
+
     try {
       const result = await fn()
       const duration = performance.now() - start
-      
+
       if (label) {
         console.log(`${label}: ${duration.toFixed(2)}ms`)
       }
-      
+
       resolve({ result, duration })
-    } catch (error) {
+    }
+ catch (error) {
       const duration = performance.now() - start
       console.error(`${label || 'Function'} failed after ${duration.toFixed(2)}ms:`, error)
       throw error
@@ -792,7 +798,7 @@ function measureMemory(): MemoryInfo {
       rss: usage.rss
     }
   }
-  
+
   // 浏览器环境
   if (typeof performance !== 'undefined' && (performance as any).memory) {
     const memory = (performance as any).memory
@@ -802,7 +808,7 @@ function measureMemory(): MemoryInfo {
       limit: memory.jsHeapSizeLimit
     }
   }
-  
+
   return { used: 0, total: 0 }
 }
 
@@ -821,31 +827,31 @@ function createProfiler(name: string): Profiler {
 
 class Profiler {
   private marks: Map<string, number> = new Map()
-  private measures: Array<{ name: string; duration: number }> = []
-  
+  private measures: Array<{ name: string, duration: number }> = []
+
   constructor(private name: string) {}
-  
+
   mark(label: string): void {
     this.marks.set(label, performance.now())
   }
-  
+
   measure(name: string, startMark: string, endMark?: string): number {
     const start = this.marks.get(startMark)
     if (!start) {
       throw new Error(`Start mark '${startMark}' not found`)
     }
-    
+
     const end = endMark ? this.marks.get(endMark) : performance.now()
     if (endMark && !end) {
       throw new Error(`End mark '${endMark}' not found`)
     }
-    
+
     const duration = (end as number) - start
     this.measures.push({ name, duration })
-    
+
     return duration
   }
-  
+
   getReport(): PerformanceReport {
     return {
       name: this.name,
@@ -853,7 +859,7 @@ class Profiler {
       totalTime: this.measures.reduce((sum, m) => sum + m.duration, 0)
     }
   }
-  
+
   clear(): void {
     this.marks.clear()
     this.measures = []
@@ -862,7 +868,7 @@ class Profiler {
 
 interface PerformanceReport {
   name: string
-  measures: Array<{ name: string; duration: number }>
+  measures: Array<{ name: string, duration: number }>
   totalTime: number
 }
 
@@ -872,12 +878,12 @@ function debounce<T extends (...args: any[]) => any>(
   delay: number
 ): (...args: Parameters<T>) => void {
   let timeoutId: NodeJS.Timeout | null = null
-  
+
   return (...args: Parameters<T>) => {
     if (timeoutId) {
       clearTimeout(timeoutId)
     }
-    
+
     timeoutId = setTimeout(() => {
       fn(...args)
       timeoutId = null
@@ -891,10 +897,10 @@ function throttle<T extends (...args: any[]) => any>(
   interval: number
 ): (...args: Parameters<T>) => void {
   let lastCall = 0
-  
+
   return (...args: Parameters<T>) => {
     const now = Date.now()
-    
+
     if (now - lastCall >= interval) {
       fn(...args)
       lastCall = now
@@ -906,25 +912,25 @@ function throttle<T extends (...args: any[]) => any>(
 function memoize<T extends (...args: any[]) => any>(
   fn: T,
   keyGenerator?: (...args: Parameters<T>) => string
-): T & { cache: Map<string, ReturnType<T>>; clear: () => void } {
+): T & { cache: Map<string, ReturnType<T>>, clear: () => void } {
   const cache = new Map<string, ReturnType<T>>()
-  
+
   const memoized = ((...args: Parameters<T>) => {
     const key = keyGenerator ? keyGenerator(...args) : JSON.stringify(args)
-    
+
     if (cache.has(key)) {
       return cache.get(key)
     }
-    
+
     const result = fn(...args)
     cache.set(key, result)
-    
+
     return result
-  }) as T & { cache: Map<string, ReturnType<T>>; clear: () => void }
-  
+  }) as T & { cache: Map<string, ReturnType<T>>, clear: () => void }
+
   memoized.cache = cache
   memoized.clear = () => cache.clear()
-  
+
   return memoized
 }
 
@@ -966,7 +972,7 @@ const throttledFn = throttle((value: string) => {
 }, 1000)
 
 // 记忆化
-const expensiveFunction = (a: number, b: number) => {
+function expensiveFunction(a: number, b: number) {
   console.log('执行昂贵计算')
   return a + b
 }
@@ -979,17 +985,17 @@ console.log(memoizedFn(1, 2)) // 使用缓存
 ### 验证工具
 
 ```typescript
-import { 
+import {
   createValidator,
+  custom,
+  isEmail,
+  isNumber,
   isRequired,
   isString,
-  isNumber,
-  isEmail,
   isUrl,
-  minLength,
   maxLength,
-  pattern,
-  custom 
+  minLength,
+  pattern
 } from '@ldesign/engine/utils'
 
 // 验证器类型
@@ -1011,7 +1017,7 @@ function createValidator<T = any>(
         return result
       }
     }
-    
+
     return { valid: true }
   }
 }
@@ -1043,7 +1049,7 @@ function isNumber(message = '必须是数字'): Validator<any> {
 // 邮箱验证
 function isEmail(message = '邮箱格式不正确'): Validator<string> {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  
+
   return (value: string) => {
     const valid = emailRegex.test(value)
     return { valid, message: valid ? undefined : message }
@@ -1056,7 +1062,8 @@ function isUrl(message = 'URL格式不正确'): Validator<string> {
     try {
       new URL(value)
       return { valid: true }
-    } catch {
+    }
+ catch {
       return { valid: false, message }
     }
   }
@@ -1111,7 +1118,7 @@ function createObjectValidator<T extends Record<string, any>>(
     for (const key in schema) {
       const validator = schema[key]
       const result = validator(obj[key])
-      
+
       if (!result.valid) {
         return {
           valid: false,
@@ -1119,7 +1126,7 @@ function createObjectValidator<T extends Record<string, any>>(
         }
       }
     }
-    
+
     return { valid: true }
   }
 }
@@ -1133,24 +1140,24 @@ const userValidator = createObjectValidator({
     minLength(2, '姓名至少2个字符'),
     maxLength(50, '姓名最多50个字符')
   ),
-  
+
   email: createValidator(
     isRequired('邮箱不能为空'),
     isString('邮箱必须是字符串'),
     isEmail('邮箱格式不正确')
   ),
-  
+
   age: createValidator(
     isRequired('年龄不能为空'),
     isNumber('年龄必须是数字'),
     custom((age: number) => age >= 0 && age <= 150, '年龄必须在0-150之间')
   ),
-  
+
   website: createValidator(
     isString('网站必须是字符串'),
     isUrl('网站URL格式不正确')
   ),
-  
+
   password: createValidator(
     isRequired('密码不能为空'),
     isString('密码必须是字符串'),
@@ -1171,7 +1178,8 @@ const userData = {
 const validationResult = userValidator(userData)
 if (validationResult.valid) {
   console.log('用户数据验证通过')
-} else {
+}
+ else {
   console.error('验证失败:', validationResult.message)
 }
 ```
@@ -1179,15 +1187,15 @@ if (validationResult.valid) {
 ### 异步工具
 
 ```typescript
-import { 
+import {
   delay,
-  timeout,
-  retry,
   parallel,
-  series,
-  waterfall,
+  pool,
   queue,
-  pool 
+  retry,
+  series,
+  timeout,
+  waterfall
 } from '@ldesign/engine/utils'
 
 // 延迟函数
@@ -1204,7 +1212,7 @@ function timeout<T>(
   const timeoutPromise = new Promise<never>((_, reject) => {
     setTimeout(() => reject(new Error(message)), ms)
   })
-  
+
   return Promise.race([promise, timeoutPromise])
 }
 
@@ -1216,20 +1224,21 @@ function retry<T>(
 ): Promise<T> {
   return new Promise(async (resolve, reject) => {
     let attempts = 0
-    
+
     while (attempts < maxAttempts) {
       try {
         const result = await fn()
         resolve(result)
         return
-      } catch (error) {
+      }
+ catch (error) {
         attempts++
-        
+
         if (attempts >= maxAttempts) {
           reject(error)
           return
         }
-        
+
         await delay(delayMs * attempts)
       }
     }
@@ -1271,11 +1280,11 @@ class TaskQueue<T = any> {
   private running = false
   private concurrency: number
   private activeCount = 0
-  
+
   constructor(concurrency: number = 1) {
     this.concurrency = concurrency
   }
-  
+
   add(task: () => Promise<T>): Promise<T> {
     return new Promise((resolve, reject) => {
       this.queue.push(async () => {
@@ -1283,36 +1292,38 @@ class TaskQueue<T = any> {
           const result = await task()
           resolve(result)
           return result
-        } catch (error) {
+        }
+ catch (error) {
           reject(error)
           throw error
         }
       })
-      
+
       this.process()
     })
   }
-  
+
   private async process(): Promise<void> {
     if (this.activeCount >= this.concurrency || this.queue.length === 0) {
       return
     }
-    
+
     this.activeCount++
     const task = this.queue.shift()!
-    
+
     try {
       await task()
-    } finally {
+    }
+ finally {
       this.activeCount--
       this.process()
     }
   }
-  
+
   get size(): number {
     return this.queue.length
   }
-  
+
   get pending(): number {
     return this.activeCount
   }
@@ -1327,43 +1338,45 @@ function queue<T>(concurrency: number = 1): TaskQueue<T> {
 class ResourcePool<T> {
   private resources: T[] = []
   private waitingQueue: Array<(resource: T) => void> = []
-  
+
   constructor(
     private factory: () => T | Promise<T>,
     private maxSize: number = 10
   ) {}
-  
+
   async acquire(): Promise<T> {
     if (this.resources.length > 0) {
       return this.resources.pop()!
     }
-    
+
     if (this.resources.length + this.waitingQueue.length < this.maxSize) {
       return await this.factory()
     }
-    
-    return new Promise(resolve => {
+
+    return new Promise((resolve) => {
       this.waitingQueue.push(resolve)
     })
   }
-  
+
   release(resource: T): void {
     if (this.waitingQueue.length > 0) {
       const waiter = this.waitingQueue.shift()!
       waiter(resource)
-    } else {
+    }
+ else {
       this.resources.push(resource)
     }
   }
-  
+
   async use<R>(
     fn: (resource: T) => Promise<R>
   ): Promise<R> {
     const resource = await this.acquire()
-    
+
     try {
       return await fn(resource)
-    } finally {
+    }
+ finally {
       this.release(resource)
     }
   }
@@ -1390,7 +1403,8 @@ try {
     'API请求超时'
   )
   console.log('请求成功:', result)
-} catch (error) {
+}
+ catch (error) {
   console.error('请求失败:', error.message)
 }
 
@@ -1419,9 +1433,9 @@ const serialResults = await series([
 
 // 瀑布流
 const waterfallResult = await waterfall([
-  (input) => Promise.resolve(input + 1),
-  (input) => Promise.resolve(input * 2),
-  (input) => Promise.resolve(input - 3)
+  input => Promise.resolve(input + 1),
+  input => Promise.resolve(input * 2),
+  input => Promise.resolve(input - 3)
 ], 5) // 结果: (5 + 1) * 2 - 3 = 9
 
 // 任务队列

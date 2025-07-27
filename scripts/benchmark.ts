@@ -73,7 +73,7 @@ class EngineBenchmark {
   private async runBenchmark(
     name: string,
     operations: number,
-    testFn: () => void | Promise<void>
+    testFn: () => void | Promise<void>,
   ): Promise<BenchmarkResult> {
     console.log(chalk.blue(`🏃 运行基准测试: ${name}`))
 
@@ -130,7 +130,7 @@ class EngineBenchmark {
         })
         // 模拟一些基本操作
         engine.use({ name: 'test-plugin' })
-      }
+      },
     )
     this.results.push(result)
   }
@@ -146,7 +146,7 @@ class EngineBenchmark {
           name: `plugin-${Math.random()}`,
           install: () => {},
         })
-      }
+      },
     )
     this.results.push(result)
   }
@@ -154,7 +154,7 @@ class EngineBenchmark {
   // 事件系统基准测试
   private async benchmarkEventSystem(): Promise<void> {
     const engine = new MockEngine()
-    
+
     // 注册事件监听器
     for (let i = 0; i < 100; i++) {
       engine.on('test-event', () => {})
@@ -165,7 +165,7 @@ class EngineBenchmark {
       10000,
       () => {
         engine.emit('test-event', { data: 'test' })
-      }
+      },
     )
     this.results.push(result)
   }
@@ -173,7 +173,7 @@ class EngineBenchmark {
   // 中间件执行基准测试
   private async benchmarkMiddleware(): Promise<void> {
     const engine = new MockEngine()
-    
+
     // 添加中间件
     for (let i = 0; i < 10; i++) {
       engine.addMiddleware({
@@ -188,12 +188,12 @@ class EngineBenchmark {
       () => {
         // 模拟中间件链执行
         const context = { data: 'test' }
-        engine.middleware.forEach(mw => {
+        engine.middleware.forEach((mw) => {
           if (mw.execute) {
             mw.execute(context, () => {})
           }
         })
-      }
+      },
     )
     this.results.push(result)
   }
@@ -201,7 +201,7 @@ class EngineBenchmark {
   // 状态管理基准测试
   private async benchmarkStateManagement(): Promise<void> {
     const engine = new MockEngine()
-    
+
     const result = await this.runBenchmark(
       '状态管理',
       10000,
@@ -209,7 +209,7 @@ class EngineBenchmark {
         const key = `state-${Math.random()}`
         engine.setState(key, { value: Math.random() })
         engine.getState(key)
-      }
+      },
     )
     this.results.push(result)
   }
@@ -220,7 +220,7 @@ class EngineBenchmark {
     const largeData = Array.from({ length: 1000 }, (_, i) => ({
       id: i,
       name: `item-${i}`,
-      data: new Array(100).fill(Math.random()),
+      data: Array.from({ length: 100 }).fill(Math.random()),
     }))
 
     const result = await this.runBenchmark(
@@ -231,7 +231,7 @@ class EngineBenchmark {
           engine.setState(`item-${index}`, item)
           engine.emit('data-processed', item)
         })
-      }
+      },
     )
     this.results.push(result)
   }
@@ -239,20 +239,20 @@ class EngineBenchmark {
   // 内存使用测试
   private async benchmarkMemoryUsage(): Promise<void> {
     console.log(chalk.blue('\n🧠 内存使用测试...'))
-    
+
     const engines: any[] = []
     const memoryBefore = process.memoryUsage()
 
     // 创建多个引擎实例
     for (let i = 0; i < 100; i++) {
       const engine = new MockEngine()
-      
+
       // 添加一些数据
       for (let j = 0; j < 50; j++) {
-        engine.setState(`key-${j}`, { data: new Array(100).fill(i) })
+        engine.setState(`key-${j}`, { data: Array.from({ length: 100 }).fill(i) })
         engine.on(`event-${j}`, () => {})
       }
-      
+
       engines.push(engine)
     }
 
@@ -274,11 +274,12 @@ class EngineBenchmark {
 
   // 格式化字节数
   private formatBytes(bytes: number): string {
-    if (bytes === 0) return '0 B'
+    if (bytes === 0)
+return '0 B'
     const k = 1024
     const sizes = ['B', 'KB', 'MB', 'GB']
     const i = Math.floor(Math.log(Math.abs(bytes)) / Math.log(k))
-    const value = bytes / Math.pow(k, i)
+    const value = bytes / k ** i
     const sign = bytes < 0 ? '-' : '+'
     return `${sign}${Number.parseFloat(value.toFixed(2))} ${sizes[i]}`
   }
@@ -287,14 +288,14 @@ class EngineBenchmark {
   private generateReport(): BenchmarkReport {
     const totalDuration = this.results.reduce((sum, result) => sum + result.duration, 0)
     const averageOpsPerSecond = Math.round(
-      this.results.reduce((sum, result) => sum + result.opsPerSecond, 0) / this.results.length
+      this.results.reduce((sum, result) => sum + result.opsPerSecond, 0) / this.results.length,
     )
-    
+
     // 计算内存效率（操作数 / 内存使用）
     const totalOps = this.results.reduce((sum, result) => sum + result.operations, 0)
     const totalMemoryUsed = this.results.reduce(
       (sum, result) => sum + Math.max(0, result.memoryUsage.delta.heapUsed),
-      0
+      0,
     )
     const memoryEfficiency = totalMemoryUsed > 0 ? Math.round(totalOps / (totalMemoryUsed / 1024 / 1024)) : 0
 
@@ -359,7 +360,8 @@ class EngineBenchmark {
       this.saveReport(report)
 
       console.log(chalk.green.bold('\n✅ 基准测试完成!'))
-    } catch (error) {
+    }
+ catch (error) {
       console.error(chalk.red('❌ 基准测试失败:'), error)
       process.exit(1)
     }

@@ -83,7 +83,7 @@ class MyPlugin implements Plugin {
   name = 'my-plugin'
   version = '1.0.0'
   dependencies = ['http-plugin', 'storage-plugin'] // 确保依赖存在
-  
+
   async install(engine: Engine) {
     // 验证依赖
     for (const dep of this.dependencies) {
@@ -91,7 +91,7 @@ class MyPlugin implements Plugin {
         throw new Error(`Missing dependency: ${dep}`)
       }
     }
-    
+
     // 插件逻辑
   }
 }
@@ -100,12 +100,12 @@ class MyPlugin implements Plugin {
 2. **按正确顺序安装插件**
 ```typescript
 // ❌ 错误的顺序
-await engine.use(new MyPlugin())      // 依赖 http-plugin
-await engine.use(new HttpPlugin())    // 但 http-plugin 后安装
+await engine.use(new MyPlugin()) // 依赖 http-plugin
+await engine.use(new HttpPlugin()) // 但 http-plugin 后安装
 
 // ✅ 正确的顺序
-await engine.use(new HttpPlugin())    // 先安装依赖
-await engine.use(new MyPlugin())      // 再安装依赖它的插件
+await engine.use(new HttpPlugin()) // 先安装依赖
+await engine.use(new MyPlugin()) // 再安装依赖它的插件
 ```
 
 3. **使用插件管理器**
@@ -116,7 +116,7 @@ const pluginManager = new PluginManager(engine)
 await pluginManager.installPlugins([
   new HttpPlugin(),
   new StoragePlugin(),
-  new MyPlugin()  // 依赖会自动排序
+  new MyPlugin() // 依赖会自动排序
 ])
 ```
 
@@ -133,13 +133,13 @@ Error: Method 'getData' not found
 ```typescript
 class DataPlugin implements Plugin {
   name = 'data-plugin'
-  
+
   install(engine: Engine) {
     // 确保方法已注册
     engine.addMethod('getData', this.getData.bind(this))
     console.log('getData method registered')
   }
-  
+
   private async getData(id: string) {
     return { id, data: 'some data' }
   }
@@ -162,7 +162,8 @@ if (!engine.hasMethod('getData')) {
 try {
   const result = await engine.getData('123')
   console.log(result)
-} catch (error) {
+}
+ catch (error) {
   console.error('Failed to get data:', error)
 }
 ```
@@ -183,7 +184,7 @@ console.log(engine.getState('user.name')) // 仍然是旧值
 1. **检查状态路径**
 ```typescript
 // ❌ 错误：路径不存在
-engine.setState('user.name', 'John')  // user 对象不存在
+engine.setState('user.name', 'John') // user 对象不存在
 
 // ✅ 正确：先初始化父对象
 engine.setState('user', { name: 'John' })
@@ -201,7 +202,7 @@ engine.setState(state => ({
 ```typescript
 // ❌ 错误：直接修改状态对象
 const user = engine.getState('user')
-user.name = 'John'  // 这不会触发更新
+user.name = 'John' // 这不会触发更新
 
 // ✅ 正确：使用 setState
 engine.setState('user', {
@@ -232,28 +233,28 @@ engine.setState('user.name', 'John')
 ```typescript
 class Component {
   private unsubscribers: Array<() => void> = []
-  
+
   constructor(private engine: Engine) {
     // 保存取消订阅函数
     this.unsubscribers.push(
       engine.subscribe('user', this.onUserChange.bind(this))
     )
-    
+
     this.unsubscribers.push(
       engine.subscribe('settings', this.onSettingsChange.bind(this))
     )
   }
-  
+
   destroy() {
     // 清理所有订阅
     this.unsubscribers.forEach(unsubscribe => unsubscribe())
     this.unsubscribers = []
   }
-  
+
   private onUserChange(user: any) {
     // 处理用户变化
   }
-  
+
   private onSettingsChange(settings: any) {
     // 处理设置变化
   }
@@ -266,25 +267,25 @@ class TimerPlugin implements Plugin {
   name = 'timer-plugin'
   private timers: NodeJS.Timeout[] = []
   private intervals: NodeJS.Timeout[] = []
-  
+
   install(engine: Engine) {
     // 创建定时器时保存引用
     const timer = setTimeout(() => {
       console.log('Timer executed')
     }, 5000)
     this.timers.push(timer)
-    
+
     const interval = setInterval(() => {
       console.log('Interval executed')
     }, 1000)
     this.intervals.push(interval)
   }
-  
+
   uninstall() {
     // 清理所有定时器
     this.timers.forEach(timer => clearTimeout(timer))
     this.intervals.forEach(interval => clearInterval(interval))
-    
+
     this.timers = []
     this.intervals = []
   }
@@ -334,22 +335,22 @@ engine.addMethod('loadAnalytics', async () => {
 ```typescript
 class OptimizedPlugin implements Plugin {
   name = 'optimized-plugin'
-  
+
   async install(engine: Engine) {
     // 延迟非关键初始化
     this.registerCriticalMethods(engine)
-    
+
     // 异步初始化非关键功能
     setTimeout(() => {
       this.initializeNonCriticalFeatures(engine)
     }, 0)
   }
-  
+
   private registerCriticalMethods(engine: Engine) {
     // 注册核心方法
     engine.addMethod('criticalMethod', this.criticalMethod)
   }
-  
+
   private async initializeNonCriticalFeatures(engine: Engine) {
     // 初始化非关键功能
     await this.loadConfiguration()
@@ -372,11 +373,11 @@ class PerformantComponent {
   constructor(private engine: Engine) {
     // 防抖搜索
     this.debouncedSearch = this.debounce(this.search.bind(this), 300)
-    
+
     // 节流滚动处理
     this.throttledScroll = this.throttle(this.onScroll.bind(this), 100)
   }
-  
+
   private debounce<T extends (...args: any[]) => any>(
     func: T,
     delay: number
@@ -387,7 +388,7 @@ class PerformantComponent {
       timeoutId = setTimeout(() => func.apply(this, args), delay)
     }
   }
-  
+
   private throttle<T extends (...args: any[]) => any>(
     func: T,
     delay: number
@@ -401,12 +402,12 @@ class PerformantComponent {
       }
     }
   }
-  
+
   private search(query: string) {
     this.engine.setState('search.query', query)
     // 执行搜索
   }
-  
+
   private onScroll(event: Event) {
     const scrollTop = (event.target as Element).scrollTop
     this.engine.setState('ui.scrollTop', scrollTop)
@@ -450,31 +451,32 @@ Error: Request timeout
 class HttpService {
   async request(url: string, options: RequestInit = {}, maxRetries = 3): Promise<any> {
     let lastError: Error
-    
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         const response = await fetch(url, {
           ...options,
-          timeout: 10000  // 10秒超时
+          timeout: 10000 // 10秒超时
         })
-        
+
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`)
         }
-        
+
         return await response.json()
-      } catch (error) {
+      }
+ catch (error) {
         lastError = error as Error
         console.warn(`Request failed (attempt ${attempt}/${maxRetries}):`, error.message)
-        
+
         if (attempt < maxRetries) {
           // 指数退避
-          const delay = Math.pow(2, attempt) * 1000
+          const delay = 2 ** attempt * 1000
           await new Promise(resolve => setTimeout(resolve, delay))
         }
       }
     }
-    
+
     throw new Error(`Request failed after ${maxRetries} attempts: ${lastError.message}`)
   }
 }
@@ -485,23 +487,24 @@ class HttpService {
 class NetworkAwareService {
   private isOnline = navigator.onLine
   private requestQueue: Array<() => Promise<any>> = []
-  
+
   constructor() {
     window.addEventListener('online', () => {
       this.isOnline = true
       this.processQueue()
     })
-    
+
     window.addEventListener('offline', () => {
       this.isOnline = false
     })
   }
-  
+
   async makeRequest(requestFn: () => Promise<any>): Promise<any> {
     if (this.isOnline) {
       try {
         return await requestFn()
-      } catch (error) {
+      }
+ catch (error) {
         // 如果是网络错误，加入队列
         if (this.isNetworkError(error)) {
           this.requestQueue.push(requestFn)
@@ -509,24 +512,26 @@ class NetworkAwareService {
         }
         throw error
       }
-    } else {
+    }
+ else {
       // 离线时加入队列
       this.requestQueue.push(requestFn)
       throw new Error('Request queued - device is offline')
     }
   }
-  
+
   private async processQueue(): Promise<void> {
     while (this.requestQueue.length > 0 && this.isOnline) {
       const requestFn = this.requestQueue.shift()!
       try {
         await requestFn()
-      } catch (error) {
+      }
+ catch (error) {
         console.error('Queued request failed:', error)
       }
     }
   }
-  
+
   private isNetworkError(error: any): boolean {
     return error.name === 'TypeError' && error.message.includes('fetch')
   }
@@ -542,7 +547,7 @@ class NetworkAwareService {
 const engine = new Engine({
   name: 'debug-app',
   version: '1.0.0',
-  debug: true,  // 启用调试模式
+  debug: true, // 启用调试模式
   logLevel: 'debug'
 })
 
@@ -582,7 +587,8 @@ engine.addMethod('getData', async (...args) => {
     const duration = performance.now() - start
     console.log(`getData took ${duration.toFixed(2)}ms`)
     return result
-  } catch (error) {
+  }
+ catch (error) {
     const duration = performance.now() - start
     console.error(`getData failed after ${duration.toFixed(2)}ms:`, error)
     throw error
@@ -593,9 +599,9 @@ engine.addMethod('getData', async (...args) => {
 setInterval(() => {
   if (performance.memory) {
     console.log('Memory usage:', {
-      used: Math.round(performance.memory.usedJSHeapSize / 1024 / 1024) + 'MB',
-      total: Math.round(performance.memory.totalJSHeapSize / 1024 / 1024) + 'MB',
-      limit: Math.round(performance.memory.jsHeapSizeLimit / 1024 / 1024) + 'MB'
+      used: `${Math.round(performance.memory.usedJSHeapSize / 1024 / 1024)}MB`,
+      total: `${Math.round(performance.memory.totalJSHeapSize / 1024 / 1024)}MB`,
+      limit: `${Math.round(performance.memory.jsHeapSizeLimit / 1024 / 1024)}MB`
     })
   }
 }, 10000)
@@ -607,7 +613,7 @@ setInterval(() => {
 // 全局错误处理
 engine.on('error', (error) => {
   console.error('Engine error:', error)
-  
+
   // 发送错误报告
   if (typeof window !== 'undefined' && window.navigator.onLine) {
     fetch('/api/errors', {
@@ -627,13 +633,14 @@ engine.on('error', (error) => {
 // 插件错误处理
 engine.on('plugin:error', ({ plugin, error }) => {
   console.error(`Plugin ${plugin} error:`, error)
-  
+
   // 尝试重新加载插件
   setTimeout(async () => {
     try {
       await engine.reloadPlugin(plugin)
       console.log(`Plugin ${plugin} reloaded successfully`)
-    } catch (reloadError) {
+    }
+ catch (reloadError) {
       console.error(`Failed to reload plugin ${plugin}:`, reloadError)
     }
   }, 5000)

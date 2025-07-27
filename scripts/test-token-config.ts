@@ -217,12 +217,14 @@ class TokenConfigManager {
             process.stdin.setRawMode(true)
           }
           resolve(input.trim())
-        } else if (chunk === KEYS.BACKSPACE) {
+        }
+ else if (chunk === KEYS.BACKSPACE) {
           if (input.length > 0) {
             input = input.slice(0, -1)
             process.stdout.write('\b \b')
           }
-        } else if (chunk >= ' ' && chunk <= '~') {
+        }
+ else if (chunk >= ' ' && chunk <= '~') {
           input += chunk
           process.stdout.write('*') // 隐藏实际输入
         }
@@ -247,10 +249,11 @@ class TokenConfigManager {
     console.log(chalk.yellow.bold('📊 配置状态:'))
     console.log(chalk.white(`  总计: ${configuredTokens}/${totalTokens} 已配置`))
     console.log(chalk.white(`  必需: ${requiredConfigured}/${requiredTokens} 已配置`))
-    
+
     if (requiredConfigured === requiredTokens) {
       console.log(chalk.green('  ✅ 所有必需 Token 已配置'))
-    } else {
+    }
+ else {
       console.log(chalk.red('  ❌ 还有必需 Token 未配置'))
     }
     console.log()
@@ -258,14 +261,15 @@ class TokenConfigManager {
     // 显示分类选择
     console.log(chalk.blue.bold('📂 选择类别:'))
     this.categories.forEach((category, index) => {
-      const categoryTokens = category === '全部' 
-        ? TOKEN_CONFIGS 
+      const categoryTokens = category === '全部'
+        ? TOKEN_CONFIGS
         : TOKEN_CONFIGS.filter(token => token.category === category)
       const configuredCount = categoryTokens.filter(token => token.isConfigured).length
-      
+
       if (category === this.selectedCategory) {
         console.log(chalk.bgBlue.white(`❯ ${category} (${configuredCount}/${categoryTokens.length})`))
-      } else {
+      }
+ else {
         console.log(chalk.gray(`  ${category} (${configuredCount}/${categoryTokens.length})`))
       }
     })
@@ -274,23 +278,25 @@ class TokenConfigManager {
     // 显示当前分类的 Token
     const filteredTokens = this.getFilteredTokens()
     console.log(chalk.blue.bold(`🔑 ${this.selectedCategory} Token:`))
-    
+
     if (filteredTokens.length === 0) {
       console.log(chalk.gray('  暂无 Token'))
-    } else {
+    }
+ else {
       filteredTokens.forEach((token, index) => {
         const isSelected = index === this.selectedIndex
         const statusIcon = token.isConfigured ? chalk.green('✅') : chalk.red('❌')
         const requiredIcon = token.required ? chalk.yellow('⭐') : ''
         const maskedValue = token.value ? this.maskToken(token.value) : ''
-        
+
         if (isSelected) {
           console.log(chalk.bgGreen.black(`❯ ${token.icon} ${token.name} ${statusIcon}${requiredIcon}`))
           console.log(chalk.bgGreen.black(`  ${token.description}`))
           if (token.isConfigured) {
             console.log(chalk.bgGreen.black(`  值: ${maskedValue}`))
           }
-        } else {
+        }
+ else {
           console.log(chalk.gray(`  ${token.icon} ${token.name} ${statusIcon}${requiredIcon}`))
           console.log(chalk.gray(`  ${token.description}`))
           if (token.isConfigured) {
@@ -319,12 +325,12 @@ class TokenConfigManager {
     console.clear()
 
     console.log(chalk.blue.bold(`🔧 配置 ${token.name}\n`))
-    
+
     console.log(chalk.white(`${token.icon} ${token.name}`))
     console.log(chalk.white(`📝 描述: ${token.description}`))
     console.log(chalk.white(`🔗 获取地址: ${token.getUrl}`))
     console.log(chalk.white(`⚙️  环境变量: ${token.envKey}`))
-    
+
     if (token.required) {
       console.log(chalk.yellow('⭐ 此 Token 为必需配置'))
     }
@@ -351,7 +357,8 @@ class TokenConfigManager {
       console.log(chalk.white('  2. 删除配置'))
       console.log(chalk.white('  3. 测试 Token'))
       console.log(chalk.white('  4. 返回主菜单'))
-    } else {
+    }
+ else {
       console.log(chalk.red.bold('❌ 当前状态: 未配置'))
       console.log()
       console.log(chalk.yellow('选择操作:'))
@@ -370,16 +377,16 @@ class TokenConfigManager {
   private async configureToken(token: TokenInfo): Promise<void> {
     console.clear()
     console.log(chalk.blue.bold(`🔧 配置 ${token.name}\n`))
-    
+
     if (token.validationPattern) {
       console.log(chalk.cyan(`格式要求: ${token.validationMessage}`))
       console.log()
     }
-    
+
     console.log(chalk.yellow('请输入 Token (输入将被隐藏):'))
-    
+
     const tokenValue = await this.waitForInput()
-    
+
     if (!tokenValue.trim()) {
       console.log(chalk.red('\n❌ Token 不能为空'))
       console.log(chalk.gray('按任意键继续...'))
@@ -398,10 +405,10 @@ class TokenConfigManager {
 
     // 保存到 .env.local 文件
     this.saveTokenToEnvFile(token.envKey, tokenValue.trim())
-    
+
     token.isConfigured = true
     token.value = tokenValue.trim()
-    
+
     console.log(chalk.green('\n✅ Token 配置成功!'))
     console.log(chalk.gray('按任意键继续...'))
     await this.waitForKeyPress()
@@ -409,21 +416,22 @@ class TokenConfigManager {
 
   private saveTokenToEnvFile(envKey: string, token: string): void {
     let envContent = ''
-    
+
     if (existsSync(this.envFilePath)) {
       envContent = readFileSync(this.envFilePath, 'utf-8')
     }
 
     const lines = envContent.split('\n')
     const existingIndex = lines.findIndex(line => line.startsWith(`${envKey}=`))
-    
+
     if (existingIndex >= 0) {
       lines[existingIndex] = `${envKey}=${token}`
-    } else {
+    }
+ else {
       lines.push(`${envKey}=${token}`)
     }
 
-    writeFileSync(this.envFilePath, lines.filter(line => line.trim()).join('\n') + '\n')
+    writeFileSync(this.envFilePath, `${lines.filter(line => line.trim()).join('\n')}\n`)
   }
 
   private removeTokenFromEnvFile(envKey: string): void {
@@ -434,27 +442,28 @@ class TokenConfigManager {
     const envContent = readFileSync(this.envFilePath, 'utf-8')
     const lines = envContent.split('\n')
     const filteredLines = lines.filter(line => !line.startsWith(`${envKey}=`))
-    
-    writeFileSync(this.envFilePath, filteredLines.filter(line => line.trim()).join('\n') + '\n')
+
+    writeFileSync(this.envFilePath, `${filteredLines.filter(line => line.trim()).join('\n')}\n`)
   }
 
   private async removeToken(token: TokenInfo): Promise<void> {
     console.clear()
     console.log(chalk.red.bold(`🗑️  删除 ${token.name} 配置\n`))
     console.log(chalk.yellow('确认删除配置? (y/N)'))
-    
+
     const confirmation = await this.waitForKeyPress()
-    
+
     if (confirmation.toLowerCase() === 'y') {
       this.removeTokenFromEnvFile(token.envKey)
       token.isConfigured = false
       token.value = undefined
-      
+
       console.log(chalk.green('\n✅ 配置已删除'))
-    } else {
+    }
+ else {
       console.log(chalk.gray('\n取消删除'))
     }
-    
+
     console.log(chalk.gray('按任意键继续...'))
     await this.waitForKeyPress()
   }
@@ -462,7 +471,7 @@ class TokenConfigManager {
   private async testToken(token: TokenInfo): Promise<void> {
     console.clear()
     console.log(chalk.blue.bold(`🧪 测试 ${token.name}\n`))
-    
+
     console.log(chalk.yellow('Token 测试功能开发中...'))
     console.log(chalk.gray('将来会添加实际的 API 测试功能'))
     console.log()
@@ -493,7 +502,8 @@ class TokenConfigManager {
           case '4':
             return
         }
-      } else {
+      }
+ else {
         switch (key) {
           case '1':
             await this.configureToken(token)
@@ -525,7 +535,7 @@ class TokenConfigManager {
         }
 
         const filteredTokens = this.getFilteredTokens()
-        
+
         if (key === KEYS.UP) {
           this.selectedIndex = Math.max(0, this.selectedIndex - 1)
           continue
@@ -541,7 +551,8 @@ class TokenConfigManager {
           await this.handleTokenConfig(selectedToken)
         }
       }
-    } finally {
+    }
+ finally {
       // 恢复终端设置
       if (process.stdin.setRawMode) {
         process.stdin.setRawMode(false)

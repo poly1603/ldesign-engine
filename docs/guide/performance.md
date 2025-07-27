@@ -129,7 +129,7 @@ class PerformanceProfiler {
     name: string,
     fn: () => T,
     context?: any
-  ): { result: T; measurement: PerformanceMeasurement } {
+  ): { result: T, measurement: PerformanceMeasurement } {
     const id = this.startMeasurement(name, context)
 
     try {
@@ -137,7 +137,8 @@ class PerformanceProfiler {
       const measurement = this.endMeasurement(id)
 
       return { result, measurement }
-    } catch (error) {
+    }
+ catch (error) {
       this.endMeasurement(id)
       throw error
     }
@@ -148,7 +149,7 @@ class PerformanceProfiler {
     name: string,
     fn: () => Promise<T>,
     context?: any
-  ): Promise<{ result: T; measurement: PerformanceMeasurement }> {
+  ): Promise<{ result: T, measurement: PerformanceMeasurement }> {
     const id = this.startMeasurement(name, context)
 
     try {
@@ -156,7 +157,8 @@ class PerformanceProfiler {
       const measurement = this.endMeasurement(id)
 
       return { result, measurement }
-    } catch (error) {
+    }
+ catch (error) {
       this.endMeasurement(id)
       throw error
     }
@@ -210,7 +212,8 @@ class PerformanceProfiler {
       try {
         longTaskObserver.observe({ entryTypes: ['longtask'] })
         this.observers.set('longtask', longTaskObserver)
-      } catch (error) {
+      }
+ catch (error) {
         console.warn('Long task observer not supported')
       }
     }
@@ -268,7 +271,7 @@ engine.onPluginRegister(async (plugin) => {
 
 // 测量状态更新时间
 const originalSetState = engine.setState
-engine.setState = function(path: string, value: any, options?: any) {
+engine.setState = function (path: string, value: any, options?: any) {
   const { result, measurement } = profiler.measureFunction(
     'state-update',
     () => originalSetState.call(this, path, value, options)
@@ -340,10 +343,11 @@ class MemoryManager {
   // 请求垃圾回收
   private requestGarbageCollection(): void {
     // 触发垃圾回收回调
-    this.gcCallbacks.forEach(callback => {
+    this.gcCallbacks.forEach((callback) => {
       try {
         callback()
-      } catch (error) {
+      }
+ catch (error) {
         console.error('垃圾回收回调执行失败:', error)
       }
     })
@@ -520,7 +524,7 @@ class MemoryLeakDetector {
     const leaks: MemoryLeak[] = []
 
     // 检查对象数量增长
-    Object.keys(recent[0].objects).forEach(objectType => {
+    Object.keys(recent[0].objects).forEach((objectType) => {
       const counts = recent.map(s => s.objects[objectType] || 0)
       const growth = counts[2] - counts[0]
       const growthRate = growth / counts[0]
@@ -590,7 +594,7 @@ class MemoryLeakDetector {
     }
 
     // 对象数量趋势
-    Object.keys(first.objects).forEach(objectType => {
+    Object.keys(first.objects).forEach((objectType) => {
       const firstCount = first.objects[objectType] || 0
       const lastCount = last.objects[objectType] || 0
 
@@ -611,7 +615,7 @@ class MemoryLeakDetector {
     const recommendations: string[] = []
     const trends = this.calculateTrends()
 
-    trends.forEach(trend => {
+    trends.forEach((trend) => {
       if (trend.direction === 'increasing' && trend.changePercent > 50) {
         switch (trend.metric) {
           case 'eventListeners':
@@ -714,7 +718,8 @@ class EventPerformanceOptimizer {
           this.recordListenerStats(eventName, duration)
 
           return result
-        } catch (error) {
+        }
+ catch (error) {
           const duration = performance.now() - startTime
           this.recordListenerStats(eventName, duration, error)
           throw error
@@ -817,7 +822,7 @@ class EventPerformanceOptimizer {
   private detectPerformanceIssues(events: EventStats[]): PerformanceIssue[] {
     const issues: PerformanceIssue[] = []
 
-    events.forEach(event => {
+    events.forEach((event) => {
       // 检查平均执行时间过长
       if (event.avgDuration > 20) {
         issues.push({
@@ -977,7 +982,7 @@ class StatePerformanceOptimizer {
 
       // 记录性能统计
       const duration = performance.now() - startTime
-      Object.keys(updates).forEach(path => {
+      Object.keys(updates).forEach((path) => {
         this.recordUpdateStats(path, duration / Object.keys(updates).length)
       })
 
@@ -1030,7 +1035,7 @@ class StatePerformanceOptimizer {
   private mergeUpdates(updates: StateUpdate[]): Record<string, any> {
     const merged: Record<string, any> = {}
 
-    updates.forEach(update => {
+    updates.forEach((update) => {
       // 只保留最后一次更新
       merged[update.path] = update.value
     })
@@ -1050,7 +1055,7 @@ class StatePerformanceOptimizer {
     })
 
     const optimized: Record<string, any> = {}
-    sortedPaths.forEach(path => {
+    sortedPaths.forEach((path) => {
       optimized[path] = updates[path]
     })
 
@@ -1110,7 +1115,7 @@ class StatePerformanceOptimizer {
   private generateOptimizationSuggestions(states: StateUpdateStats[]): OptimizationSuggestion[] {
     const suggestions: OptimizationSuggestion[] = []
 
-    states.forEach(state => {
+    states.forEach((state) => {
       // 检查频繁更新的状态
       if (state.count > 500) {
         suggestions.push({
@@ -1231,7 +1236,8 @@ class PluginLazyLoader {
       this.engine.replacePlugin(pluginName, plugin)
 
       return plugin
-    } catch (error) {
+    }
+ catch (error) {
       this.loadingPromises.delete(pluginName)
       throw error
     }
@@ -1247,14 +1253,17 @@ class PluginLazyLoader {
       if (config.loader) {
         // 使用自定义加载器
         plugin = await config.loader()
-      } else if (config.url) {
+      }
+ else if (config.url) {
         // 从URL加载
         plugin = await this.loadFromUrl(config.url)
-      } else if (config.module) {
+      }
+ else if (config.module) {
         // 动态导入模块
         const module = await import(config.module)
         plugin = module.default || module
-      } else {
+      }
+ else {
         throw new Error(`插件 ${config.name} 缺少加载配置`)
       }
 
@@ -1272,7 +1281,8 @@ class PluginLazyLoader {
       })
 
       return plugin
-    } catch (error) {
+    }
+ catch (error) {
       const loadTime = performance.now() - startTime
 
       this.engine.emit('plugin:lazy-load-failed', {
@@ -1315,7 +1325,8 @@ class PluginLazyLoader {
   private estimatePluginSize(plugin: any): number {
     try {
       return JSON.stringify(plugin).length
-    } catch {
+    }
+ catch {
       return 0
     }
   }
@@ -1330,13 +1341,14 @@ class PluginLazyLoader {
     // 在空闲时间预加载
     if ('requestIdleCallback' in window) {
       window.requestIdleCallback(() => {
-        this.loadPlugin(pluginName).catch(error => {
+        this.loadPlugin(pluginName).catch((error) => {
           console.warn(`预加载插件 ${pluginName} 失败:`, error)
         })
       })
-    } else {
+    }
+ else {
       setTimeout(() => {
-        this.loadPlugin(pluginName).catch(error => {
+        this.loadPlugin(pluginName).catch((error) => {
           console.warn(`预加载插件 ${pluginName} 失败:`, error)
         })
       }, 0)
@@ -1483,16 +1495,16 @@ const PERFORMANCE_BUDGETS = {
   memory: {
     total: 100 * 1024 * 1024, // 100MB
     plugins: 20 * 1024 * 1024, // 20MB
-    state: 10 * 1024 * 1024,   // 10MB
-    events: 5 * 1024 * 1024    // 5MB
+    state: 10 * 1024 * 1024, // 10MB
+    events: 5 * 1024 * 1024 // 5MB
   },
 
   // 时间预算
   timing: {
-    pluginInit: 1000,    // 1秒
+    pluginInit: 1000, // 1秒
     eventProcessing: 50, // 50ms
-    stateUpdate: 20,     // 20ms
-    rendering: 16        // 16ms (60fps)
+    stateUpdate: 20, // 20ms
+    rendering: 16 // 16ms (60fps)
   },
 
   // 数量预算
@@ -1711,12 +1723,14 @@ class PerformanceChecklist {
 setInterval(async () => {
   const results = await PerformanceChecklist.runChecks(engine)
 
-  results.forEach(result => {
+  results.forEach((result) => {
     if (result.status === 'error') {
       console.error(`性能检查失败: ${result.name}`, result)
-    } else if (result.status === 'warning') {
+    }
+ else if (result.status === 'warning') {
       console.warn(`性能检查警告: ${result.name}`, result)
-    } else {
+    }
+ else {
       console.log(`性能检查通过: ${result.name}`, result.message)
     }
   })
@@ -1760,7 +1774,7 @@ class PerformanceOptimizer {
 
     // 优化高频事件
     const highFrequencyEvents = eventStats.filter(e => e.count > 1000)
-    highFrequencyEvents.forEach(event => {
+    highFrequencyEvents.forEach((event) => {
       if (!event.name.includes('throttled')) {
         this.engine.throttleEvent(event.name, 16)
         actions.push({
@@ -1774,7 +1788,7 @@ class PerformanceOptimizer {
 
     // 移除无用的事件监听器
     const unusedListeners = this.engine.getUnusedEventListeners()
-    unusedListeners.forEach(listener => {
+    unusedListeners.forEach((listener) => {
       this.engine.removeEventListener(listener.eventName, listener.id)
       actions.push({
         type: 'remove-listener',
@@ -1793,7 +1807,7 @@ class PerformanceOptimizer {
 
     // 启用批量更新
     const frequentUpdates = stateStats.filter(s => s.count > 100)
-    frequentUpdates.forEach(state => {
+    frequentUpdates.forEach((state) => {
       this.engine.enableBatchUpdates(state.path)
       actions.push({
         type: 'enable-batch-updates',
@@ -1824,7 +1838,7 @@ class PerformanceOptimizer {
 
     // 启用插件懒加载
     const heavyPlugins = plugins.filter(p => p.size > 100 * 1024) // 大于100KB
-    heavyPlugins.forEach(plugin => {
+    heavyPlugins.forEach((plugin) => {
       if (!plugin.lazy) {
         this.engine.enableLazyLoading(plugin.name)
         actions.push({
@@ -1838,7 +1852,7 @@ class PerformanceOptimizer {
 
     // 卸载未使用的插件
     const unusedPlugins = plugins.filter(p => p.lastUsed < Date.now() - 24 * 60 * 60 * 1000) // 24小时未使用
-    unusedPlugins.forEach(plugin => {
+    unusedPlugins.forEach((plugin) => {
       this.engine.unloadPlugin(plugin.name)
       actions.push({
         type: 'unload-plugin',

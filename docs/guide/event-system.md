@@ -70,12 +70,13 @@ await engine.emitAsync('file:upload', fileData)
 // 监听异步事件
 engine.on('file:upload', async (fileData) => {
   console.log('开始上传文件:', fileData.name)
-  
+
   try {
     const result = await uploadToServer(fileData)
     console.log('文件上传成功:', result)
     return result
-  } catch (error) {
+  }
+ catch (error) {
     console.error('文件上传失败:', error)
     throw error
   }
@@ -85,7 +86,8 @@ engine.on('file:upload', async (fileData) => {
 try {
   const results = await engine.emitAsync('file:upload', fileData)
   console.log('所有上传操作完成:', results)
-} catch (error) {
+}
+ catch (error) {
   console.error('上传过程中出现错误:', error)
 }
 ```
@@ -110,7 +112,7 @@ engine.intercept('user:create', (userData) => {
   if (!userData.email || !userData.name) {
     throw new Error('用户数据不完整')
   }
-  
+
   // 数据清理
   return {
     ...userData,
@@ -125,10 +127,11 @@ try {
     content: 'Hello World',
     recipient: 'user@example.com'
   })
-  
+
   console.log('处理后的消息:', processedMessage)
   // { content: 'Hello World', recipient: 'user@example.com', timestamp: 1234567890, id: 'msg_123' }
-} catch (error) {
+}
+ catch (error) {
   console.error('消息处理失败:', error)
 }
 ```
@@ -139,13 +142,11 @@ try {
 
 ```typescript
 // 条件监听
-engine.onIf('user:action', 
-  (actionData) => actionData.type === 'important', // 条件
+engine.onIf('user:action', actionData => actionData.type === 'important', // 条件
   (actionData) => {
     console.log('重要操作:', actionData)
     logImportantAction(actionData)
-  }
-)
+  })
 
 // 发布事件
 engine.emit('user:action', { type: 'normal', action: 'click' }) // 不会触发
@@ -165,12 +166,12 @@ engine.once('event:name', handler)
 
 // 带选项的监听
 engine.on('event:name', handler, {
-  priority: 100,        // 优先级（数字越大越先执行）
-  once: false,          // 是否只执行一次
-  async: true,          // 是否异步执行
-  timeout: 5000,        // 超时时间（毫秒）
-  context: this,        // 执行上下文
-  filter: (data) => data.important // 过滤条件
+  priority: 100, // 优先级（数字越大越先执行）
+  once: false, // 是否只执行一次
+  async: true, // 是否异步执行
+  timeout: 5000, // 超时时间（毫秒）
+  context: this, // 执行上下文
+  filter: data => data.important // 过滤条件
 })
 
 // 使用装饰器（如果支持）
@@ -179,7 +180,7 @@ class MyComponent {
   onUserLogin(userData: UserData) {
     console.log('用户登录:', userData)
   }
-  
+
   @EventListener('data:update', { priority: 50 })
   onDataUpdate(data: any) {
     this.updateView(data)
@@ -191,7 +192,7 @@ class MyComponent {
 
 ```typescript
 // 移除特定监听器
-const handler = (data) => console.log(data)
+const handler = data => console.log(data)
 engine.on('event:name', handler)
 engine.off('event:name', handler)
 
@@ -288,7 +289,7 @@ engine.emit('ui:language-changed', language)
 ```typescript
 // 基于数据过滤
 engine.on('user:action', handler, {
-  filter: (actionData) => actionData.userId === currentUserId
+  filter: actionData => actionData.userId === currentUserId
 })
 
 // 基于时间过滤
@@ -302,9 +303,9 @@ engine.on('api:request', handler, {
 // 复合过滤条件
 engine.on('message:received', handler, {
   filter: (message) => {
-    return message.type === 'important' && 
-           message.priority > 5 && 
-           !message.processed
+    return message.type === 'important'
+      && message.priority > 5
+      && !message.processed
   }
 })
 ```
@@ -331,17 +332,14 @@ engine.emit('raw:data', { id: 1, name: 'alice' })
 
 ```typescript
 // 聚合多个事件
-engine.aggregate(['user:login', 'user:profile-loaded', 'user:permissions-loaded'], 
-  'user:ready',
-  (loginData, profileData, permissionsData) => {
+engine.aggregate(['user:login', 'user:profile-loaded', 'user:permissions-loaded'], 'user:ready', (loginData, profileData, permissionsData) => {
     return {
       user: loginData.user,
       profile: profileData,
       permissions: permissionsData,
       readyAt: Date.now()
     }
-  },
-  { timeout: 10000 } // 10秒超时
+  }, { timeout: 10000 } // 10秒超时
 )
 
 // 当所有三个事件都触发后，会自动触发 'user:ready' 事件
@@ -352,8 +350,8 @@ engine.aggregate(['user:login', 'user:profile-loaded', 'user:permissions-loaded'
 ```typescript
 // 缓冲事件，批量处理
 engine.buffer('data:item-added', {
-  size: 10,           // 缓冲区大小
-  timeout: 1000,      // 超时时间
+  size: 10, // 缓冲区大小
+  timeout: 1000, // 超时时间
   handler: (items) => {
     console.log('批量处理项目:', items)
     batchProcessItems(items)
@@ -374,23 +372,24 @@ for (let i = 0; i < 15; i++) {
 engine.on('api:request', async (requestData) => {
   const maxRetries = 3
   let attempt = 0
-  
+
   while (attempt < maxRetries) {
     try {
       const result = await makeApiRequest(requestData)
       engine.emit('api:success', result)
       return result
-    } catch (error) {
+    }
+ catch (error) {
       attempt++
       console.log(`API 请求失败，重试 ${attempt}/${maxRetries}:`, error)
-      
+
       if (attempt >= maxRetries) {
         engine.emit('api:failed', { requestData, error, attempts: attempt })
         throw error
       }
-      
+
       // 指数退避
-      await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000))
+      await new Promise(resolve => setTimeout(resolve, 2 ** attempt * 1000))
     }
   }
 })
@@ -409,7 +408,7 @@ const engine = new Engine({
   eventLogging: {
     enabled: true,
     level: 'all', // 'all' | 'emit' | 'listen' | 'error'
-    filter: (eventName) => !eventName.startsWith('internal:'),
+    filter: eventName => !eventName.startsWith('internal:'),
     formatter: (event) => {
       return `[${new Date().toISOString()}] ${event.name}: ${JSON.stringify(event.data)}`
     }
@@ -476,7 +475,7 @@ console.log('事件流:', eventFlow)
 engine.on('error:event', (error, context) => {
   console.error('事件处理错误:', error)
   console.error('错误上下文:', context)
-  
+
   // 发送错误报告
   errorReporter.report(error, {
     eventName: context.eventName,
@@ -489,7 +488,8 @@ engine.on('error:event', (error, context) => {
 engine.on('user:action', (actionData) => {
   try {
     processUserAction(actionData)
-  } catch (error) {
+  }
+ catch (error) {
     console.error('处理用户操作失败:', error)
     engine.emit('error:user-action', { error, actionData })
     // 不抛出错误，避免影响其他监听器
@@ -500,7 +500,8 @@ engine.on('user:action', (actionData) => {
 engine.on('async:operation', async (data) => {
   try {
     await performAsyncOperation(data)
-  } catch (error) {
+  }
+ catch (error) {
     engine.emit('error:async-operation', { error, data })
     throw error // 重新抛出，让 emitAsync 能捕获
   }
@@ -522,7 +523,8 @@ engine.on('long:operation', handler, {
 // 异步事件超时
 try {
   await engine.emitAsync('slow:operation', data, { timeout: 10000 })
-} catch (error) {
+}
+ catch (error) {
   if (error.name === 'TimeoutError') {
     console.error('操作超时')
   }
@@ -542,7 +544,8 @@ engine.on('request:user-data', async (request) => {
       success: true,
       data: userData
     })
-  } catch (error) {
+  }
+ catch (error) {
     engine.emit(`response:${request.id}`, {
       success: false,
       error: error.message
@@ -554,19 +557,20 @@ engine.on('request:user-data', async (request) => {
 function requestUserData(userId: string): Promise<any> {
   return new Promise((resolve, reject) => {
     const requestId = generateId()
-    
+
     // 监听响应
     engine.once(`response:${requestId}`, (response) => {
       if (response.success) {
         resolve(response.data)
-      } else {
+      }
+ else {
         reject(new Error(response.error))
       }
     })
-    
+
     // 发送请求
     engine.emit('request:user-data', { id: requestId, userId })
-    
+
     // 设置超时
     setTimeout(() => {
       engine.removeAllListeners(`response:${requestId}`)
@@ -584,35 +588,36 @@ const userData = await requestUserData('user123')
 ```typescript
 class StateMachine {
   private currentState = 'idle'
-  
+
   constructor(private engine: Engine) {
     this.setupTransitions()
   }
-  
+
   private setupTransitions() {
     // 状态转换监听器
     this.engine.on('state:transition', (transition) => {
       if (this.canTransition(transition.from, transition.to)) {
         this.currentState = transition.to
         this.engine.emit(`state:entered:${transition.to}`, transition.data)
-      } else {
+      }
+ else {
         this.engine.emit('state:transition-failed', transition)
       }
     })
   }
-  
+
   private canTransition(from: string, to: string): boolean {
     const validTransitions = {
-      'idle': ['loading', 'error'],
-      'loading': ['loaded', 'error'],
-      'loaded': ['idle', 'updating'],
-      'updating': ['loaded', 'error'],
-      'error': ['idle']
+      idle: ['loading', 'error'],
+      loading: ['loaded', 'error'],
+      loaded: ['idle', 'updating'],
+      updating: ['loaded', 'error'],
+      error: ['idle']
     }
-    
+
     return validTransitions[from]?.includes(to) || false
   }
-  
+
   transition(to: string, data?: any) {
     this.engine.emit('state:transition', {
       from: this.currentState,
@@ -642,48 +647,49 @@ stateMachine.transition('loading')
 class Workflow {
   private steps: string[] = []
   private currentStep = 0
-  
+
   constructor(private engine: Engine, steps: string[]) {
     this.steps = steps
     this.setupWorkflow()
   }
-  
+
   private setupWorkflow() {
     this.engine.on('workflow:next', () => {
       this.nextStep()
     })
-    
+
     this.engine.on('workflow:previous', () => {
       this.previousStep()
     })
-    
+
     this.engine.on('workflow:goto', (step) => {
       this.gotoStep(step)
     })
   }
-  
+
   start() {
     this.currentStep = 0
     this.engine.emit('workflow:started', this.getCurrentStep())
     this.executeCurrentStep()
   }
-  
+
   private nextStep() {
     if (this.currentStep < this.steps.length - 1) {
       this.currentStep++
       this.executeCurrentStep()
-    } else {
+    }
+ else {
       this.engine.emit('workflow:completed')
     }
   }
-  
+
   private previousStep() {
     if (this.currentStep > 0) {
       this.currentStep--
       this.executeCurrentStep()
     }
   }
-  
+
   private gotoStep(stepName: string) {
     const index = this.steps.indexOf(stepName)
     if (index !== -1) {
@@ -691,13 +697,13 @@ class Workflow {
       this.executeCurrentStep()
     }
   }
-  
+
   private executeCurrentStep() {
     const step = this.getCurrentStep()
     this.engine.emit('workflow:step-entered', step)
     this.engine.emit(`workflow:step:${step.name}`, step)
   }
-  
+
   private getCurrentStep() {
     return {
       name: this.steps[this.currentStep],
@@ -744,9 +750,9 @@ engine.emit('file:upload-progress', { progress: 50 })
 engine.emit('api:request-failed', { error, url })
 
 // ❌ 不好的命名
-engine.emit('login', userData)           // 缺少命名空间
+engine.emit('login', userData) // 缺少命名空间
 engine.emit('userLoginSuccess', userData) // 驼峰命名不一致
-engine.emit('event1', userData)          // 无意义的名称
+engine.emit('event1', userData) // 无意义的名称
 ```
 
 ### 2. 事件数据结构
@@ -777,7 +783,8 @@ engine.on('data:process', async (data) => {
     const result = await processData(data)
     engine.emit('data:process-success', result)
     return result
-  } catch (error) {
+  }
+ catch (error) {
     engine.emit('data:process-failed', { data, error })
     // 不重新抛出错误，避免影响其他监听器
   }
@@ -796,28 +803,28 @@ engine.on('data:process', async (data) => {
 // ✅ 正确的监听器管理
 class Component {
   private listeners: string[] = []
-  
+
   constructor(private engine: Engine) {
     this.setupListeners()
   }
-  
+
   private setupListeners() {
     const id1 = this.engine.on('data:update', this.onDataUpdate.bind(this))
     const id2 = this.engine.on('user:action', this.onUserAction.bind(this))
-    
+
     this.listeners.push(id1, id2)
   }
-  
+
   destroy() {
     // 清理监听器
     this.listeners.forEach(id => this.engine.removeListener(id))
     this.listeners = []
   }
-  
+
   private onDataUpdate(data: any) {
     // 处理数据更新
   }
-  
+
   private onUserAction(action: any) {
     // 处理用户操作
   }
@@ -829,7 +836,7 @@ class Component {
 ```typescript
 // ✅ 使用事件过滤减少不必要的处理
 engine.on('mouse:move', handler, {
-  filter: (event) => event.buttons > 0, // 只处理拖拽事件
+  filter: event => event.buttons > 0, // 只处理拖拽事件
   throttle: 16 // 60fps 节流
 })
 

@@ -215,13 +215,13 @@ engine.once('custom:event', (data) => {
 
 ```typescript
 interface EngineConfig {
-  name?: string                    // 引擎名称
-  version?: string                 // 引擎版本
-  debug?: boolean                  // 调试模式
-  performance?: PerformanceConfig  // 性能配置
-  dev?: DevConfig                  // 开发配置
-  errorHandler?: ErrorHandler      // 错误处理器
-  [key: string]: any              // 自定义配置
+  name?: string // 引擎名称
+  version?: string // 引擎版本
+  debug?: boolean // 调试模式
+  performance?: PerformanceConfig // 性能配置
+  dev?: DevConfig // 开发配置
+  errorHandler?: ErrorHandler // 错误处理器
+  [key: string]: any // 自定义配置
 }
 ```
 
@@ -422,19 +422,19 @@ const myPlugin: Plugin = {
     engine.provide('myService', {
       doSomething: () => console.log('Doing something...')
     })
-    
+
     // 添加中间件
     engine.addMiddleware('mounted', async (context, next) => {
       console.log('My plugin middleware')
       await next()
     })
-    
+
     // 监听事件
     engine.on('custom:event', (data) => {
       console.log('Plugin received event:', data)
     })
   },
-  
+
   uninstall(engine) {
     // 插件卸载逻辑
     console.log('Plugin uninstalled')
@@ -452,35 +452,35 @@ await engine.use(myPlugin, { option1: 'value1' })
 ```typescript
 interface Engine {
   // 核心方法
-  mount(selector: string | Element): Promise<ComponentPublicInstance>
-  unmount(): Promise<void>
-  destroy(): Promise<void>
-  
+  mount: (selector: string | Element) => Promise<ComponentPublicInstance>
+  unmount: () => Promise<void>
+  destroy: () => Promise<void>
+
   // 配置管理
-  getConfig<T>(key: string): T | undefined
-  setConfig(key: string, value: any): void
-  updateConfig(updates: Partial<EngineConfig>): void
-  watchConfig(key: string, callback: ConfigWatcher): UnwatchFn
-  
+  getConfig: <T>(key: string) => T | undefined
+  setConfig: (key: string, value: any) => void
+  updateConfig: (updates: Partial<EngineConfig>) => void
+  watchConfig: (key: string, callback: ConfigWatcher) => UnwatchFn
+
   // 插件系统
-  use(plugin: Plugin, options?: any): Promise<Engine>
-  unuse(pluginName: string): Promise<Engine>
-  hasPlugin(pluginName: string): boolean
-  
+  use: (plugin: Plugin, options?: any) => Promise<Engine>
+  unuse: (pluginName: string) => Promise<Engine>
+  hasPlugin: (pluginName: string) => boolean
+
   // 中间件系统
-  addMiddleware(hook: LifecycleHook, middleware: MiddlewareFunction): void
-  removeMiddleware(hook: LifecycleHook, middleware: MiddlewareFunction): void
-  
+  addMiddleware: (hook: LifecycleHook, middleware: MiddlewareFunction) => void
+  removeMiddleware: (hook: LifecycleHook, middleware: MiddlewareFunction) => void
+
   // 事件系统
-  emit(event: string, ...args: any[]): void
-  on(event: string, handler: EventHandler): UnsubscribeFn
-  off(event: string, handler?: EventHandler): void
-  once(event: string, handler: EventHandler): UnsubscribeFn
-  
+  emit: (event: string, ...args: any[]) => void
+  on: (event: string, handler: EventHandler) => UnsubscribeFn
+  off: (event: string, handler?: EventHandler) => void
+  once: (event: string, handler: EventHandler) => UnsubscribeFn
+
   // 依赖注入
-  provide(key: string | symbol, value: any): void
-  inject<T>(key: string | symbol): T | undefined
-  
+  provide: (key: string | symbol, value: any) => void
+  inject: <T>(key: string | symbol) => T | undefined
+
   // 状态查询
   readonly state: EngineState
   readonly app: App | null
@@ -566,16 +566,16 @@ const stats = engine.getErrorStats()
 interface EngineConfig {
   // 根组件
   rootComponent?: any
-  
+
   // 错误处理
   errorHandler?: ErrorHandler
-  
+
   // 性能配置
   performance?: PerformanceConfig
-  
+
   // 开发配置
   dev?: DevConfig
-  
+
   // 自定义配置
   [key: string]: any
 }

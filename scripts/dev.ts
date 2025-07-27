@@ -46,7 +46,7 @@ const MENU_ITEMS: MenuItem[] = [
     icon: '🔍',
     category: '开发',
   },
-  
+
   // 质量检查
   {
     name: 'ESLint 检查',
@@ -90,7 +90,7 @@ const MENU_ITEMS: MenuItem[] = [
     icon: '👁️',
     category: '质量检查',
   },
-  
+
   // 构建相关
   {
     name: '构建项目',
@@ -120,7 +120,7 @@ const MENU_ITEMS: MenuItem[] = [
     icon: '📖',
     category: '构建',
   },
-  
+
   // 部署相关
   {
     name: '发布到 NPM',
@@ -137,7 +137,7 @@ const MENU_ITEMS: MenuItem[] = [
     icon: '✅',
     category: '部署',
   },
-  
+
   // 分析相关
   {
     name: '包大小分析',
@@ -160,7 +160,7 @@ const MENU_ITEMS: MenuItem[] = [
     icon: '🔗',
     category: '分析',
   },
-  
+
   // 维护相关
   {
     name: '清理项目',
@@ -237,7 +237,8 @@ class DevMenu {
     this.categories.forEach((category, index) => {
       if (category === this.selectedCategory) {
         console.log(chalk.bgBlue.white(`❯ ${category}`))
-      } else {
+      }
+ else {
         console.log(chalk.gray(`  ${category}`))
       }
     })
@@ -246,19 +247,21 @@ class DevMenu {
     // 显示当前分类的菜单项
     const filteredItems = this.getFilteredItems()
     console.log(chalk.blue.bold(`📋 ${this.selectedCategory} 任务:`))
-    
+
     if (filteredItems.length === 0) {
       console.log(chalk.gray('  暂无可用任务'))
-    } else {
+    }
+ else {
       filteredItems.forEach((item, index) => {
         const isSelected = index === this.selectedIndex
         const confirmIcon = item.requiresConfirm ? chalk.yellow(' ⚠️') : ''
-        
+
         if (isSelected) {
           console.log(chalk.bgGreen.black(`❯ ${item.icon} ${item.name}${confirmIcon}`))
           console.log(chalk.bgGreen.black(`  ${item.description}`))
           console.log(chalk.bgGreen.black(`  命令: ${item.command}`))
-        } else {
+        }
+ else {
           console.log(chalk.gray(`  ${item.icon} ${item.name}${confirmIcon}`))
           console.log(chalk.gray(`  ${item.description}`))
         }
@@ -281,7 +284,7 @@ class DevMenu {
     console.log(chalk.white(`命令: ${item.command}`))
     console.log()
     console.log(chalk.yellow('确认执行此操作? (y/N)'))
-    
+
     const key = await this.waitForKeyPress()
     return key.toLowerCase() === 'y'
   }
@@ -289,7 +292,7 @@ class DevMenu {
   private async executeCommand(command: string): Promise<void> {
     console.clear()
     console.log(chalk.blue.bold(`🚀 执行命令: ${command}\n`))
-    
+
     // 临时恢复正常模式以显示命令输出
     if (process.stdin.setRawMode) {
       process.stdin.setRawMode(false)
@@ -307,16 +310,17 @@ class DevMenu {
         console.log()
         if (code === 0) {
           console.log(chalk.green.bold('✅ 命令执行成功!'))
-        } else {
+        }
+ else {
           console.log(chalk.red.bold(`❌ 命令执行失败 (退出码: ${code})`))
         }
         console.log(chalk.gray('按任意键继续...'))
-        
+
         // 重新设置原始模式
         if (process.stdin.setRawMode) {
           process.stdin.setRawMode(true)
         }
-        
+
         // 等待用户按键
         this.waitForKeyPress().then(() => resolve())
       })
@@ -325,12 +329,12 @@ class DevMenu {
         console.log()
         console.log(chalk.red.bold(`❌ 命令执行错误: ${error.message}`))
         console.log(chalk.gray('按任意键继续...'))
-        
+
         // 重新设置原始模式
         if (process.stdin.setRawMode) {
           process.stdin.setRawMode(true)
         }
-        
+
         // 等待用户按键
         this.waitForKeyPress().then(() => reject(error))
       })
@@ -339,7 +343,7 @@ class DevMenu {
 
   private checkCommandAvailability(command: string): boolean {
     const [cmd] = command.split(' ')
-    
+
     // 检查是否是 npm 脚本
     if (cmd === 'npm' && command.includes('run')) {
       const packageJsonPath = join(process.cwd(), 'package.json')
@@ -348,13 +352,14 @@ class DevMenu {
           const packageJson = require(packageJsonPath)
           const scriptName = command.split('run ')[1]?.split(' ')[0]
           return !!(packageJson.scripts && packageJson.scripts[scriptName])
-        } catch {
+        }
+ catch {
           return false
         }
       }
       return false
     }
-    
+
     // 检查是否是 tsx 脚本
     if (cmd === 'tsx') {
       const scriptPath = command.split('tsx ')[1]?.split(' ')[0]
@@ -362,7 +367,7 @@ class DevMenu {
         return existsSync(join(process.cwd(), scriptPath))
       }
     }
-    
+
     return true
   }
 
@@ -385,7 +390,7 @@ class DevMenu {
         }
 
         const filteredItems = this.getFilteredItems()
-        
+
         if (key === KEYS.UP) {
           this.selectedIndex = Math.max(0, this.selectedIndex - 1)
           continue
@@ -398,7 +403,7 @@ class DevMenu {
 
         if (key === KEYS.ENTER && filteredItems.length > 0) {
           const selectedItem = filteredItems[this.selectedIndex]
-          
+
           // 检查命令是否可用
           if (!this.checkCommandAvailability(selectedItem.command)) {
             console.clear()
@@ -413,7 +418,7 @@ class DevMenu {
             await this.waitForKeyPress()
             continue
           }
-          
+
           // 如果需要确认，先确认
           if (selectedItem.requiresConfirm) {
             const confirmed = await this.confirmAction(selectedItem)
@@ -421,15 +426,17 @@ class DevMenu {
               continue
             }
           }
-          
+
           try {
             await this.executeCommand(selectedItem.command)
-          } catch (error) {
+          }
+ catch (error) {
             // 错误已在 executeCommand 中处理
           }
         }
       }
-    } finally {
+    }
+ finally {
       // 恢复终端设置
       if (process.stdin.setRawMode) {
         process.stdin.setRawMode(false)

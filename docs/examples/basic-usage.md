@@ -106,17 +106,17 @@ const app = new Engine({
 const userPlugin: Plugin = {
   name: 'UserPlugin',
   version: '1.0.0',
-  
+
   install(engine) {
     // 注册用户相关事件处理
     engine.on('user:register', this.handleUserRegister.bind(this))
     engine.on('user:login', this.handleUserLogin.bind(this))
     engine.on('user:logout', this.handleUserLogout.bind(this))
     engine.on('user:update', this.handleUserUpdate.bind(this))
-    
+
     console.log('用户插件已安装')
   },
-  
+
   handleUserRegister(userData) {
     const users = app.getState('users') || []
     const newUser = {
@@ -125,31 +125,32 @@ const userPlugin: Plugin = {
       createdAt: new Date().toISOString(),
       isActive: true
     }
-    
+
     users.push(newUser)
     app.setState('users', users)
-    
+
     console.log('用户注册成功:', newUser)
     app.emit('user:registered', newUser)
   },
-  
+
   handleUserLogin(credentials) {
     const users = app.getState('users') || []
-    const user = users.find(u => 
-      u.email === credentials.email && 
-      u.password === credentials.password
+    const user = users.find(u =>
+      u.email === credentials.email
+      && u.password === credentials.password
     )
-    
+
     if (user) {
       app.setState('currentUser', user)
       console.log('用户登录成功:', user.name)
       app.emit('user:loggedIn', user)
-    } else {
+    }
+ else {
       console.error('登录失败：用户名或密码错误')
       app.emit('user:loginFailed', credentials)
     }
   },
-  
+
   handleUserLogout() {
     const currentUser = app.getState('currentUser')
     if (currentUser) {
@@ -158,20 +159,20 @@ const userPlugin: Plugin = {
       app.emit('user:loggedOut', currentUser)
     }
   },
-  
+
   handleUserUpdate(updateData) {
     const users = app.getState('users') || []
     const currentUser = app.getState('currentUser')
-    
+
     if (currentUser) {
       const userIndex = users.findIndex(u => u.id === currentUser.id)
       if (userIndex !== -1) {
         const updatedUser = { ...users[userIndex], ...updateData }
         users[userIndex] = updatedUser
-        
+
         app.setState('users', users)
         app.setState('currentUser', updatedUser)
-        
+
         console.log('用户信息更新:', updatedUser)
         app.emit('user:updated', updatedUser)
       }
@@ -183,7 +184,7 @@ const userPlugin: Plugin = {
 const loggerPlugin: Plugin = {
   name: 'LoggerPlugin',
   version: '1.0.0',
-  
+
   install(engine) {
     // 监听所有用户相关事件
     const userEvents = [
@@ -193,20 +194,20 @@ const loggerPlugin: Plugin = {
       'user:loggedOut',
       'user:updated'
     ]
-    
-    userEvents.forEach(event => {
+
+    userEvents.forEach((event) => {
       engine.on(event, (data) => {
         this.log(event, data)
       })
     })
-    
+
     console.log('日志插件已安装')
   },
-  
+
   log(event, data) {
     const timestamp = new Date().toISOString()
     console.log(`[${timestamp}] ${event}:`, data)
-    
+
     // 这里可以将日志发送到服务器或保存到本地
   }
 }
@@ -215,27 +216,27 @@ const loggerPlugin: Plugin = {
 const notificationPlugin: Plugin = {
   name: 'NotificationPlugin',
   version: '1.0.0',
-  
+
   install(engine) {
     engine.on('user:registered', this.showWelcomeNotification.bind(this))
     engine.on('user:loggedIn', this.showLoginNotification.bind(this))
     engine.on('user:loginFailed', this.showErrorNotification.bind(this))
-    
+
     console.log('通知插件已安装')
   },
-  
+
   showWelcomeNotification(user) {
     this.showNotification('success', `欢迎 ${user.name}！注册成功。`)
   },
-  
+
   showLoginNotification(user) {
     this.showNotification('info', `欢迎回来，${user.name}！`)
   },
-  
+
   showErrorNotification() {
     this.showNotification('error', '登录失败，请检查用户名和密码。')
   },
-  
+
   showNotification(type, message) {
     console.log(`[${type.toUpperCase()}] ${message}`)
     // 在实际应用中，这里会显示 UI 通知
@@ -252,10 +253,11 @@ async function startApp() {
   try {
     await app.start()
     console.log('应用启动成功')
-    
+
     // 模拟用户操作
     await simulateUserOperations()
-  } catch (error) {
+  }
+ catch (error) {
     console.error('应用启动失败:', error)
   }
 }
@@ -263,7 +265,7 @@ async function startApp() {
 // 模拟用户操作
 async function simulateUserOperations() {
   console.log('\n=== 开始模拟用户操作 ===')
-  
+
   // 1. 用户注册
   console.log('\n1. 用户注册')
   app.emit('user:register', {
@@ -271,47 +273,47 @@ async function simulateUserOperations() {
     email: 'alice@example.com',
     password: 'password123'
   })
-  
+
   await delay(1000)
-  
+
   // 2. 用户登录
   console.log('\n2. 用户登录')
   app.emit('user:login', {
     email: 'alice@example.com',
     password: 'password123'
   })
-  
+
   await delay(1000)
-  
+
   // 3. 更新用户信息
   console.log('\n3. 更新用户信息')
   app.emit('user:update', {
     name: 'Alice Johnson',
     phone: '+1234567890'
   })
-  
+
   await delay(1000)
-  
+
   // 4. 查看当前状态
   console.log('\n4. 当前应用状态')
   console.log('用户列表:', app.getState('users'))
   console.log('当前用户:', app.getState('currentUser'))
-  
+
   await delay(1000)
-  
+
   // 5. 用户登出
   console.log('\n5. 用户登出')
   app.emit('user:logout')
-  
+
   await delay(1000)
-  
+
   // 6. 尝试错误登录
   console.log('\n6. 尝试错误登录')
   app.emit('user:login', {
     email: 'alice@example.com',
     password: 'wrongpassword'
   })
-  
+
   console.log('\n=== 用户操作模拟完成 ===')
 }
 
@@ -338,9 +340,9 @@ const app = new Engine({
 app.middleware('logger', (context, next) => {
   const start = Date.now()
   console.log(`[${new Date().toISOString()}] 请求开始:`, context.request)
-  
+
   next()
-  
+
   const duration = Date.now() - start
   console.log(`[${new Date().toISOString()}] 请求完成，耗时: ${duration}ms`)
 })
@@ -348,22 +350,22 @@ app.middleware('logger', (context, next) => {
 // 认证中间件
 app.middleware('auth', (context, next) => {
   const { token } = context.request.headers || {}
-  
+
   if (!token) {
     throw new Error('缺少认证令牌')
   }
-  
+
   // 验证令牌（这里简化处理）
   if (token !== 'valid-token') {
     throw new Error('无效的认证令牌')
   }
-  
+
   context.state.user = {
     id: 1,
     name: 'John Doe',
     role: 'user'
   }
-  
+
   console.log('用户认证成功:', context.state.user.name)
   next()
 })
@@ -372,12 +374,12 @@ app.middleware('auth', (context, next) => {
 app.middleware('permission', (context, next) => {
   const { user } = context.state
   const { action } = context.request
-  
+
   // 简单的权限检查
   if (action === 'admin' && user.role !== 'admin') {
     throw new Error('权限不足')
   }
-  
+
   console.log('权限检查通过')
   next()
 })
@@ -385,7 +387,7 @@ app.middleware('permission', (context, next) => {
 // 业务逻辑中间件
 app.middleware('business', (context, next) => {
   const { action, data } = context.request
-  
+
   switch (action) {
     case 'getUserInfo':
       context.response = {
@@ -393,7 +395,7 @@ app.middleware('business', (context, next) => {
         data: context.state.user
       }
       break
-      
+
     case 'updateProfile':
       // 模拟更新用户资料
       const updatedUser = { ...context.state.user, ...data }
@@ -403,14 +405,14 @@ app.middleware('business', (context, next) => {
         message: '资料更新成功'
       }
       break
-      
+
     default:
       context.response = {
         success: false,
         message: '未知操作'
       }
   }
-  
+
   next()
 })
 
@@ -422,12 +424,13 @@ async function processRequest(request: any) {
       state: {},
       response: null
     }
-    
+
     await app.executeMiddleware(context)
-    
+
     console.log('处理结果:', context.response)
     return context.response
-  } catch (error) {
+  }
+ catch (error) {
     console.error('请求处理失败:', error.message)
     return {
       success: false,
@@ -439,27 +442,27 @@ async function processRequest(request: any) {
 // 测试中间件
 async function testMiddleware() {
   console.log('=== 中间件测试 ===')
-  
+
   // 1. 成功的请求
   console.log('\n1. 成功的请求')
   await processRequest({
     headers: { token: 'valid-token' },
     action: 'getUserInfo'
   })
-  
+
   // 2. 缺少认证令牌
   console.log('\n2. 缺少认证令牌')
   await processRequest({
     action: 'getUserInfo'
   })
-  
+
   // 3. 无效的认证令牌
   console.log('\n3. 无效的认证令牌')
   await processRequest({
     headers: { token: 'invalid-token' },
     action: 'getUserInfo'
   })
-  
+
   // 4. 更新资料
   console.log('\n4. 更新资料')
   await processRequest({
@@ -492,12 +495,12 @@ const app = new Engine({
 // 异步事件处理器
 app.on('data:process', async (data) => {
   console.log('开始处理数据:', data.id)
-  
+
   // 模拟异步数据处理
   await new Promise(resolve => setTimeout(resolve, 1000))
-  
+
   console.log('数据处理完成:', data.id)
-  
+
   // 触发处理完成事件
   app.emit('data:processed', {
     ...data,
@@ -512,7 +515,7 @@ app.on('data:processed', (data) => {
 // 批量数据处理
 app.on('data:batch', async (items) => {
   console.log(`开始批量处理 ${items.length} 个项目`)
-  
+
   // 并行处理
   const results = await Promise.all(
     items.map(async (item, index) => {
@@ -524,7 +527,7 @@ app.on('data:batch', async (items) => {
       }
     })
   )
-  
+
   console.log('批量处理完成')
   app.emit('data:batchProcessed', results)
 })
@@ -542,29 +545,29 @@ app.on('error', (error, context) => {
 // 测试异步事件
 async function testAsyncEvents() {
   await app.start()
-  
+
   console.log('=== 异步事件测试 ===')
-  
+
   // 1. 单个数据处理
   console.log('\n1. 单个数据处理')
   app.emit('data:process', {
     id: 'item-1',
     content: 'Hello World'
   })
-  
+
   await delay(2000)
-  
+
   // 2. 批量数据处理
   console.log('\n2. 批量数据处理')
   const batchData = Array.from({ length: 5 }, (_, i) => ({
     id: `batch-item-${i + 1}`,
     content: `Content ${i + 1}`
   }))
-  
+
   app.emit('data:batch', batchData)
-  
+
   await delay(3000)
-  
+
   console.log('\n=== 异步事件测试完成 ===')
 }
 
@@ -595,7 +598,7 @@ const app = new Engine({
 // 监听计数器变化
 app.watchState('counter', (newValue, oldValue) => {
   console.log(`计数器变化: ${oldValue} -> ${newValue}`)
-  
+
   if (newValue > 0 && newValue % 5 === 0) {
     console.log('🎉 计数器达到5的倍数！')
     app.emit('counter:milestone', newValue)
@@ -607,10 +610,12 @@ app.watchState('user', (newUser, oldUser) => {
   if (!oldUser && newUser) {
     console.log('用户登录:', newUser.name)
     app.emit('user:loggedIn', newUser)
-  } else if (oldUser && !newUser) {
+  }
+ else if (oldUser && !newUser) {
     console.log('用户登出:', oldUser.name)
     app.emit('user:loggedOut', oldUser)
-  } else if (oldUser && newUser) {
+  }
+ else if (oldUser && newUser) {
     console.log('用户信息更新:', newUser.name)
     app.emit('user:updated', newUser)
   }
@@ -619,13 +624,13 @@ app.watchState('user', (newUser, oldUser) => {
 // 监听设置变化
 app.watchState('settings', (newSettings, oldSettings) => {
   console.log('设置已更新:', newSettings)
-  
+
   // 检查主题变化
   if (oldSettings?.theme !== newSettings.theme) {
     console.log(`主题切换: ${oldSettings?.theme} -> ${newSettings.theme}`)
     app.emit('theme:changed', newSettings.theme)
   }
-  
+
   // 检查通知设置变化
   if (oldSettings?.notifications !== newSettings.notifications) {
     console.log(`通知设置: ${newSettings.notifications ? '开启' : '关闭'}`)
@@ -649,18 +654,18 @@ app.on('notifications:toggled', (enabled) => {
 // 测试状态监听
 async function testStateWatching() {
   await app.start()
-  
+
   console.log('=== 状态监听测试 ===')
-  
+
   // 1. 计数器操作
   console.log('\n1. 计数器操作')
   for (let i = 1; i <= 12; i++) {
     app.setState('counter', i)
     await delay(200)
   }
-  
+
   await delay(1000)
-  
+
   // 2. 用户操作
   console.log('\n2. 用户操作')
   app.setState('user', {
@@ -668,42 +673,42 @@ async function testStateWatching() {
     name: 'Alice',
     email: 'alice@example.com'
   })
-  
+
   await delay(500)
-  
+
   app.setState('user', {
     id: 1,
     name: 'Alice Smith',
     email: 'alice.smith@example.com'
   })
-  
+
   await delay(500)
-  
+
   app.setState('user', null)
-  
+
   await delay(1000)
-  
+
   // 3. 设置操作
   console.log('\n3. 设置操作')
   app.setState('settings', {
     theme: 'dark',
     notifications: true
   })
-  
+
   await delay(500)
-  
+
   app.setState('settings', {
     theme: 'dark',
     notifications: false
   })
-  
+
   await delay(500)
-  
+
   app.setState('settings', {
     theme: 'light',
     notifications: false
   })
-  
+
   console.log('\n=== 状态监听测试完成 ===')
 }
 

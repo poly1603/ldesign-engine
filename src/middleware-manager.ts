@@ -1,8 +1,8 @@
 import type {
   LifecycleHook,
-  MiddlewareFunction,
   MiddlewareContext,
-  MiddlewareManager
+  MiddlewareFunction,
+  MiddlewareManager,
 } from './types'
 import { MiddlewareError } from './types'
 
@@ -29,13 +29,13 @@ export class MiddlewareManagerImpl implements MiddlewareManager {
    * 添加中间件
    */
   add(
-    hook: LifecycleHook, 
-    middleware: MiddlewareFunction, 
+    hook: LifecycleHook,
+    middleware: MiddlewareFunction,
     options: {
       priority?: number
       name?: string
       once?: boolean
-    } = {}
+    } = {},
   ): void {
     if (typeof middleware !== 'function') {
       throw new TypeError('Middleware must be a function')
@@ -55,17 +55,18 @@ export class MiddlewareManagerImpl implements MiddlewareManager {
       middleware,
       priority: options.priority || 0,
       name: options.name,
-      once: options.once || false
+      once: options.once || false,
     }
 
     // 按优先级插入
     const insertIndex = middlewareList.findIndex(
-      item => item.priority < middlewareInfo.priority
+      item => item.priority < middlewareInfo.priority,
     )
-    
+
     if (insertIndex === -1) {
       middlewareList.push(middlewareInfo)
-    } else {
+    }
+ else {
       middlewareList.splice(insertIndex, 0, middlewareInfo)
     }
   }
@@ -82,7 +83,7 @@ export class MiddlewareManagerImpl implements MiddlewareManager {
     const index = middlewareList.findIndex(item => item.middleware === middleware)
     if (index !== -1) {
       middlewareList.splice(index, 1)
-      
+
       // 如果列表为空，删除整个钩子
       if (middlewareList.length === 0) {
         this.middlewares.delete(hook)
@@ -97,7 +98,7 @@ export class MiddlewareManagerImpl implements MiddlewareManager {
     if (this.executing.has(hook)) {
       throw new MiddlewareError(
         `Middleware for hook '${hook}' is already executing`,
-        hook
+        hook,
       )
     }
 
@@ -107,10 +108,11 @@ export class MiddlewareManagerImpl implements MiddlewareManager {
     }
 
     this.executing.add(hook)
-    
+
     try {
       await this.executeMiddlewareChain(middlewareList, context, hook)
-    } finally {
+    }
+ finally {
       this.executing.delete(hook)
     }
   }
@@ -121,7 +123,7 @@ export class MiddlewareManagerImpl implements MiddlewareManager {
   private async executeMiddlewareChain(
     middlewareList: MiddlewareInfo[],
     context: MiddlewareContext,
-    hook: LifecycleHook
+    hook: LifecycleHook,
   ): Promise<void> {
     let index = 0
     const toRemove: MiddlewareInfo[] = []
@@ -147,18 +149,19 @@ export class MiddlewareManagerImpl implements MiddlewareManager {
         if (once) {
           toRemove.push(middlewareInfo)
         }
-      } catch (error) {
+      }
+ catch (error) {
         const middlewareError = new MiddlewareError(
           `Error in middleware '${name || 'anonymous'}' for hook '${hook}': ${error instanceof Error ? error.message : String(error)}`,
           hook,
-          { middleware, error, context }
+          { middleware, error, context },
         )
-        
+
         // 发射错误事件
         if (context.engine && typeof context.engine.emit === 'function') {
           context.engine.emit('middleware:error', middlewareError)
         }
-        
+
         throw middlewareError
       }
     }
@@ -166,7 +169,7 @@ export class MiddlewareManagerImpl implements MiddlewareManager {
     await next()
 
     // 移除一次性中间件
-    toRemove.forEach(middlewareInfo => {
+    toRemove.forEach((middlewareInfo) => {
       const list = this.middlewares.get(hook)
       if (list) {
         const index = list.indexOf(middlewareInfo)
@@ -183,7 +186,8 @@ export class MiddlewareManagerImpl implements MiddlewareManager {
   clear(hook?: LifecycleHook): void {
     if (hook) {
       this.middlewares.delete(hook)
-    } else {
+    }
+ else {
       this.middlewares.clear()
     }
   }
@@ -196,7 +200,7 @@ export class MiddlewareManagerImpl implements MiddlewareManager {
       const middlewareList = this.middlewares.get(hook)
       return middlewareList ? middlewareList.length : 0
     }
-    
+
     let total = 0
     for (const list of this.middlewares.values()) {
       total += list.length
@@ -227,11 +231,11 @@ export class MiddlewareManagerImpl implements MiddlewareManager {
     if (!middlewareList) {
       return false
     }
-    
+
     if (!middleware) {
       return middlewareList.length > 0
     }
-    
+
     return middlewareList.some(item => item.middleware === middleware)
   }
 
@@ -268,11 +272,11 @@ export class MiddlewareManagerImpl implements MiddlewareManager {
     if (!middlewareList) {
       return []
     }
-    
+
     return middlewareList.map(({ name, priority, once }) => ({
       name,
       priority,
-      once
+      once,
     }))
   }
 
@@ -288,9 +292,9 @@ export class MiddlewareManagerImpl implements MiddlewareManager {
       'beforeUpdate',
       'updated',
       'beforeUnmount',
-      'unmounted'
+      'unmounted',
     ]
-    
+
     return validHooks.includes(hook as LifecycleHook)
   }
 
@@ -299,11 +303,11 @@ export class MiddlewareManagerImpl implements MiddlewareManager {
    */
   clone(): MiddlewareManagerImpl {
     const cloned = new MiddlewareManagerImpl()
-    
+
     for (const [hook, middlewareList] of this.middlewares) {
       cloned.middlewares.set(hook, [...middlewareList])
     }
-    
+
     return cloned
   }
 
@@ -320,7 +324,7 @@ export class MiddlewareManagerImpl implements MiddlewareManager {
       hooks: this.middlewares.size,
       middlewares: this.count(),
       executing: this.executing.size,
-      executionCount: this.getExecutionStats()
+      executionCount: this.getExecutionStats(),
     }
   }
 
@@ -335,7 +339,7 @@ export class MiddlewareManagerImpl implements MiddlewareManager {
     return {
       hooks: this.middlewares.size,
       middlewares: this.count(),
-      executing: this.executing.size
+      executing: this.executing.size,
     }
   }
 

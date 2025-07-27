@@ -35,12 +35,12 @@ const engine = new Engine({
   version: '1.0.0',
   debug: {
     enabled: true,
-    events: true,        // 调试事件
-    plugins: true,       // 调试插件
-    middleware: true,    // 调试中间件
-    state: true,         // 调试状态管理
-    performance: true,   // 性能调试
-    memory: true         // 内存调试
+    events: true, // 调试事件
+    plugins: true, // 调试插件
+    middleware: true, // 调试中间件
+    state: true, // 调试状态管理
+    performance: true, // 性能调试
+    memory: true // 内存调试
   },
   logger: {
     level: 'debug',
@@ -61,32 +61,32 @@ class EventDebugger {
   constructor(private engine: Engine) {
     this.setupEventDebugging()
   }
-  
+
   private setupEventDebugging() {
     // 拦截所有事件
     const originalEmit = this.engine.emit.bind(this.engine)
     const originalOn = this.engine.on.bind(this.engine)
     const originalOff = this.engine.off.bind(this.engine)
-    
+
     // 调试事件发布
     this.engine.emit = (event: string, data?: any) => {
       const listeners = this.engine.listenerCount(event)
-      
+
       console.group(`🚀 [EVENT EMIT] ${event}`)
       console.log('📊 监听器数量:', listeners)
       console.log('📦 事件数据:', data)
       console.log('⏰ 时间戳:', new Date().toISOString())
-      
+
       if (listeners === 0) {
         console.warn('⚠️ 没有监听器处理此事件')
       }
-      
+
       const result = originalEmit(event, data)
       console.groupEnd()
-      
+
       return result
     }
-    
+
     // 调试事件监听
     this.engine.on = (event: string, listener: Function, options?: any) => {
       console.log(`👂 [EVENT LISTEN] 注册监听器: ${event}`, {
@@ -94,20 +94,20 @@ class EventDebugger {
         listenerName: listener.name || 'anonymous',
         stackTrace: new Error().stack?.split('\n').slice(1, 4)
       })
-      
+
       return originalOn(event, listener, options)
     }
-    
+
     // 调试事件移除
     this.engine.off = (event: string, listener?: Function) => {
       console.log(`🔇 [EVENT UNLISTEN] 移除监听器: ${event}`, {
         listenerName: listener?.name || 'all listeners'
       })
-      
+
       return originalOff(event, listener)
     }
   }
-  
+
   // 获取事件监听器信息
   getListenerInfo(): Record<string, {
     count: number
@@ -118,8 +118,8 @@ class EventDebugger {
   }> {
     const events = this.engine.eventNames()
     const info: Record<string, any> = {}
-    
-    events.forEach(event => {
+
+    events.forEach((event) => {
       const listeners = this.engine.listeners(event)
       info[event] = {
         count: listeners.length,
@@ -129,10 +129,10 @@ class EventDebugger {
         }))
       }
     })
-    
+
     return info
   }
-  
+
   private getFunctionSource(fn: Function): string {
     const source = fn.toString()
     const lines = source.split('\n')
@@ -159,18 +159,18 @@ class EventFlowTracer {
     parentId?: string
     children: string[]
   }> = []
-  
+
   constructor(private engine: Engine) {
     this.setupTracing()
   }
-  
+
   private setupTracing() {
     const originalEmit = this.engine.emit.bind(this.engine)
-    
+
     this.engine.emit = (event: string, data?: any) => {
       const traceId = this.generateTraceId()
       const parentId = this.getCurrentTraceId()
-      
+
       const trace = {
         id: traceId,
         event,
@@ -179,9 +179,9 @@ class EventFlowTracer {
         parentId,
         children: []
       }
-      
+
       this.traces.push(trace)
-      
+
       // 更新父级追踪
       if (parentId) {
         const parent = this.traces.find(t => t.id === parentId)
@@ -189,50 +189,51 @@ class EventFlowTracer {
           parent.children.push(traceId)
         }
       }
-      
+
       // 设置当前追踪上下文
       this.setCurrentTraceId(traceId)
-      
+
       try {
         const result = originalEmit(event, data)
         return result
-      } finally {
+      }
+ finally {
         this.clearCurrentTraceId()
       }
     }
   }
-  
+
   private generateTraceId(): string {
     return `trace_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
   }
-  
+
   private getCurrentTraceId(): string | undefined {
     return (globalThis as any).__currentTraceId
   }
-  
+
   private setCurrentTraceId(id: string) {
     (globalThis as any).__currentTraceId = id
   }
-  
+
   private clearCurrentTraceId() {
     delete (globalThis as any).__currentTraceId
   }
-  
+
   // 获取事件流图
   getEventFlow(rootEvent?: string): any {
-    const roots = this.traces.filter(t => 
+    const roots = this.traces.filter(t =>
       !t.parentId && (!rootEvent || t.event === rootEvent)
     )
-    
+
     return roots.map(root => this.buildTraceTree(root))
   }
-  
+
   private buildTraceTree(trace: any): any {
     const children = trace.children.map((childId: string) => {
       const child = this.traces.find(t => t.id === childId)
       return child ? this.buildTraceTree(child) : null
     }).filter(Boolean)
-    
+
     return {
       id: trace.id,
       event: trace.event,
@@ -241,32 +242,33 @@ class EventFlowTracer {
       children
     }
   }
-  
+
   private calculateDuration(trace: any): number {
-    if (trace.children.length === 0) return 0
-    
+    if (trace.children.length === 0)
+return 0
+
     const lastChild = trace.children
       .map((id: string) => this.traces.find(t => t.id === id))
       .filter(Boolean)
       .sort((a: any, b: any) => b.timestamp.getTime() - a.timestamp.getTime())[0]
-    
+
     return lastChild ? lastChild.timestamp.getTime() - trace.timestamp.getTime() : 0
   }
-  
+
   // 可视化事件流
   visualizeEventFlow(rootEvent?: string) {
     const flow = this.getEventFlow(rootEvent)
-    
+
     console.log('📊 事件流追踪:')
     flow.forEach(root => this.printTraceTree(root, 0))
   }
-  
+
   private printTraceTree(trace: any, depth: number) {
     const indent = '  '.repeat(depth)
     const duration = trace.duration > 0 ? ` (${trace.duration}ms)` : ''
-    
+
     console.log(`${indent}${depth === 0 ? '🌳' : '├─'} ${trace.event}${duration}`)
-    
+
     trace.children.forEach((child: any) => {
       this.printTraceTree(child, depth + 1)
     })
@@ -296,16 +298,16 @@ class PluginDebugger {
     dependencies: string[]
     dependents: string[]
   }> = new Map()
-  
+
   constructor(private engine: Engine) {
     this.setupPluginDebugging()
   }
-  
+
   private setupPluginDebugging() {
     // 监听插件生命周期事件
     this.engine.on('plugin:installing', (plugin) => {
       console.log(`🔧 [PLUGIN] 正在安装: ${plugin.name}`)
-      
+
       this.pluginStates.set(plugin.name, {
         status: 'installing',
         startTime: new Date(),
@@ -313,40 +315,40 @@ class PluginDebugger {
         dependents: []
       })
     })
-    
+
     this.engine.on('plugin:installed', (plugin) => {
       console.log(`✅ [PLUGIN] 安装完成: ${plugin.name}`)
-      
+
       const state = this.pluginStates.get(plugin.name)
       if (state) {
         state.status = 'installed'
         state.endTime = new Date()
       }
     })
-    
+
     this.engine.on('plugin:starting', (plugin) => {
       console.log(`🚀 [PLUGIN] 正在启动: ${plugin.name}`)
-      
+
       const state = this.pluginStates.get(plugin.name)
       if (state) {
         state.status = 'starting'
         state.startTime = new Date()
       }
     })
-    
+
     this.engine.on('plugin:started', (plugin) => {
       console.log(`🟢 [PLUGIN] 启动完成: ${plugin.name}`)
-      
+
       const state = this.pluginStates.get(plugin.name)
       if (state) {
         state.status = 'started'
         state.endTime = new Date()
       }
     })
-    
+
     this.engine.on('plugin:error', (plugin, error) => {
       console.error(`❌ [PLUGIN] 错误: ${plugin.name}`, error)
-      
+
       const state = this.pluginStates.get(plugin.name)
       if (state) {
         state.status = 'error'
@@ -355,16 +357,16 @@ class PluginDebugger {
       }
     })
   }
-  
+
   // 获取插件状态报告
   getPluginReport(): Record<string, any> {
     const report: Record<string, any> = {}
-    
+
     this.pluginStates.forEach((state, name) => {
-      const duration = state.startTime && state.endTime 
+      const duration = state.startTime && state.endTime
         ? state.endTime.getTime() - state.startTime.getTime()
         : undefined
-      
+
       report[name] = {
         status: state.status,
         duration,
@@ -373,10 +375,10 @@ class PluginDebugger {
         error: state.error?.message
       }
     })
-    
+
     return report
   }
-  
+
   // 检查插件依赖
   checkDependencies(): {
     missing: string[]
@@ -390,21 +392,21 @@ class PluginDebugger {
     const missing: string[] = []
     const circular: string[][] = []
     const conflicts: Array<any> = []
-    
+
     // 检查缺失依赖
     this.pluginStates.forEach((state, name) => {
-      state.dependencies.forEach(dep => {
+      state.dependencies.forEach((dep) => {
         if (!this.pluginStates.has(dep)) {
           missing.push(`${name} -> ${dep}`)
         }
       })
     })
-    
+
     // 检查循环依赖
     this.pluginStates.forEach((state, name) => {
       const visited = new Set<string>()
       const path: string[] = []
-      
+
       const checkCircular = (current: string): boolean => {
         if (path.includes(current)) {
           const cycle = path.slice(path.indexOf(current))
@@ -412,47 +414,49 @@ class PluginDebugger {
           circular.push(cycle)
           return true
         }
-        
-        if (visited.has(current)) return false
-        
+
+        if (visited.has(current))
+return false
+
         visited.add(current)
         path.push(current)
-        
+
         const currentState = this.pluginStates.get(current)
         if (currentState) {
           for (const dep of currentState.dependencies) {
-            if (checkCircular(dep)) return true
+            if (checkCircular(dep))
+return true
           }
         }
-        
+
         path.pop()
         return false
       }
-      
+
       checkCircular(name)
     })
-    
+
     return { missing, circular, conflicts }
   }
-  
+
   // 可视化插件依赖图
   visualizeDependencies() {
     console.log('📊 插件依赖关系:')
-    
+
     this.pluginStates.forEach((state, name) => {
       const status = this.getStatusIcon(state.status)
       console.log(`${status} ${name}`)
-      
+
       if (state.dependencies.length > 0) {
-        state.dependencies.forEach(dep => {
+        state.dependencies.forEach((dep) => {
           const depState = this.pluginStates.get(dep)
           const depStatus = depState ? this.getStatusIcon(depState.status) : '❓'
           console.log(`  ├─ 依赖: ${depStatus} ${dep}`)
         })
       }
-      
+
       if (state.dependents.length > 0) {
-        state.dependents.forEach(dependent => {
+        state.dependents.forEach((dependent) => {
           const depState = this.pluginStates.get(dependent)
           const depStatus = depState ? this.getStatusIcon(depState.status) : '❓'
           console.log(`  └─ 被依赖: ${depStatus} ${dependent}`)
@@ -460,18 +464,18 @@ class PluginDebugger {
       }
     })
   }
-  
+
   private getStatusIcon(status: string): string {
     const icons: Record<string, string> = {
-      'installing': '🔧',
-      'installed': '📦',
-      'starting': '🚀',
-      'started': '🟢',
-      'stopping': '🛑',
-      'stopped': '⭕',
-      'error': '❌'
+      installing: '🔧',
+      installed: '📦',
+      starting: '🚀',
+      started: '🟢',
+      stopping: '🛑',
+      stopped: '⭕',
+      error: '❌'
     }
-    
+
     return icons[status] || '❓'
   }
 }
@@ -500,35 +504,35 @@ class PluginCommunicationDebugger {
     duration?: number
     error?: Error
   }> = []
-  
+
   constructor(private engine: Engine) {
     this.setupCommunicationDebugging()
   }
-  
+
   private setupCommunicationDebugging() {
     // 拦截插件间通信
     const originalGetPlugin = this.engine.getPlugin.bind(this.engine)
-    
+
     this.engine.getPlugin = (name: string) => {
       const plugin = originalGetPlugin(name)
-      
+
       if (plugin) {
         return this.wrapPluginMethods(plugin, name)
       }
-      
+
       return plugin
     }
   }
-  
+
   private wrapPluginMethods(plugin: any, pluginName: string): any {
     const wrapped = { ...plugin }
-    
+
     // 包装所有方法
-    Object.keys(plugin).forEach(key => {
+    Object.keys(plugin).forEach((key) => {
       if (typeof plugin[key] === 'function') {
         wrapped[key] = (...args: any[]) => {
           const startTime = performance.now()
-          
+
           const communication = {
             from: 'external',
             to: pluginName,
@@ -536,37 +540,38 @@ class PluginCommunicationDebugger {
             data: args,
             timestamp: new Date()
           }
-          
+
           console.log(`📞 [PLUGIN CALL] ${pluginName}.${key}`, args)
-          
+
           try {
             const result = plugin[key](...args)
-            
+
             const endTime = performance.now()
             communication.duration = endTime - startTime
-            
+
             this.communications.push(communication)
-            
+
             console.log(`✅ [PLUGIN RESULT] ${pluginName}.${key}`, {
               result,
               duration: communication.duration
             })
-            
+
             return result
-          } catch (error) {
+          }
+ catch (error) {
             communication.error = error as Error
             this.communications.push(communication)
-            
+
             console.error(`❌ [PLUGIN ERROR] ${pluginName}.${key}`, error)
             throw error
           }
         }
       }
     })
-    
+
     return wrapped
   }
-  
+
   // 获取通信统计
   getCommunicationStats(): Record<string, {
     totalCalls: number
@@ -575,10 +580,10 @@ class PluginCommunicationDebugger {
     lastCall: Date
   }> {
     const stats: Record<string, any> = {}
-    
-    this.communications.forEach(comm => {
+
+    this.communications.forEach((comm) => {
       const key = `${comm.to}.${comm.method}`
-      
+
       if (!stats[key]) {
         stats[key] = {
           totalCalls: 0,
@@ -587,7 +592,7 @@ class PluginCommunicationDebugger {
           lastCall: comm.timestamp
         }
       }
-      
+
       stats[key].totalCalls++
       if (comm.duration) {
         stats[key].totalDuration += comm.duration
@@ -599,26 +604,26 @@ class PluginCommunicationDebugger {
         stats[key].lastCall = comm.timestamp
       }
     })
-    
+
     // 计算平均值和错误率
-    Object.keys(stats).forEach(key => {
+    Object.keys(stats).forEach((key) => {
       const stat = stats[key]
       stat.avgDuration = stat.totalDuration / stat.totalCalls
       stat.errorRate = stat.errors / stat.totalCalls
       delete stat.totalDuration
       delete stat.errors
     })
-    
+
     return stats
   }
-  
+
   // 获取慢调用
   getSlowCalls(threshold: number = 100): typeof this.communications {
-    return this.communications.filter(comm => 
+    return this.communications.filter(comm =>
       comm.duration && comm.duration > threshold
     )
   }
-  
+
   // 获取错误调用
   getErrorCalls(): typeof this.communications {
     return this.communications.filter(comm => comm.error)
@@ -632,15 +637,15 @@ setInterval(() => {
   const stats = commDebugger.getCommunicationStats()
   const slowCalls = commDebugger.getSlowCalls(50)
   const errorCalls = commDebugger.getErrorCalls()
-  
+
   if (Object.keys(stats).length > 0) {
     console.log('📊 插件通信统计:', stats)
   }
-  
+
   if (slowCalls.length > 0) {
     console.warn('🐌 慢调用:', slowCalls)
   }
-  
+
   if (errorCalls.length > 0) {
     console.error('❌ 错误调用:', errorCalls)
   }
@@ -661,18 +666,18 @@ class StateDebugger {
     timestamp: Date
     stackTrace: string[]
   }> = []
-  
+
   constructor(private engine: Engine) {
     this.setupStateDebugging()
   }
-  
+
   private setupStateDebugging() {
     // 拦截状态设置
     const originalSetState = this.engine.setState.bind(this.engine)
-    
+
     this.engine.setState = (key: string, value: any) => {
       const oldValue = this.engine.getState(key)
-      
+
       // 记录状态变化
       const change = {
         key,
@@ -681,34 +686,37 @@ class StateDebugger {
         timestamp: new Date(),
         stackTrace: new Error().stack?.split('\n').slice(2, 8) || []
       }
-      
+
       this.stateHistory.push(change)
-      
+
       console.group(`🔄 [STATE CHANGE] ${key}`)
       console.log('📊 旧值:', oldValue)
       console.log('📈 新值:', value)
       console.log('⏰ 时间:', change.timestamp.toISOString())
       console.log('📍 调用栈:', change.stackTrace)
       console.groupEnd()
-      
+
       return originalSetState(key, value)
     }
   }
-  
+
   private deepClone(obj: any): any {
-    if (obj === null || typeof obj !== 'object') return obj
-    if (obj instanceof Date) return new Date(obj)
-    if (obj instanceof Array) return obj.map(item => this.deepClone(item))
+    if (obj === null || typeof obj !== 'object')
+return obj
+    if (obj instanceof Date)
+return new Date(obj)
+    if (Array.isArray(obj))
+return obj.map(item => this.deepClone(item))
     if (typeof obj === 'object') {
       const cloned: any = {}
-      Object.keys(obj).forEach(key => {
+      Object.keys(obj).forEach((key) => {
         cloned[key] = this.deepClone(obj[key])
       })
       return cloned
     }
     return obj
   }
-  
+
   // 获取状态变化历史
   getStateHistory(key?: string): typeof this.stateHistory {
     if (key) {
@@ -716,19 +724,19 @@ class StateDebugger {
     }
     return this.stateHistory
   }
-  
+
   // 获取状态快照
   getStateSnapshot(): Record<string, any> {
     const snapshot: Record<string, any> = {}
     const state = this.engine.getState()
-    
-    Object.keys(state).forEach(key => {
+
+    Object.keys(state).forEach((key) => {
       snapshot[key] = this.deepClone(state[key])
     })
-    
+
     return snapshot
   }
-  
+
   // 比较状态快照
   compareSnapshots(snapshot1: Record<string, any>, snapshot2: Record<string, any>): {
     added: string[]
@@ -741,12 +749,12 @@ class StateDebugger {
   } {
     const keys1 = Object.keys(snapshot1)
     const keys2 = Object.keys(snapshot2)
-    
+
     const added = keys2.filter(key => !keys1.includes(key))
     const removed = keys1.filter(key => !keys2.includes(key))
     const changed: Array<any> = []
-    
-    keys1.forEach(key => {
+
+    keys1.forEach((key) => {
       if (keys2.includes(key) && !this.deepEqual(snapshot1[key], snapshot2[key])) {
         changed.push({
           key,
@@ -755,37 +763,43 @@ class StateDebugger {
         })
       }
     })
-    
+
     return { added, removed, changed }
   }
-  
+
   private deepEqual(obj1: any, obj2: any): boolean {
-    if (obj1 === obj2) return true
-    
-    if (obj1 == null || obj2 == null) return obj1 === obj2
-    
-    if (typeof obj1 !== typeof obj2) return false
-    
-    if (typeof obj1 !== 'object') return obj1 === obj2
-    
-    if (Array.isArray(obj1) !== Array.isArray(obj2)) return false
-    
+    if (obj1 === obj2)
+return true
+
+    if (obj1 == null || obj2 == null)
+return obj1 === obj2
+
+    if (typeof obj1 !== typeof obj2)
+return false
+
+    if (typeof obj1 !== 'object')
+return obj1 === obj2
+
+    if (Array.isArray(obj1) !== Array.isArray(obj2))
+return false
+
     const keys1 = Object.keys(obj1)
     const keys2 = Object.keys(obj2)
-    
-    if (keys1.length !== keys2.length) return false
-    
-    return keys1.every(key => 
+
+    if (keys1.length !== keys2.length)
+return false
+
+    return keys1.every(key =>
       keys2.includes(key) && this.deepEqual(obj1[key], obj2[key])
     )
   }
-  
+
   // 可视化状态变化
   visualizeStateChanges(key?: string) {
     const history = this.getStateHistory(key)
-    
+
     console.log(`📊 状态变化历史${key ? ` (${key})` : ''}:`)
-    
+
     history.forEach((change, index) => {
       console.log(`${index + 1}. [${change.timestamp.toISOString()}] ${change.key}`)
       console.log(`   📊 ${JSON.stringify(change.oldValue)} → 📈 ${JSON.stringify(change.newValue)}`)
@@ -801,11 +815,11 @@ let lastSnapshot = stateDebugger.getStateSnapshot()
 setInterval(() => {
   const currentSnapshot = stateDebugger.getStateSnapshot()
   const diff = stateDebugger.compareSnapshots(lastSnapshot, currentSnapshot)
-  
+
   if (diff.added.length > 0 || diff.removed.length > 0 || diff.changed.length > 0) {
     console.log('📊 状态变化检测:', diff)
   }
-  
+
   lastSnapshot = currentSnapshot
 }, 5000)
 ```
@@ -825,7 +839,7 @@ class PerformanceMonitor {
     avgTime: number
     lastExecution: Date
   }> = new Map()
-  
+
   private memoryUsage: Array<{
     timestamp: Date
     heapUsed: number
@@ -833,74 +847,75 @@ class PerformanceMonitor {
     external: number
     rss: number
   }> = []
-  
+
   constructor(private engine: Engine) {
     this.setupPerformanceMonitoring()
     this.startMemoryMonitoring()
   }
-  
+
   private setupPerformanceMonitoring() {
     // 监控事件处理性能
     const originalEmit = this.engine.emit.bind(this.engine)
-    
+
     this.engine.emit = (event: string, data?: any) => {
       const startTime = performance.now()
-      
+
       const result = originalEmit(event, data)
-      
+
       const endTime = performance.now()
       const duration = endTime - startTime
-      
+
       this.recordMetric(`event:${event}`, duration)
-      
+
       return result
     }
-    
+
     // 监控插件方法性能
     const originalGetPlugin = this.engine.getPlugin.bind(this.engine)
-    
+
     this.engine.getPlugin = (name: string) => {
       const plugin = originalGetPlugin(name)
-      
+
       if (plugin) {
         return this.wrapPluginForPerformance(plugin, name)
       }
-      
+
       return plugin
     }
   }
-  
+
   private wrapPluginForPerformance(plugin: any, pluginName: string): any {
     const wrapped = { ...plugin }
-    
-    Object.keys(plugin).forEach(key => {
+
+    Object.keys(plugin).forEach((key) => {
       if (typeof plugin[key] === 'function') {
         wrapped[key] = (...args: any[]) => {
           const startTime = performance.now()
-          
+
           try {
             const result = plugin[key](...args)
-            
+
             const endTime = performance.now()
             const duration = endTime - startTime
-            
+
             this.recordMetric(`plugin:${pluginName}.${key}`, duration)
-            
+
             return result
-          } catch (error) {
+          }
+ catch (error) {
             const endTime = performance.now()
             const duration = endTime - startTime
-            
+
             this.recordMetric(`plugin:${pluginName}.${key}`, duration)
             throw error
           }
         }
       }
     })
-    
+
     return wrapped
   }
-  
+
   private recordMetric(name: string, duration: number) {
     if (!this.metrics.has(name)) {
       this.metrics.set(name, {
@@ -912,7 +927,7 @@ class PerformanceMonitor {
         lastExecution: new Date()
       })
     }
-    
+
     const metric = this.metrics.get(name)!
     metric.count++
     metric.totalTime += duration
@@ -921,12 +936,12 @@ class PerformanceMonitor {
     metric.avgTime = metric.totalTime / metric.count
     metric.lastExecution = new Date()
   }
-  
+
   private startMemoryMonitoring() {
     setInterval(() => {
       if (typeof process !== 'undefined' && process.memoryUsage) {
         const usage = process.memoryUsage()
-        
+
         this.memoryUsage.push({
           timestamp: new Date(),
           heapUsed: usage.heapUsed,
@@ -934,7 +949,7 @@ class PerformanceMonitor {
           external: usage.external,
           rss: usage.rss
         })
-        
+
         // 保留最近1000条记录
         if (this.memoryUsage.length > 1000) {
           this.memoryUsage = this.memoryUsage.slice(-1000)
@@ -942,11 +957,11 @@ class PerformanceMonitor {
       }
     }, 1000)
   }
-  
+
   // 获取性能报告
   getPerformanceReport(): Record<string, any> {
     const report: Record<string, any> = {}
-    
+
     this.metrics.forEach((metric, name) => {
       report[name] = {
         count: metric.count,
@@ -957,10 +972,10 @@ class PerformanceMonitor {
         lastExecution: metric.lastExecution
       }
     })
-    
+
     return report
   }
-  
+
   // 获取慢操作
   getSlowOperations(threshold: number = 100): Array<{
     name: string
@@ -969,7 +984,7 @@ class PerformanceMonitor {
     count: number
   }> {
     const slowOps: Array<any> = []
-    
+
     this.metrics.forEach((metric, name) => {
       if (metric.avgTime > threshold || metric.maxTime > threshold * 2) {
         slowOps.push({
@@ -980,10 +995,10 @@ class PerformanceMonitor {
         })
       }
     })
-    
+
     return slowOps.sort((a, b) => b.avgTime - a.avgTime)
   }
-  
+
   // 获取内存使用趋势
   getMemoryTrend(minutes: number = 10): {
     trend: 'increasing' | 'decreasing' | 'stable'
@@ -993,7 +1008,7 @@ class PerformanceMonitor {
   } {
     const cutoff = new Date(Date.now() - minutes * 60 * 1000)
     const recentUsage = this.memoryUsage.filter(usage => usage.timestamp >= cutoff)
-    
+
     if (recentUsage.length < 2) {
       return {
         trend: 'stable',
@@ -1002,31 +1017,33 @@ class PerformanceMonitor {
         average: 0
       }
     }
-    
+
     const heapUsages = recentUsage.map(usage => usage.heapUsed)
     const current = heapUsages[heapUsages.length - 1]
     const peak = Math.max(...heapUsages)
     const average = heapUsages.reduce((sum, usage) => sum + usage, 0) / heapUsages.length
-    
+
     // 计算趋势
     const firstHalf = heapUsages.slice(0, Math.floor(heapUsages.length / 2))
     const secondHalf = heapUsages.slice(Math.floor(heapUsages.length / 2))
-    
+
     const firstAvg = firstHalf.reduce((sum, usage) => sum + usage, 0) / firstHalf.length
     const secondAvg = secondHalf.reduce((sum, usage) => sum + usage, 0) / secondHalf.length
-    
+
     const diff = secondAvg - firstAvg
     const threshold = average * 0.05 // 5% 阈值
-    
+
     let trend: 'increasing' | 'decreasing' | 'stable'
     if (diff > threshold) {
       trend = 'increasing'
-    } else if (diff < -threshold) {
+    }
+ else if (diff < -threshold) {
       trend = 'decreasing'
-    } else {
+    }
+ else {
       trend = 'stable'
     }
-    
+
     return {
       trend,
       current: Math.round(current / 1024 / 1024 * 100) / 100, // MB
@@ -1034,39 +1051,39 @@ class PerformanceMonitor {
       average: Math.round(average / 1024 / 1024 * 100) / 100 // MB
     }
   }
-  
+
   // 生成性能报告
   generateReport(): string {
     const perfReport = this.getPerformanceReport()
     const slowOps = this.getSlowOperations(50)
     const memoryTrend = this.getMemoryTrend()
-    
+
     let report = '📊 性能调试报告\n'
-    report += '='.repeat(50) + '\n\n'
-    
+    report += `${'='.repeat(50)}\n\n`
+
     // 内存使用情况
     report += '💾 内存使用情况:\n'
     report += `   当前: ${memoryTrend.current} MB\n`
     report += `   峰值: ${memoryTrend.peak} MB\n`
     report += `   平均: ${memoryTrend.average} MB\n`
     report += `   趋势: ${memoryTrend.trend}\n\n`
-    
+
     // 慢操作
     if (slowOps.length > 0) {
       report += '🐌 慢操作 (>50ms):\n'
-      slowOps.forEach(op => {
+      slowOps.forEach((op) => {
         report += `   ${op.name}: 平均 ${op.avgTime}ms, 最大 ${op.maxTime}ms (${op.count} 次)\n`
       })
       report += '\n'
     }
-    
+
     // 性能统计
     report += '⚡ 性能统计:\n'
-    Object.keys(perfReport).forEach(name => {
+    Object.keys(perfReport).forEach((name) => {
       const metric = perfReport[name]
       report += `   ${name}: 平均 ${metric.avgTime}ms (${metric.count} 次)\n`
     })
-    
+
     return report
   }
 }
@@ -1077,11 +1094,11 @@ const perfMonitor = new PerformanceMonitor(engine)
 setInterval(() => {
   const slowOps = perfMonitor.getSlowOperations()
   const memoryTrend = perfMonitor.getMemoryTrend()
-  
+
   if (slowOps.length > 0) {
     console.warn('🐌 检测到慢操作:', slowOps)
   }
-  
+
   if (memoryTrend.trend === 'increasing') {
     console.warn('📈 内存使用量持续增长:', memoryTrend)
   }
@@ -1109,17 +1126,17 @@ class ErrorTracker {
     resolved: boolean
     resolution?: string
   }> = []
-  
+
   constructor(private engine: Engine) {
     this.setupErrorTracking()
   }
-  
+
   private setupErrorTracking() {
     // 监听引擎错误
     this.engine.on('error', (error, context) => {
       this.trackError(error, context)
     })
-    
+
     // 全局错误处理
     if (typeof window !== 'undefined') {
       window.addEventListener('error', (event) => {
@@ -1130,7 +1147,7 @@ class ErrorTracker {
           colno: event.colno
         })
       })
-      
+
       window.addEventListener('unhandledrejection', (event) => {
         this.trackError(new Error(event.reason), {
           type: 'unhandled-promise-rejection',
@@ -1138,13 +1155,13 @@ class ErrorTracker {
         })
       })
     }
-    
+
     // Node.js 错误处理
     if (typeof process !== 'undefined') {
       process.on('uncaughtException', (error) => {
         this.trackError(error, { type: 'uncaught-exception' })
       })
-      
+
       process.on('unhandledRejection', (reason, promise) => {
         this.trackError(new Error(String(reason)), {
           type: 'unhandled-rejection',
@@ -1153,10 +1170,10 @@ class ErrorTracker {
       })
     }
   }
-  
+
   private trackError(error: Error, context: any) {
     const errorId = this.generateErrorId()
-    
+
     const trackedError = {
       id: errorId,
       error,
@@ -1165,40 +1182,42 @@ class ErrorTracker {
       stackTrace: error.stack?.split('\n') || [],
       resolved: false
     }
-    
+
     this.errors.push(trackedError)
-    
+
     console.group(`❌ [ERROR TRACKED] ${errorId}`)
     console.error('错误:', error.message)
     console.log('上下文:', context)
     console.log('堆栈:', error.stack)
     console.log('时间:', trackedError.timestamp.toISOString())
     console.groupEnd()
-    
+
     // 尝试自动恢复
     this.attemptAutoRecovery(trackedError)
   }
-  
+
   private generateErrorId(): string {
     return `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
   }
-  
+
   private attemptAutoRecovery(trackedError: any) {
     const { error, context } = trackedError
-    
+
     // 根据错误类型尝试恢复
     if (error.message.includes('plugin')) {
       console.log('🔧 尝试重新加载插件...')
       // 插件相关错误的恢复逻辑
-    } else if (error.message.includes('network')) {
+    }
+ else if (error.message.includes('network')) {
       console.log('🌐 尝试重新连接网络...')
       // 网络相关错误的恢复逻辑
-    } else if (error.message.includes('state')) {
+    }
+ else if (error.message.includes('state')) {
       console.log('🔄 尝试重置状态...')
       // 状态相关错误的恢复逻辑
     }
   }
-  
+
   // 获取错误统计
   getErrorStats(): {
     total: number
@@ -1210,18 +1229,18 @@ class ErrorTracker {
     const total = this.errors.length
     const resolved = this.errors.filter(e => e.resolved).length
     const unresolved = total - resolved
-    
+
     // 按类型分组
     const byType: Record<string, number> = {}
-    this.errors.forEach(error => {
+    this.errors.forEach((error) => {
       const type = error.context?.type || 'unknown'
       byType[type] = (byType[type] || 0) + 1
     })
-    
+
     // 最近1小时的错误
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000)
     const recent = this.errors.filter(e => e.timestamp >= oneHourAgo).length
-    
+
     return {
       total,
       resolved,
@@ -1230,29 +1249,29 @@ class ErrorTracker {
       recent
     }
   }
-  
+
   // 获取错误模式
   getErrorPatterns(): Array<{
     pattern: string
     count: number
     examples: string[]
   }> {
-    const patterns: Record<string, { count: number; examples: string[] }> = {}
-    
-    this.errors.forEach(error => {
+    const patterns: Record<string, { count: number, examples: string[] }> = {}
+
+    this.errors.forEach((error) => {
       // 简化错误消息以识别模式
       const pattern = this.simplifyErrorMessage(error.error.message)
-      
+
       if (!patterns[pattern]) {
         patterns[pattern] = { count: 0, examples: [] }
       }
-      
+
       patterns[pattern].count++
       if (patterns[pattern].examples.length < 3) {
         patterns[pattern].examples.push(error.error.message)
       }
     })
-    
+
     return Object.keys(patterns)
       .map(pattern => ({
         pattern,
@@ -1261,7 +1280,7 @@ class ErrorTracker {
       }))
       .sort((a, b) => b.count - a.count)
   }
-  
+
   private simplifyErrorMessage(message: string): string {
     // 移除具体的数值、ID等，保留错误模式
     return message
@@ -1270,51 +1289,51 @@ class ErrorTracker {
       .replace(/\b\w+_\d+\b/g, 'ID')
       .toLowerCase()
   }
-  
+
   // 标记错误为已解决
   resolveError(errorId: string, resolution: string) {
     const error = this.errors.find(e => e.id === errorId)
     if (error) {
       error.resolved = true
       error.resolution = resolution
-      
+
       console.log(`✅ [ERROR RESOLVED] ${errorId}: ${resolution}`)
     }
   }
-  
+
   // 生成错误报告
   generateErrorReport(): string {
     const stats = this.getErrorStats()
     const patterns = this.getErrorPatterns()
-    
+
     let report = '🚨 错误调试报告\n'
-    report += '='.repeat(50) + '\n\n'
-    
+    report += `${'='.repeat(50)}\n\n`
+
     // 错误统计
     report += '📊 错误统计:\n'
     report += `   总计: ${stats.total}\n`
     report += `   已解决: ${stats.resolved}\n`
     report += `   未解决: ${stats.unresolved}\n`
     report += `   最近1小时: ${stats.recent}\n\n`
-    
+
     // 错误类型分布
     report += '📈 错误类型分布:\n'
-    Object.keys(stats.byType).forEach(type => {
+    Object.keys(stats.byType).forEach((type) => {
       report += `   ${type}: ${stats.byType[type]}\n`
     })
     report += '\n'
-    
+
     // 错误模式
     if (patterns.length > 0) {
       report += '🔍 常见错误模式:\n'
-      patterns.slice(0, 5).forEach(pattern => {
+      patterns.slice(0, 5).forEach((pattern) => {
         report += `   ${pattern.pattern} (${pattern.count} 次)\n`
-        pattern.examples.forEach(example => {
+        pattern.examples.forEach((example) => {
           report += `     - ${example}\n`
         })
       })
     }
-    
+
     return report
   }
 }
@@ -1324,7 +1343,7 @@ const errorTracker = new ErrorTracker(engine)
 // 定期检查错误状态
 setInterval(() => {
   const stats = errorTracker.getErrorStats()
-  
+
   if (stats.recent > 5) {
     console.warn('🚨 最近1小时错误频发:', stats)
     console.log(errorTracker.generateErrorReport())
@@ -1342,13 +1361,14 @@ class BrowserDebugTools {
   constructor(private engine: Engine) {
     this.setupBrowserIntegration()
   }
-  
+
   private setupBrowserIntegration() {
-    if (typeof window === 'undefined') return
-    
+    if (typeof window === 'undefined')
+return
+
     // 将引擎暴露到全局
     (window as any).__LDESIGN_ENGINE__ = this.engine
-    
+
     // 添加调试方法到控制台
     (window as any).__LDESIGN_DEBUG__ = {
       engine: this.engine,
@@ -1360,12 +1380,12 @@ class BrowserDebugTools {
       trace: this.trace.bind(this),
       profile: this.profile.bind(this)
     }
-    
+
     console.log('🔧 LDesign Engine 调试工具已加载')
     console.log('使用 __LDESIGN_DEBUG__ 访问调试功能')
     console.log('使用 __LDESIGN_ENGINE__ 访问引擎实例')
   }
-  
+
   private inspect(target: any) {
     console.group('🔍 对象检查')
     console.log('类型:', typeof target)
@@ -1374,12 +1394,12 @@ class BrowserDebugTools {
     console.log('值:', target)
     console.groupEnd()
   }
-  
+
   private trace(event: string) {
     console.log(`🔍 开始追踪事件: ${event}`)
-    
+
     const originalEmit = this.engine.emit.bind(this.engine)
-    
+
     this.engine.emit = (eventName: string, data?: any) => {
       if (eventName === event) {
         console.group(`📍 事件追踪: ${event}`)
@@ -1387,30 +1407,31 @@ class BrowserDebugTools {
         console.trace('调用栈')
         console.groupEnd()
       }
-      
+
       return originalEmit(eventName, data)
     }
-    
+
     // 5分钟后停止追踪
     setTimeout(() => {
       this.engine.emit = originalEmit
       console.log(`⏹️ 停止追踪事件: ${event}`)
     }, 300000)
   }
-  
+
   private profile(name: string, fn: Function) {
     console.profile(name)
     const startTime = performance.now()
-    
+
     try {
       const result = fn()
-      
+
       const endTime = performance.now()
       console.profileEnd(name)
       console.log(`⚡ 性能分析 ${name}: ${endTime - startTime}ms`)
-      
+
       return result
-    } catch (error) {
+    }
+ catch (error) {
       const endTime = performance.now()
       console.profileEnd(name)
       console.error(`❌ 性能分析 ${name} 出错: ${endTime - startTime}ms`, error)
@@ -1473,14 +1494,14 @@ const debugConfig = {
     events: ['user:*', 'app:*'],
     logLevel: 'info'
   },
-  
+
   // 业务层调试
   business: {
     enabled: true,
     events: ['data:*', 'process:*'],
     logLevel: 'debug'
   },
-  
+
   // 框架层调试
   framework: {
     enabled: false, // 生产环境关闭
@@ -1491,14 +1512,14 @@ const debugConfig = {
 
 // 应用调试配置
 function applyDebugConfig(engine: Engine, config: typeof debugConfig) {
-  Object.keys(config).forEach(layer => {
+  Object.keys(config).forEach((layer) => {
     const layerConfig = config[layer as keyof typeof config]
-    
+
     if (layerConfig.enabled) {
-      layerConfig.events.forEach(eventPattern => {
+      layerConfig.events.forEach((eventPattern) => {
         // 使用通配符匹配事件
         const regex = new RegExp(eventPattern.replace('*', '.*'))
-        
+
         engine.on('*', (event: string, data: any) => {
           if (regex.test(event)) {
             console.log(`[${layer.toUpperCase()}] ${event}`, data)
@@ -1518,13 +1539,13 @@ applyDebugConfig(engine, debugConfig)
 // 条件调试器
 class ConditionalDebugger {
   private conditions: Map<string, (data: any) => boolean> = new Map()
-  
+
   constructor(private engine: Engine) {}
-  
+
   // 添加调试条件
   addCondition(name: string, condition: (data: any) => boolean) {
     this.conditions.set(name, condition)
-    
+
     this.engine.on('*', (event: string, data: any) => {
       if (condition(data)) {
         console.group(`🎯 [CONDITIONAL DEBUG] ${name}`)
@@ -1535,7 +1556,7 @@ class ConditionalDebugger {
       }
     })
   }
-  
+
   // 移除调试条件
   removeCondition(name: string) {
     this.conditions.delete(name)
@@ -1575,13 +1596,13 @@ class DebugSessionManager {
     }>
     active: boolean
   }> = new Map()
-  
+
   constructor(private engine: Engine) {}
-  
+
   // 开始调试会话
   startSession(name: string): string {
     const sessionId = `session_${Date.now()}`
-    
+
     const session = {
       id: sessionId,
       name,
@@ -1589,9 +1610,9 @@ class DebugSessionManager {
       events: [],
       active: true
     }
-    
+
     this.sessions.set(sessionId, session)
-    
+
     // 监听所有事件
     const listener = (event: string, data: any) => {
       if (session.active) {
@@ -1602,54 +1623,55 @@ class DebugSessionManager {
         })
       }
     }
-    
+
     this.engine.on('*', listener)
-    
+
     console.log(`🎬 开始调试会话: ${name} (${sessionId})`)
-    
+
     return sessionId
   }
-  
+
   // 结束调试会话
   endSession(sessionId: string) {
     const session = this.sessions.get(sessionId)
-    
+
     if (session) {
       session.active = false
       session.endTime = new Date()
-      
+
       console.log(`🎬 结束调试会话: ${session.name} (${sessionId})`)
       console.log(`📊 会话统计: ${session.events.length} 个事件`)
     }
   }
-  
+
   // 导出会话数据
   exportSession(sessionId: string): any {
     const session = this.sessions.get(sessionId)
-    
-    if (!session) return null
-    
+
+    if (!session)
+return null
+
     return {
       id: session.id,
       name: session.name,
       startTime: session.startTime,
       endTime: session.endTime,
-      duration: session.endTime 
+      duration: session.endTime
         ? session.endTime.getTime() - session.startTime.getTime()
         : Date.now() - session.startTime.getTime(),
       eventCount: session.events.length,
       events: session.events
     }
   }
-  
+
   // 分析会话
   analyzeSession(sessionId: string): {
     eventFrequency: Record<string, number>
-    timeline: Array<{ time: number; event: string }>
+    timeline: Array<{ time: number, event: string }>
     patterns: string[]
   } {
     const session = this.sessions.get(sessionId)
-    
+
     if (!session) {
       return {
         eventFrequency: {},
@@ -1657,48 +1679,49 @@ class DebugSessionManager {
         patterns: []
       }
     }
-    
+
     // 事件频率统计
     const eventFrequency: Record<string, number> = {}
-    session.events.forEach(event => {
+    session.events.forEach((event) => {
       eventFrequency[event.event] = (eventFrequency[event.event] || 0) + 1
     })
-    
+
     // 时间线
     const timeline = session.events.map(event => ({
       time: event.timestamp.getTime() - session.startTime.getTime(),
       event: event.event
     }))
-    
+
     // 模式识别
     const patterns = this.identifyPatterns(session.events)
-    
+
     return {
       eventFrequency,
       timeline,
       patterns
     }
   }
-  
+
   private identifyPatterns(events: any[]): string[] {
     const patterns: string[] = []
-    
+
     // 识别事件序列模式
     for (let i = 0; i < events.length - 2; i++) {
       const sequence = events.slice(i, i + 3).map(e => e.event).join(' -> ')
-      
+
       // 检查这个序列是否重复出现
       let count = 0
       for (let j = 0; j < events.length - 2; j++) {
         const checkSequence = events.slice(j, j + 3).map(e => e.event).join(' -> ')
-        if (checkSequence === sequence) count++
+        if (checkSequence === sequence)
+count++
       }
-      
+
       if (count >= 3 && !patterns.includes(sequence)) {
         patterns.push(`重复序列 (${count}次): ${sequence}`)
       }
     }
-    
+
     return patterns
   }
 }

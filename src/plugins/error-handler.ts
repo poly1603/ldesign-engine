@@ -1,4 +1,4 @@
-import type { Plugin, Engine, ErrorHandler } from '../types'
+import type { Engine, ErrorHandler, Plugin } from '../types'
 
 /**
  * 错误信息接口
@@ -66,7 +66,7 @@ export class ErrorHandlerImpl {
       defaultRecoveryStrategy: config.defaultRecoveryStrategy ?? 'ignore',
       reportToConsole: config.reportToConsole ?? true,
       reportToServer: config.reportToServer ?? false,
-      serverEndpoint: config.serverEndpoint ?? ''
+      serverEndpoint: config.serverEndpoint ?? '',
     }
 
     if (this.config.enabled) {
@@ -90,7 +90,7 @@ export class ErrorHandlerImpl {
       userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
       url: typeof window !== 'undefined' ? window.location.href : undefined,
       component: context?.component,
-      hook: context?.hook
+      hook: context?.hook,
     }
 
     // 添加到错误列表
@@ -138,7 +138,7 @@ export class ErrorHandlerImpl {
       byType: {},
       byComponent: {},
       byHook: {},
-      recent: this.errors.slice(-10)
+      recent: this.errors.slice(-10),
     }
 
     for (const errorInfo of this.errors) {
@@ -204,7 +204,7 @@ export class ErrorHandlerImpl {
 
     // 服务器报告
     if (this.config.reportToServer && this.config.serverEndpoint) {
-      this.reportToServer(errorInfo).catch(err => {
+      this.reportToServer(errorInfo).catch((err) => {
         console.warn('Failed to report error to server:', err)
       })
     }
@@ -223,17 +223,18 @@ export class ErrorHandlerImpl {
         url: errorInfo.url,
         component: errorInfo.component,
         hook: errorInfo.hook,
-        context: errorInfo.context
+        context: errorInfo.context,
       }
 
       await fetch(this.config.serverEndpoint, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       })
-    } catch (error) {
+    }
+ catch (error) {
       // 静默失败，避免无限循环
     }
   }
@@ -256,7 +257,8 @@ export class ErrorHandlerImpl {
           setTimeout(() => {
             try {
               errorInfo.context.retry()
-            } catch (retryError) {
+            }
+ catch (retryError) {
               console.warn('Retry failed:', retryError)
             }
           }, 1000)
@@ -268,7 +270,8 @@ export class ErrorHandlerImpl {
         if (errorInfo.context?.fallback && typeof errorInfo.context.fallback === 'function') {
           try {
             errorInfo.context.fallback()
-          } catch (fallbackError) {
+          }
+ catch (fallbackError) {
             console.warn('Fallback failed:', fallbackError)
           }
         }
@@ -293,7 +296,8 @@ export class ErrorHandlerImpl {
     for (const [name, handler] of this.errorHandlers) {
       try {
         handler(errorInfo.error, errorInfo.context)
-      } catch (handlerError) {
+      }
+ catch (handlerError) {
         console.error(`Error in custom error handler '${name}':`, handlerError)
       }
     }
@@ -316,14 +320,15 @@ export class ErrorHandlerImpl {
             source,
             lineno,
             colno,
-            type: 'unhandled'
+            type: 'unhandled',
           })
-        } else {
+        }
+ else {
           this.handleError(new Error(String(message)), {
             source,
             lineno,
             colno,
-            type: 'unhandled'
+            type: 'unhandled',
           })
         }
 
@@ -339,13 +344,13 @@ export class ErrorHandlerImpl {
     if (this.config.captureUnhandledRejections) {
       this.originalUnhandledRejectionHandler = window.onunhandledrejection
       window.onunhandledrejection = (event) => {
-        const error = event.reason instanceof Error 
-          ? event.reason 
+        const error = event.reason instanceof Error
+          ? event.reason
           : new Error(String(event.reason))
-        
+
         this.handleError(error, {
           type: 'unhandledRejection',
-          promise: event.promise
+          promise: event.promise,
         })
 
         // 调用原始处理器
@@ -393,49 +398,49 @@ export const errorHandlerPlugin: Plugin = {
   name: 'error-handler',
   install(engine: Engine, options: ErrorHandlerConfig = {}) {
     const errorHandler = new ErrorHandlerImpl(options)
-    
+
     // 注入错误处理器
     engine.provide('errorHandler', errorHandler)
-    
+
     // 设置引擎错误处理器
     if (engine.updateConfig) {
       engine.updateConfig({
         errorHandler: (error: Error, context?: any) => {
           errorHandler.handleError(error, context)
-        }
+        },
       })
     }
-    
+
     // 监听引擎错误事件
     engine.on('engine:error', (error: Error, context?: any) => {
       errorHandler.handleError(error, { ...context, source: 'engine' })
     })
-    
+
     engine.on('plugin:error', (error: Error, context?: any) => {
       errorHandler.handleError(error, { ...context, source: 'plugin' })
     })
-    
+
     engine.on('middleware:error', (error: Error, context?: any) => {
       errorHandler.handleError(error, { ...context, source: 'middleware' })
     })
-    
+
     // 添加错误处理API到引擎
     Object.assign(engine, {
       handleError: (error: Error, context?: any) => errorHandler.handleError(error, context),
-      registerErrorHandler: (name: string, handler: ErrorHandler) => 
+      registerErrorHandler: (name: string, handler: ErrorHandler) =>
         errorHandler.registerHandler(name, handler),
       unregisterErrorHandler: (name: string) => errorHandler.unregisterHandler(name),
-      setRecoveryStrategy: (errorType: string, strategy: RecoveryStrategy) => 
+      setRecoveryStrategy: (errorType: string, strategy: RecoveryStrategy) =>
         errorHandler.setRecoveryStrategy(errorType, strategy),
       getErrorStats: () => errorHandler.getStats(),
-      clearErrors: () => errorHandler.clearErrors()
+      clearErrors: () => errorHandler.clearErrors(),
     })
   },
-  
+
   uninstall(engine: Engine) {
     const errorHandler = engine.inject<ErrorHandlerImpl>('errorHandler')
     if (errorHandler) {
       errorHandler.destroy()
     }
-  }
+  },
 }

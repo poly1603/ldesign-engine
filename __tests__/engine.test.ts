@@ -1,14 +1,14 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { createEngine } from '../src/index'
 import type { Engine } from '../src/types'
 
-describe('Engine', () => {
+describe('engine', () => {
   let engine: Engine
 
   beforeEach(() => {
     engine = createEngine({
       name: 'TestEngine',
-      version: '1.0.0'
+      version: '1.0.0',
     })
   })
 
@@ -24,7 +24,7 @@ describe('Engine', () => {
   it('should provide and inject dependencies', () => {
     const testValue = { test: 'value' }
     engine.provide('test', testValue)
-    
+
     const injected = engine.inject('test')
     expect(injected).toBe(testValue)
   })
@@ -44,7 +44,7 @@ describe('Engine', () => {
     })
 
     engine.emit('test-event', { message: 'hello' })
-    
+
     expect(eventFired).toBe(true)
     expect(eventData).toEqual({ message: 'hello' })
   })
@@ -64,10 +64,12 @@ describe('Engine', () => {
     try {
       await engine.mount(mockElement)
       expect(middlewareExecuted).toBe(true)
-    } catch (error) {
+    }
+ catch (error) {
       // Mount might fail in test environment, but middleware should still execute
       expect(middlewareExecuted).toBe(true)
-    } finally {
+    }
+ finally {
       document.body.removeChild(mockElement)
     }
   })
@@ -77,11 +79,11 @@ describe('Engine', () => {
       name: 'test-plugin',
       install: (engine: Engine) => {
         engine.provide('plugin-test', 'plugin-value')
-      }
+      },
     }
 
     await engine.use(testPlugin)
-    
+
     expect(engine.hasPlugin('test-plugin')).toBe(true)
     expect(engine.inject('plugin-test')).toBe('plugin-value')
   })

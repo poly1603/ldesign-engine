@@ -25,22 +25,22 @@ const engine = new Engine({
   name: 'my-application',
   version: '1.0.0',
   description: '我的应用程序',
-  
+
   // 调试配置
   debug: true,
   logLevel: LogLevel.DEBUG,
-  
+
   // 事件配置
   maxListeners: 100,
   eventTimeout: 5000,
-  
+
   // 初始状态
   initialState: {
     theme: 'light',
     language: 'zh-CN',
     user: null
   },
-  
+
   // 状态持久化
   persistence: {
     enabled: true,
@@ -49,27 +49,27 @@ const engine = new Engine({
     include: ['theme', 'language'],
     exclude: ['temp']
   },
-  
+
   // 预注册插件
   plugins: [
     corePlugin,
     uiPlugin,
     authPlugin
   ],
-  
+
   // 预注册中间件
   middleware: [
     loggingMiddleware,
     authMiddleware,
     errorHandlingMiddleware
   ],
-  
+
   // 错误处理
   errorHandler: (error, context) => {
     console.error('引擎错误:', error)
     // 自定义错误处理逻辑
   },
-  
+
   // 性能配置
   performance: {
     enableMetrics: true,
@@ -207,8 +207,8 @@ const engine = new Engine({
     include: ['user', 'ui'], // 只持久化这些状态
     exclude: ['temp', 'cache'], // 排除这些状态
     serializer: {
-      serialize: (state) => JSON.stringify(state),
-      deserialize: (data) => JSON.parse(data)
+      serialize: state => JSON.stringify(state),
+      deserialize: data => JSON.parse(data)
     }
   }
 })
@@ -227,8 +227,8 @@ const engine = new Engine({
 - **描述**: 预注册的中间件列表
 
 ```typescript
-import { corePlugin, uiPlugin, authPlugin } from './plugins'
-import { loggingMiddleware, authMiddleware } from './middleware'
+import { authPlugin, corePlugin, uiPlugin } from './plugins'
+import { authMiddleware, loggingMiddleware } from './middleware'
 
 const engine = new Engine({
   name: 'my-app',
@@ -260,7 +260,7 @@ const engine = new Engine({
     // 记录错误
     console.error('引擎错误:', error)
     console.error('错误上下文:', context)
-    
+
     // 发送错误报告
     if (process.env.NODE_ENV === 'production') {
       errorReporter.report(error, {
@@ -270,11 +270,12 @@ const engine = new Engine({
         url: window.location.href
       })
     }
-    
+
     // 显示用户友好的错误信息
     if (error.name === 'NetworkError') {
       showNotification('网络连接失败，请检查网络设置')
-    } else {
+    }
+ else {
       showNotification('系统出现错误，请稍后重试')
     }
   }
@@ -419,7 +420,7 @@ console.log(metrics)
 // 监听性能指标更新
 engine.on('metrics:updated', (metrics) => {
   console.log('性能指标更新:', metrics)
-  
+
   // 检查内存使用情况
   if (metrics.memoryUsage.used > 100 * 1024 * 1024) {
     console.warn('内存使用过高')
@@ -467,7 +468,8 @@ if (isValid) {
     name: 'new-name',
     version: '2.0.0'
   })
-} else {
+}
+ else {
   console.error('配置无效')
 }
 ```
@@ -517,29 +519,29 @@ workerEngine.on('worker:complete', (result) => {
 ```typescript
 class EngineManager {
   private engines = new Map<string, Engine>()
-  
+
   createEngine(name: string, config: EngineConfig): Engine {
     const engine = new Engine({ ...config, name })
     this.engines.set(name, engine)
     return engine
   }
-  
+
   getEngine(name: string): Engine | undefined {
     return this.engines.get(name)
   }
-  
+
   async startAll(): Promise<void> {
     const promises = Array.from(this.engines.values()).map(engine => engine.start())
     await Promise.all(promises)
   }
-  
+
   async stopAll(): Promise<void> {
     const promises = Array.from(this.engines.values()).map(engine => engine.stop())
     await Promise.all(promises)
   }
-  
+
   broadcast(event: string, data?: any): void {
-    this.engines.forEach(engine => {
+    this.engines.forEach((engine) => {
       engine.emit(event, data)
     })
   }
@@ -571,15 +573,15 @@ manager.broadcast('app:ready')
 
 ```typescript
 // 使用环境变量
+// 使用配置文件
+import config from './config.json'
+
 const engine = new Engine({
   name: process.env.APP_NAME || 'my-app',
   version: process.env.APP_VERSION || '1.0.0',
   debug: process.env.NODE_ENV === 'development',
   logLevel: process.env.LOG_LEVEL as LogLevel || LogLevel.INFO
 })
-
-// 使用配置文件
-import config from './config.json'
 
 const engine = new Engine(config)
 ```
@@ -637,7 +639,7 @@ const engine = new Engine({
 
 ```typescript
 // 测试环境配置
-const createTestEngine = (overrides = {}) => {
+function createTestEngine(overrides = {}) {
   return new Engine({
     name: 'test-engine',
     version: '1.0.0',

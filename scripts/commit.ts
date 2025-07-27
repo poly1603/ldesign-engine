@@ -1,7 +1,6 @@
 #!/usr/bin/env tsx
 
 import { execSync } from 'node:child_process'
-import fs from 'node:fs'
 import chalk from 'chalk'
 import ora from 'ora'
 
@@ -18,21 +17,23 @@ class GitCommitManager {
     try {
       execSync('git rev-parse --git-dir', { stdio: 'ignore' })
       return true
-    } catch {
+    }
+ catch {
       return false
     }
   }
 
   // 检查工作区状态
-  private checkWorkingDirectory(): { hasChanges: boolean; files: string[] } {
+  private checkWorkingDirectory(): { hasChanges: boolean, files: string[] } {
     try {
       const output = execSync('git status --porcelain', { encoding: 'utf8' })
       const files = output.trim().split('\n').filter(line => line.trim())
       return {
         hasChanges: files.length > 0,
-        files: files.map(line => line.substring(3))
+        files: files.map(line => line.substring(3)),
       }
-    } catch {
+    }
+ catch {
       return { hasChanges: false, files: [] }
     }
   }
@@ -41,7 +42,8 @@ class GitCommitManager {
   private getCurrentBranch(): string {
     try {
       return execSync('git branch --show-current', { encoding: 'utf8' }).trim()
-    } catch {
+    }
+ catch {
       return 'unknown'
     }
   }
@@ -49,12 +51,13 @@ class GitCommitManager {
   // 运行 TypeScript 类型检查
   private async runTypeCheck(): Promise<boolean> {
     const spinner = ora('🔍 运行 TypeScript 类型检查...').start()
-    
+
     try {
       execSync('pnpm typecheck', { stdio: 'ignore' })
       spinner.succeed(chalk.green('✅ TypeScript 类型检查通过'))
       return true
-    } catch {
+    }
+ catch {
       spinner.fail(chalk.red('❌ TypeScript 类型检查失败'))
       return false
     }
@@ -63,12 +66,13 @@ class GitCommitManager {
   // 运行 ESLint 检查
   private async runLintCheck(): Promise<boolean> {
     const spinner = ora('🔍 运行 ESLint 检查...').start()
-    
+
     try {
       execSync('pnpm lint', { stdio: 'ignore' })
       spinner.succeed(chalk.green('✅ ESLint 检查通过'))
       return true
-    } catch {
+    }
+ catch {
       spinner.fail(chalk.red('❌ ESLint 检查失败'))
       console.log(chalk.yellow('💡 提示: 运行 `pnpm lint:fix` 自动修复问题'))
       return false
@@ -78,12 +82,13 @@ class GitCommitManager {
   // 运行测试
   private async runTests(): Promise<boolean> {
     const spinner = ora('🧪 运行测试用例...').start()
-    
+
     try {
       execSync('pnpm test:run', { stdio: 'ignore' })
       spinner.succeed(chalk.green('✅ 所有测试通过'))
       return true
-    } catch {
+    }
+ catch {
       spinner.fail(chalk.red('❌ 测试失败'))
       return false
     }
@@ -92,12 +97,13 @@ class GitCommitManager {
   // 运行构建
   private async runBuild(): Promise<boolean> {
     const spinner = ora('📦 运行项目构建...').start()
-    
+
     try {
       execSync('pnpm build', { stdio: 'ignore' })
       spinner.succeed(chalk.green('✅ 项目构建成功'))
       return true
-    } catch {
+    }
+ catch {
       spinner.fail(chalk.red('❌ 项目构建失败'))
       return false
     }
@@ -106,12 +112,13 @@ class GitCommitManager {
   // 运行文档构建
   private async runDocsBuild(): Promise<boolean> {
     const spinner = ora('📚 运行文档构建...').start()
-    
+
     try {
       execSync('pnpm docs:build', { stdio: 'ignore' })
       spinner.succeed(chalk.green('✅ 文档构建成功'))
       return true
-    } catch {
+    }
+ catch {
       spinner.fail(chalk.red('❌ 文档构建失败'))
       return false
     }
@@ -144,11 +151,12 @@ class GitCommitManager {
   // Git 操作：暂存文件
   private stageFiles(files: string[]): void {
     const spinner = ora('📝 暂存文件...').start()
-    
+
     try {
       execSync('git add .', { stdio: 'ignore' })
       spinner.succeed(chalk.green(`✅ 已暂存 ${files.length} 个文件`))
-    } catch (error) {
+    }
+ catch (error) {
       spinner.fail(chalk.red('❌ 暂存文件失败'))
       throw error
     }
@@ -157,11 +165,12 @@ class GitCommitManager {
   // Git 操作：拉取最新代码
   private pullLatestChanges(): void {
     const spinner = ora('⬇️  拉取最新代码...').start()
-    
+
     try {
       execSync('git pull --rebase', { stdio: 'ignore' })
       spinner.succeed(chalk.green('✅ 已拉取最新代码'))
-    } catch (error) {
+    }
+ catch (error) {
       spinner.fail(chalk.red('❌ 拉取代码失败'))
       throw error
     }
@@ -171,7 +180,8 @@ class GitCommitManager {
   private restoreStaged(): void {
     try {
       execSync('git restore --staged .', { stdio: 'ignore' })
-    } catch {
+    }
+ catch {
       // 忽略错误
     }
   }
@@ -179,7 +189,7 @@ class GitCommitManager {
   // 交互式提交
   private async interactiveCommit(): Promise<void> {
     console.log(chalk.blue.bold('\n📝 交互式提交\n'))
-    
+
     // 显示提交类型选项
     console.log(chalk.yellow('选择提交类型:'))
     const commitTypes = [
@@ -273,29 +283,30 @@ class GitCommitManager {
           console.log(chalk.yellow('💡 提示: 使用 --skip-checks 跳过检查（不推荐）'))
           process.exit(1)
         }
-      } else {
+      }
+ else {
         console.log(chalk.yellow('⚠️  跳过代码检查'))
       }
 
       // 4. Git 操作
       console.log(chalk.blue.bold('\n📝 执行 Git 操作...\n'))
-      
+
       this.stageFiles(files)
       this.pullLatestChanges()
-      
+
       // 5. 交互式提交
       await this.interactiveCommit()
-      
+
       console.log(chalk.green.bold('\n✅ 提交准备完成!'))
       console.log(chalk.yellow('💡 请运行 `git commit -m "your message"` 完成提交'))
-      
-    } catch (error) {
+    }
+ catch (error) {
       console.error(chalk.red('❌ 提交过程中发生错误:'), error)
-      
+
       // 恢复暂存状态
       this.restoreStaged()
       console.log(chalk.yellow('🔄 已恢复暂存状态'))
-      
+
       process.exit(1)
     }
   }

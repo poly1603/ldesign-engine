@@ -1,10 +1,10 @@
 import { reactive, watch } from 'vue'
-import { merge, get, set, has, unset } from 'lodash-es'
-import type { 
-  ConfigManager, 
-  EngineConfig, 
-  ConfigWatcher, 
-  UnwatchFn 
+import { get, has, merge, set, unset } from 'lodash-es'
+import type {
+  ConfigManager,
+  ConfigWatcher,
+  EngineConfig,
+  UnwatchFn,
 } from './types'
 import { ConfigError } from './types'
 
@@ -29,7 +29,8 @@ export class ConfigManagerImpl implements ConfigManager {
   get<T>(key: string): T | undefined {
     try {
       return get(this.config, key) as T
-    } catch (error) {
+    }
+ catch (error) {
       throw new ConfigError(`Failed to get config '${key}'`, key, error)
     }
   }
@@ -41,10 +42,11 @@ export class ConfigManagerImpl implements ConfigManager {
     try {
       const oldValue = this.get(key)
       set(this.config, key, value)
-      
+
       // 触发监听器
       this.notifyWatchers(key, value, oldValue)
-    } catch (error) {
+    }
+ catch (error) {
       throw new ConfigError(`Failed to set config '${key}'`, key, error)
     }
   }
@@ -56,10 +58,11 @@ export class ConfigManagerImpl implements ConfigManager {
     try {
       const oldConfig = { ...this.config }
       merge(this.config, updates)
-      
+
       // 触发相关监听器
       this.notifyUpdateWatchers(updates, oldConfig)
-    } catch (error) {
+    }
+ catch (error) {
       throw new ConfigError('Failed to update config', 'update', error)
     }
   }
@@ -77,7 +80,7 @@ export class ConfigManagerImpl implements ConfigManager {
       watchers = new Set()
       this.watchers.set(key, watchers)
     }
-    
+
     watchers.add(callback)
 
     // 设置Vue的watch
@@ -86,11 +89,12 @@ export class ConfigManagerImpl implements ConfigManager {
       (newValue, oldValue) => {
         try {
           callback(newValue, oldValue)
-        } catch (error) {
+        }
+ catch (error) {
           console.error(`Error in config watcher for '${key}':`, error)
         }
       },
-      { deep: true }
+      { deep: true },
     )
 
     // 存储取消监听函数
@@ -144,11 +148,11 @@ export class ConfigManagerImpl implements ConfigManager {
       if (config.name !== undefined && typeof config.name !== 'string') {
         return false
       }
-      
+
       if (config.version !== undefined && typeof config.version !== 'string') {
         return false
       }
-      
+
       if (config.debug !== undefined && typeof config.debug !== 'boolean') {
         return false
       }
@@ -159,8 +163,8 @@ export class ConfigManagerImpl implements ConfigManager {
         if (perf.enabled !== undefined && typeof perf.enabled !== 'boolean') {
           return false
         }
-        if (perf.sampleRate !== undefined && 
-            (typeof perf.sampleRate !== 'number' || perf.sampleRate < 0 || perf.sampleRate > 1)) {
+        if (perf.sampleRate !== undefined
+          && (typeof perf.sampleRate !== 'number' || perf.sampleRate < 0 || perf.sampleRate > 1)) {
           return false
         }
       }
@@ -177,7 +181,8 @@ export class ConfigManagerImpl implements ConfigManager {
       }
 
       return true
-    } catch {
+    }
+ catch {
       return false
     }
   }
@@ -189,7 +194,7 @@ export class ConfigManagerImpl implements ConfigManager {
     if (!this.validate(config)) {
       throw new ConfigError('Invalid config provided', 'merge', config)
     }
-    
+
     this.update(config)
   }
 
@@ -208,14 +213,15 @@ export class ConfigManagerImpl implements ConfigManager {
       if (!this.has(key)) {
         return false
       }
-      
+
       const oldValue = this.get(key)
       unset(this.config, key)
-      
+
       // 触发监听器
       this.notifyWatchers(key, undefined, oldValue)
       return true
-    } catch (error) {
+    }
+ catch (error) {
       throw new ConfigError(`Failed to delete config '${key}'`, key, error)
     }
   }
@@ -232,17 +238,17 @@ export class ConfigManagerImpl implements ConfigManager {
    */
   reset(newConfig?: EngineConfig): void {
     const oldConfig = { ...this.config }
-    
+
     // 清空当前配置
-    Object.keys(this.config).forEach(key => {
+    Object.keys(this.config).forEach((key) => {
       delete (this.config as any)[key]
     })
-    
+
     // 设置新配置
     if (newConfig) {
       merge(this.config, newConfig)
     }
-    
+
     // 触发所有监听器
     this.notifyResetWatchers(this.config, oldConfig)
   }
@@ -264,7 +270,7 @@ export class ConfigManagerImpl implements ConfigManager {
       () => {
         // 配置变化时的全局处理
       },
-      { deep: true }
+      { deep: true },
     )
   }
 
@@ -274,10 +280,11 @@ export class ConfigManagerImpl implements ConfigManager {
   private notifyWatchers(key: string, newValue: any, oldValue: any): void {
     const watchers = this.watchers.get(key)
     if (watchers) {
-      watchers.forEach(callback => {
+      watchers.forEach((callback) => {
         try {
           callback(newValue, oldValue)
-        } catch (error) {
+        }
+ catch (error) {
           console.error(`Error in config watcher for '${key}':`, error)
         }
       })
@@ -288,7 +295,7 @@ export class ConfigManagerImpl implements ConfigManager {
    * 通知更新监听器
    */
   private notifyUpdateWatchers(updates: Partial<EngineConfig>, oldConfig: EngineConfig): void {
-    Object.keys(updates).forEach(key => {
+    Object.keys(updates).forEach((key) => {
       const newValue = get(updates, key)
       const oldValue = get(oldConfig, key)
       if (newValue !== oldValue) {
@@ -302,7 +309,7 @@ export class ConfigManagerImpl implements ConfigManager {
    */
   private notifyResetWatchers(newConfig: EngineConfig, oldConfig: EngineConfig): void {
     const allKeys = new Set([...Object.keys(newConfig), ...Object.keys(oldConfig)])
-    allKeys.forEach(key => {
+    allKeys.forEach((key) => {
       const newValue = get(newConfig, key)
       const oldValue = get(oldConfig, key)
       if (newValue !== oldValue) {
@@ -317,9 +324,9 @@ export class ConfigManagerImpl implements ConfigManager {
   destroy(): void {
     // 清除所有监听器
     this.watchers.clear()
-    
+
     // 取消所有Vue watch
-    this.unwatchFns.forEach(unwatchFns => {
+    this.unwatchFns.forEach((unwatchFns) => {
       unwatchFns.forEach(fn => fn())
     })
     this.unwatchFns.clear()

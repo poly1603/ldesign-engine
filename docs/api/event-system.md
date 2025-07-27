@@ -9,25 +9,25 @@
 ```typescript
 interface EventEmitter {
   // 基础事件方法
-  on(event: string, listener: EventListener): this
-  off(event: string, listener?: EventListener): this
-  once(event: string, listener: EventListener): this
-  emit(event: string, ...args: any[]): boolean
-  emitAsync(event: string, ...args: any[]): Promise<any[]>
-  
+  on: (event: string, listener: EventListener) => this
+  off: (event: string, listener?: EventListener) => this
+  once: (event: string, listener: EventListener) => this
+  emit: (event: string, ...args: any[]) => boolean
+  emitAsync: (event: string, ...args: any[]) => Promise<any[]>
+
   // 高级事件方法
-  prependListener(event: string, listener: EventListener): this
-  prependOnceListener(event: string, listener: EventListener): this
-  removeAllListeners(event?: string): this
-  
+  prependListener: (event: string, listener: EventListener) => this
+  prependOnceListener: (event: string, listener: EventListener) => this
+  removeAllListeners: (event?: string) => this
+
   // 事件信息
-  listeners(event: string): EventListener[]
-  listenerCount(event: string): number
-  eventNames(): string[]
-  
+  listeners: (event: string) => EventListener[]
+  listenerCount: (event: string) => number
+  eventNames: () => string[]
+
   // 配置方法
-  setMaxListeners(n: number): this
-  getMaxListeners(): number
+  setMaxListeners: (n: number) => this
+  getMaxListeners: () => number
 }
 ```
 
@@ -59,13 +59,13 @@ type EventFilter = (event: string, ...args: any[]) => boolean
 
 ```typescript
 interface EventContext {
-  event: string           // 事件名称
-  args: any[]            // 事件参数
-  timestamp: number      // 触发时间戳
-  source?: any           // 事件源
-  target?: any           // 事件目标
-  cancelled?: boolean    // 是否已取消
-  stopped?: boolean      // 是否停止传播
+  event: string // 事件名称
+  args: any[] // 事件参数
+  timestamp: number // 触发时间戳
+  source?: any // 事件源
+  target?: any // 事件目标
+  cancelled?: boolean // 是否已取消
+  stopped?: boolean // 是否停止传播
 }
 ```
 
@@ -96,7 +96,7 @@ engine.once('app:ready', () => {
 
 // 多个事件监听
 const events = ['user:login', 'user:logout', 'user:update']
-events.forEach(event => {
+events.forEach((event) => {
   engine.on(event, (user) => {
     console.log(`用户事件: ${event}`, user)
   })
@@ -171,38 +171,39 @@ engine.removeAllListeners('user:login')
 // 扩展引擎以支持优先级
 class PriorityEventEngine extends Engine {
   private priorityListeners = new Map<string, PriorityEventListener[]>()
-  
+
   onWithPriority(
-    event: string, 
-    listener: EventListener, 
+    event: string,
+    listener: EventListener,
     priority: number = 0
   ): this {
     if (!this.priorityListeners.has(event)) {
       this.priorityListeners.set(event, [])
     }
-    
+
     const listeners = this.priorityListeners.get(event)!
     listeners.push({ listener, priority })
-    
+
     // 按优先级排序（高优先级先执行）
     listeners.sort((a, b) => b.priority - a.priority)
-    
+
     return this
   }
-  
+
   emit(event: string, ...args: any[]): boolean {
     const priorityListeners = this.priorityListeners.get(event)
-    
+
     if (priorityListeners) {
       for (const { listener } of priorityListeners) {
         try {
           listener(...args)
-        } catch (error) {
+        }
+ catch (error) {
           this.emit('error', error, { event, args })
         }
       }
     }
-    
+
     // 调用父类方法处理普通监听器
     return super.emit(event, ...args)
   }
@@ -232,19 +233,19 @@ engine.onWithPriority('data:process', (data) => {
 ```typescript
 class InterceptableEventEngine extends Engine {
   private interceptors = new Map<string, EventInterceptor[]>()
-  
+
   intercept(event: string, interceptor: EventInterceptor): this {
     if (!this.interceptors.has(event)) {
       this.interceptors.set(event, [])
     }
-    
+
     this.interceptors.get(event)!.push(interceptor)
     return this
   }
-  
+
   async emit(event: string, ...args: any[]): Promise<boolean> {
     const interceptors = this.interceptors.get(event) || []
-    
+
     // 创建事件上下文
     const context: EventContext = {
       event,
@@ -253,21 +254,22 @@ class InterceptableEventEngine extends Engine {
       cancelled: false,
       stopped: false
     }
-    
+
     // 执行拦截器
     for (const interceptor of interceptors) {
-      if (context.cancelled) break
-      
+      if (context.cancelled)
+break
+
       await new Promise<void>((resolve) => {
         interceptor(event, context.args, resolve)
       })
     }
-    
+
     // 如果事件被取消，不继续执行
     if (context.cancelled) {
       return false
     }
-    
+
     // 使用可能被修改的参数触发事件
     return super.emit(event, ...context.args)
   }
@@ -279,17 +281,17 @@ const engine = new InterceptableEventEngine()
 // 数据验证拦截器
 engine.intercept('user:create', (event, args, next) => {
   const [userData] = args
-  
+
   // 验证用户数据
   if (!userData.email || !userData.name) {
     console.error('用户数据验证失败')
     return // 不调用 next()，阻止事件继续
   }
-  
+
   // 数据清理
   userData.email = userData.email.toLowerCase().trim()
   userData.name = userData.name.trim()
-  
+
   console.log('用户数据验证通过')
   next() // 继续执行
 })
@@ -306,24 +308,24 @@ engine.intercept('user:create', (event, args, next) => {
 ```typescript
 class NamespacedEventEngine extends Engine {
   private namespaces = new Map<string, Set<string>>()
-  
+
   // 注册命名空间事件
   onNamespace(namespace: string, event: string, listener: EventListener): this {
     const fullEvent = `${namespace}:${event}`
-    
+
     if (!this.namespaces.has(namespace)) {
       this.namespaces.set(namespace, new Set())
     }
-    
+
     this.namespaces.get(namespace)!.add(fullEvent)
     return this.on(fullEvent, listener)
   }
-  
+
   // 触发命名空间事件
   emitNamespace(namespace: string, event: string, ...args: any[]): boolean {
     return this.emit(`${namespace}:${event}`, ...args)
   }
-  
+
   // 移除命名空间的所有事件
   removeNamespace(namespace: string): this {
     const events = this.namespaces.get(namespace)
@@ -333,7 +335,7 @@ class NamespacedEventEngine extends Engine {
     }
     return this
   }
-  
+
   // 获取命名空间的所有事件
   getNamespaceEvents(namespace: string): string[] {
     const events = this.namespaces.get(namespace)
@@ -375,20 +377,20 @@ engine.removeNamespace('user')
 ```typescript
 class FilterableEventEngine extends Engine {
   private filters = new Map<string, EventFilter[]>()
-  
+
   // 添加事件过滤器
   filter(event: string, filter: EventFilter): this {
     if (!this.filters.has(event)) {
       this.filters.set(event, [])
     }
-    
+
     this.filters.get(event)!.push(filter)
     return this
   }
-  
+
   emit(event: string, ...args: any[]): boolean {
     const filters = this.filters.get(event) || []
-    
+
     // 检查所有过滤器
     for (const filter of filters) {
       if (!filter(event, ...args)) {
@@ -396,7 +398,7 @@ class FilterableEventEngine extends Engine {
         return false
       }
     }
-    
+
     return super.emit(event, ...args)
   }
 }
@@ -439,34 +441,34 @@ engine.emit('admin:action', 'delete-user', { role: 'admin' }) // 通过
 class EventAggregator {
   private engine: Engine
   private subscriptions = new Map<string, Set<EventListener>>()
-  
+
   constructor(engine: Engine) {
     this.engine = engine
   }
-  
+
   // 订阅事件
   subscribe(event: string, handler: EventListener): () => void {
     if (!this.subscriptions.has(event)) {
       this.subscriptions.set(event, new Set())
-      
+
       // 首次订阅时注册引擎监听器
       this.engine.on(event, this.createAggregateHandler(event))
     }
-    
+
     this.subscriptions.get(event)!.add(handler)
-    
+
     // 返回取消订阅函数
     return () => {
       this.unsubscribe(event, handler)
     }
   }
-  
+
   // 取消订阅
   unsubscribe(event: string, handler: EventListener): void {
     const handlers = this.subscriptions.get(event)
     if (handlers) {
       handlers.delete(handler)
-      
+
       // 如果没有订阅者了，移除引擎监听器
       if (handlers.size === 0) {
         this.subscriptions.delete(event)
@@ -474,20 +476,21 @@ class EventAggregator {
       }
     }
   }
-  
+
   // 发布事件
   publish(event: string, ...args: any[]): void {
     this.engine.emit(event, ...args)
   }
-  
+
   private createAggregateHandler(event: string) {
     return (...args: any[]) => {
       const handlers = this.subscriptions.get(event)
       if (handlers) {
-        handlers.forEach(handler => {
+        handlers.forEach((handler) => {
           try {
             handler(...args)
-          } catch (error) {
+          }
+ catch (error) {
             console.error(`事件处理器错误 (${event}):`, error)
           }
         })
@@ -523,41 +526,41 @@ unsubscribe2()
 class EventBus {
   private static instance: EventBus
   private engine: Engine
-  
+
   private constructor() {
     this.engine = new Engine()
   }
-  
+
   static getInstance(): EventBus {
     if (!EventBus.instance) {
       EventBus.instance = new EventBus()
     }
     return EventBus.instance
   }
-  
+
   // 注册模块
   registerModule(moduleName: string, module: any): void {
     // 自动注册模块的事件处理器
     const methods = Object.getOwnPropertyNames(Object.getPrototypeOf(module))
-    
-    methods.forEach(method => {
+
+    methods.forEach((method) => {
       if (method.startsWith('on') && typeof module[method] === 'function') {
         const eventName = this.methodToEventName(method)
         this.engine.on(`${moduleName}:${eventName}`, module[method].bind(module))
       }
     })
   }
-  
+
   // 发送消息
   send(target: string, event: string, ...args: any[]): void {
     this.engine.emit(`${target}:${event}`, ...args)
   }
-  
+
   // 广播消息
   broadcast(event: string, ...args: any[]): void {
     this.engine.emit(`broadcast:${event}`, ...args)
   }
-  
+
   private methodToEventName(methodName: string): string {
     // 将 onUserLogin 转换为 user-login
     return methodName
@@ -573,7 +576,7 @@ class UserModule {
   onUserLogin(user: any) {
     console.log('用户模块: 用户登录', user)
   }
-  
+
   onUserLogout(user: any) {
     console.log('用户模块: 用户登出', user)
   }
@@ -583,7 +586,7 @@ class NotificationModule {
   onUserLogin(user: any) {
     console.log('通知模块: 发送登录通知', user)
   }
-  
+
   onBroadcastMessage(message: string) {
     console.log('通知模块: 广播消息', message)
   }
@@ -616,46 +619,46 @@ class EventHistory {
     timestamp: number
     id: string
   }> = []
-  
+
   private maxEvents = 1000
-  
+
   record(event: string, args: any[]): string {
     const id = this.generateId()
-    
+
     this.events.push({
       event,
       args,
       timestamp: Date.now(),
       id
     })
-    
+
     // 保持历史记录在限制范围内
     if (this.events.length > this.maxEvents) {
       this.events.shift()
     }
-    
+
     return id
   }
-  
+
   replay(engine: Engine, filter?: (event: any) => boolean): void {
     const eventsToReplay = filter ? this.events.filter(filter) : this.events
-    
+
     eventsToReplay.forEach(({ event, args }) => {
       engine.emit(event, ...args)
     })
   }
-  
+
   getEvents(since?: number): any[] {
     if (since) {
       return this.events.filter(e => e.timestamp >= since)
     }
     return [...this.events]
   }
-  
+
   clear(): void {
     this.events = []
   }
-  
+
   private generateId(): string {
     return Math.random().toString(36).substr(2, 9)
   }
@@ -663,23 +666,23 @@ class EventHistory {
 
 class ReplayableEventEngine extends Engine {
   private history = new EventHistory()
-  
+
   emit(event: string, ...args: any[]): boolean {
     // 记录事件
     this.history.record(event, args)
-    
+
     // 触发事件
     return super.emit(event, ...args)
   }
-  
+
   replay(filter?: (event: any) => boolean): void {
     this.history.replay(this, filter)
   }
-  
+
   getEventHistory(since?: number): any[] {
     return this.history.getEvents(since)
   }
-  
+
   clearHistory(): void {
     this.history.clear()
   }
@@ -718,48 +721,50 @@ console.log('事件历史:', history)
 ```typescript
 class RobustEventEngine extends Engine {
   private errorHandlers = new Map<string, Array<(error: Error, context: any) => void>>()
-  
+
   // 注册错误处理器
   onError(event: string, handler: (error: Error, context: any) => void): this {
     if (!this.errorHandlers.has(event)) {
       this.errorHandlers.set(event, [])
     }
-    
+
     this.errorHandlers.get(event)!.push(handler)
     return this
   }
-  
+
   emit(event: string, ...args: any[]): boolean {
     const listeners = this.listeners(event)
-    
+
     if (listeners.length === 0) {
       return false
     }
-    
+
     let hasError = false
-    
-    listeners.forEach(listener => {
+
+    listeners.forEach((listener) => {
       try {
         listener(...args)
-      } catch (error) {
+      }
+ catch (error) {
         hasError = true
         this.handleEventError(event, error, { args, listener })
       }
     })
-    
+
     return !hasError
   }
-  
+
   private handleEventError(event: string, error: Error, context: any): void {
     // 触发通用错误事件
     super.emit('error', error, { event, ...context })
-    
+
     // 触发特定事件的错误处理器
     const handlers = this.errorHandlers.get(event) || []
-    handlers.forEach(handler => {
+    handlers.forEach((handler) => {
       try {
         handler(error, context)
-      } catch (handlerError) {
+      }
+ catch (handlerError) {
         console.error('错误处理器本身发生错误:', handlerError)
       }
     })
@@ -804,46 +809,46 @@ class DebuggableEventEngine extends Engine {
     timestamp: number
     details?: any
   }> = []
-  
+
   enableDebug(): this {
     this.debug = true
     return this
   }
-  
+
   disableDebug(): this {
     this.debug = false
     return this
   }
-  
+
   on(event: string, listener: EventListener): this {
     if (this.debug) {
       this.log('listen', event, { listenerCount: this.listenerCount(event) + 1 })
     }
-    
+
     return super.on(event, listener)
   }
-  
+
   off(event: string, listener?: EventListener): this {
     if (this.debug) {
-      this.log('unlisten', event, { 
-        listenerCount: listener ? this.listenerCount(event) - 1 : 0 
+      this.log('unlisten', event, {
+        listenerCount: listener ? this.listenerCount(event) - 1 : 0
       })
     }
-    
+
     return super.off(event, listener)
   }
-  
+
   emit(event: string, ...args: any[]): boolean {
     if (this.debug) {
-      this.log('emit', event, { 
-        args, 
-        listenerCount: this.listenerCount(event) 
+      this.log('emit', event, {
+        args,
+        listenerCount: this.listenerCount(event)
       })
     }
-    
+
     return super.emit(event, ...args)
   }
-  
+
   private log(type: string, event: string, details?: any): void {
     const logEntry = {
       type: type as 'emit' | 'listen' | 'unlisten',
@@ -851,20 +856,20 @@ class DebuggableEventEngine extends Engine {
       timestamp: Date.now(),
       details
     }
-    
+
     this.eventLog.push(logEntry)
-    
+
     console.log(`[EventDebug] ${type.toUpperCase()}: ${event}`, details)
   }
-  
+
   getEventLog(): any[] {
     return [...this.eventLog]
   }
-  
+
   clearEventLog(): void {
     this.eventLog = []
   }
-  
+
   // 事件统计
   getEventStats(): any {
     const stats = {
@@ -872,19 +877,19 @@ class DebuggableEventEngine extends Engine {
       eventTypes: new Map<string, number>(),
       mostActiveEvents: new Map<string, number>()
     }
-    
-    this.eventLog.forEach(log => {
+
+    this.eventLog.forEach((log) => {
       // 统计操作类型
       const count = stats.eventTypes.get(log.type) || 0
       stats.eventTypes.set(log.type, count + 1)
-      
+
       // 统计事件频率
       if (log.type === 'emit') {
         const eventCount = stats.mostActiveEvents.get(log.event) || 0
         stats.mostActiveEvents.set(log.event, eventCount + 1)
       }
     })
-    
+
     return stats
   }
 }
@@ -917,45 +922,45 @@ console.log('事件日志:', engine.getEventLog())
 class PooledEventEngine extends Engine {
   private eventPool: any[] = []
   private maxPoolSize = 100
-  
+
   emit(event: string, ...args: any[]): boolean {
     // 从池中获取事件对象
     const eventObj = this.getEventFromPool()
     eventObj.name = event
     eventObj.args = args
     eventObj.timestamp = Date.now()
-    
+
     const result = this.processEvent(eventObj)
-    
+
     // 将事件对象返回池中
     this.returnEventToPool(eventObj)
-    
+
     return result
   }
-  
+
   private getEventFromPool(): any {
     if (this.eventPool.length > 0) {
       return this.eventPool.pop()
     }
-    
+
     return {
       name: '',
       args: [],
       timestamp: 0
     }
   }
-  
+
   private returnEventToPool(eventObj: any): void {
     if (this.eventPool.length < this.maxPoolSize) {
       // 清理对象
       eventObj.name = ''
       eventObj.args = []
       eventObj.timestamp = 0
-      
+
       this.eventPool.push(eventObj)
     }
   }
-  
+
   private processEvent(eventObj: any): boolean {
     return super.emit(eventObj.name, ...eventObj.args)
   }
@@ -966,42 +971,43 @@ class PooledEventEngine extends Engine {
 
 ```typescript
 class BatchEventEngine extends Engine {
-  private batchQueue: Array<{ event: string; args: any[] }> = []
+  private batchQueue: Array<{ event: string, args: any[] }> = []
   private batchSize = 10
   private batchTimeout = 100
   private batchTimer: NodeJS.Timeout | null = null
-  
+
   emitBatch(event: string, ...args: any[]): void {
     this.batchQueue.push({ event, args })
-    
+
     if (this.batchQueue.length >= this.batchSize) {
       this.processBatch()
-    } else if (!this.batchTimer) {
+    }
+ else if (!this.batchTimer) {
       this.batchTimer = setTimeout(() => {
         this.processBatch()
       }, this.batchTimeout)
     }
   }
-  
+
   private processBatch(): void {
     if (this.batchTimer) {
       clearTimeout(this.batchTimer)
       this.batchTimer = null
     }
-    
+
     const batch = this.batchQueue.splice(0)
-    
+
     if (batch.length > 0) {
       // 触发批量处理事件
       this.emit('batch:process', batch)
-      
+
       // 逐个处理事件
       batch.forEach(({ event, args }) => {
         this.emit(event, ...args)
       })
     }
   }
-  
+
   flushBatch(): void {
     this.processBatch()
   }

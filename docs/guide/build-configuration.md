@@ -8,15 +8,15 @@
 
 ```typescript
 // vite.config.ts
+import { resolve } from 'node:path'
 import { defineConfig } from 'vite'
-import { resolve } from 'path'
 
 export default defineConfig({
   // 基础配置
   root: './src',
   base: '/',
   publicDir: '../public',
-  
+
   // 构建配置
   build: {
     outDir: '../dist',
@@ -24,7 +24,7 @@ export default defineConfig({
     sourcemap: true,
     minify: 'terser',
     target: 'es2020',
-    
+
     // 代码分割
     rollupOptions: {
       input: {
@@ -34,9 +34,9 @@ export default defineConfig({
       output: {
         // 分包策略
         manualChunks: {
-          'vendor': ['@ldesign/engine'],
-          'utils': ['lodash', 'dayjs'],
-          'ui': ['vue', 'element-plus']
+          vendor: ['@ldesign/engine'],
+          utils: ['lodash', 'dayjs'],
+          ui: ['vue', 'element-plus']
         },
         // 文件命名
         chunkFileNames: 'js/[name]-[hash].js',
@@ -57,7 +57,7 @@ export default defineConfig({
         }
       }
     },
-    
+
     // Terser 配置
     terserOptions: {
       compress: {
@@ -70,7 +70,7 @@ export default defineConfig({
       }
     }
   },
-  
+
   // 开发服务器配置
   server: {
     host: '0.0.0.0',
@@ -81,18 +81,18 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:8080',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, '')
+        rewrite: path => path.replace(/^\/api/, '')
       }
     }
   },
-  
+
   // 预览服务器配置
   preview: {
     host: '0.0.0.0',
     port: 4173,
     cors: true
   },
-  
+
   // 依赖优化
   optimizeDeps: {
     include: [
@@ -104,7 +104,7 @@ export default defineConfig({
       'some-large-dependency'
     ]
   },
-  
+
   // 环境变量
   define: {
     __APP_VERSION__: JSON.stringify(process.env.npm_package_version),
@@ -139,7 +139,7 @@ const configs: Record<string, BuildConfig> = {
     publicPath: '/',
     outputDir: 'dist-dev'
   },
-  
+
   testing: {
     mode: 'testing',
     debug: true,
@@ -150,7 +150,7 @@ const configs: Record<string, BuildConfig> = {
     publicPath: '/test/',
     outputDir: 'dist-test'
   },
-  
+
   production: {
     mode: 'production',
     debug: false,
@@ -170,16 +170,16 @@ export function getBuildConfig(env: string = 'development'): BuildConfig {
 // 动态 Vite 配置
 export function createViteConfig(env: string) {
   const config = getBuildConfig(env)
-  
+
   return defineConfig({
     mode: config.mode,
     base: config.publicPath,
-    
+
     build: {
       outDir: config.outputDir,
       sourcemap: config.sourcemap,
       minify: config.minify ? 'terser' : false,
-      
+
       rollupOptions: {
         plugins: [
           // 条件性添加插件
@@ -188,7 +188,7 @@ export function createViteConfig(env: string) {
         ]
       }
     },
-    
+
     define: {
       __DEV__: config.debug,
       __PROD__: config.mode === 'production',
@@ -267,7 +267,7 @@ const config: AppConfig = {
   apiBaseUrl: import.meta.env.VITE_API_BASE_URL || '/api',
   debug: import.meta.env.VITE_DEBUG === 'true',
   logLevel: import.meta.env.VITE_LOG_LEVEL || 'info',
-  
+
   features: {
     mock: import.meta.env.VITE_ENABLE_MOCK === 'true',
     pwa: import.meta.env.VITE_ENABLE_PWA === 'true',
@@ -367,7 +367,8 @@ export const ConditionalEditor = defineAsyncComponent({
   loader: () => {
     if (import.meta.env.VITE_ENABLE_EDITOR === 'true') {
       return import('./RichEditor.vue')
-    } else {
+    }
+ else {
       return import('./SimpleEditor.vue')
     }
   }
@@ -380,27 +381,28 @@ export const ConditionalEditor = defineAsyncComponent({
 // src/plugins/dynamic-loader.ts
 class DynamicPluginLoader {
   private loadedPlugins = new Set<string>()
-  
+
   async loadPlugin(name: string, condition?: () => boolean) {
     if (this.loadedPlugins.has(name)) {
       return
     }
-    
+
     if (condition && !condition()) {
       console.log(`插件 ${name} 不满足加载条件`)
       return
     }
-    
+
     try {
       const plugin = await this.importPlugin(name)
       await plugin.install()
       this.loadedPlugins.add(name)
       console.log(`插件 ${name} 加载成功`)
-    } catch (error) {
+    }
+ catch (error) {
       console.error(`插件 ${name} 加载失败:`, error)
     }
   }
-  
+
   private async importPlugin(name: string) {
     switch (name) {
       case 'analytics':
@@ -471,41 +473,42 @@ export default defineConfig({
 // src/utils/font-loader.ts
 class FontLoader {
   private loadedFonts = new Set<string>()
-  
+
   async loadFont(fontFamily: string, fontUrl: string) {
     if (this.loadedFonts.has(fontFamily)) {
       return
     }
-    
+
     try {
       const font = new FontFace(fontFamily, `url(${fontUrl})`)
       await font.load()
       document.fonts.add(font)
       this.loadedFonts.add(fontFamily)
       console.log(`字体 ${fontFamily} 加载成功`)
-    } catch (error) {
+    }
+ catch (error) {
       console.error(`字体 ${fontFamily} 加载失败:`, error)
     }
   }
-  
+
   preloadCriticalFonts() {
     const criticalFonts = [
       { family: 'Inter', url: '/fonts/inter-regular.woff2' },
       { family: 'Inter', url: '/fonts/inter-bold.woff2' }
     ]
-    
-    criticalFonts.forEach(font => {
+
+    criticalFonts.forEach((font) => {
       this.loadFont(font.family, font.url)
     })
   }
-  
+
   loadFontOnDemand(fontFamily: string) {
     const fontMap: Record<string, string> = {
       'Roboto': '/fonts/roboto.woff2',
       'Source Code Pro': '/fonts/source-code-pro.woff2',
       'Noto Sans CJK': '/fonts/noto-sans-cjk.woff2'
     }
-    
+
     const fontUrl = fontMap[fontFamily]
     if (fontUrl) {
       this.loadFont(fontFamily, fontUrl)
@@ -539,7 +542,7 @@ export default defineConfig({
         `
       }
     },
-    
+
     // PostCSS 配置
     postcss: {
       plugins: [
@@ -554,7 +557,7 @@ export default defineConfig({
       ]
     }
   },
-  
+
   plugins: [
     // 按需导入样式
     createStyleImportPlugin({
@@ -584,22 +587,22 @@ export const cacheConfig = {
     // 内容哈希用于长期缓存
     assets: '[name].[contenthash:8].[ext]',
     chunks: '[name].[contenthash:8].js',
-    
+
     // 版本哈希用于版本控制
     entries: '[name].[hash:8].js'
   },
-  
+
   // 缓存组配置
   cacheGroups: {
     // 第三方库
     vendor: {
-      test: /[\/]node_modules[\/]/,
+      test: /\/node_modules\//,
       name: 'vendors',
       chunks: 'all',
       priority: 10,
       reuseExistingChunk: true
     },
-    
+
     // 公共代码
     common: {
       name: 'common',
@@ -608,7 +611,7 @@ export const cacheConfig = {
       priority: 5,
       reuseExistingChunk: true
     },
-    
+
     // 样式文件
     styles: {
       name: 'styles',
@@ -625,8 +628,8 @@ export const cacheConfig = {
 
 ```typescript
 // build/performance.config.ts
+import { resolve } from 'node:path'
 import { defineConfig } from 'vite'
-import { resolve } from 'path'
 
 export default defineConfig({
   // 构建性能优化
@@ -642,12 +645,12 @@ export default defineConfig({
         }
       }
     },
-    
+
     // 预构建优化
     rollupOptions: {
       // 外部依赖
       external: ['vue', 'vue-router'],
-      
+
       // 输出配置
       output: {
         // 手动分包
@@ -664,11 +667,11 @@ export default defineConfig({
             }
             return 'vendor'
           }
-          
+
           if (id.includes('src/components')) {
             return 'components'
           }
-          
+
           if (id.includes('src/utils')) {
             return 'utils'
           }
@@ -676,7 +679,7 @@ export default defineConfig({
       }
     }
   },
-  
+
   // 依赖预构建
   optimizeDeps: {
     // 强制预构建
@@ -687,13 +690,13 @@ export default defineConfig({
       'lodash-es',
       'dayjs'
     ],
-    
+
     // 排除预构建
     exclude: [
       'some-esm-dep'
     ]
   },
-  
+
   // 解析配置
   resolve: {
     alias: {
@@ -710,10 +713,10 @@ export default defineConfig({
 
 ```typescript
 // build/monitor.ts
+import { gzipSync } from 'node:zlib'
+import { readFileSync, statSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { Plugin } from 'vite'
-import { gzipSync } from 'zlib'
-import { readFileSync, statSync } from 'fs'
-import { resolve } from 'path'
 
 interface BuildStats {
   files: Array<{
@@ -735,105 +738,109 @@ export function buildMonitorPlugin(): Plugin {
     totalGzipSize: 0,
     buildTime: 0
   }
-  
+
   return {
     name: 'build-monitor',
-    
+
     buildStart() {
       startTime = Date.now()
       console.log('🚀 开始构建...')
     },
-    
+
     generateBundle(options, bundle) {
-      Object.keys(bundle).forEach(fileName => {
+      Object.keys(bundle).forEach((fileName) => {
         const chunk = bundle[fileName]
-        
+
         if (chunk.type === 'chunk' || chunk.type === 'asset') {
           const content = chunk.type === 'chunk' ? chunk.code : chunk.source
           const size = Buffer.byteLength(content, 'utf8')
           const gzipSize = gzipSync(content).length
-          
+
           let type: 'js' | 'css' | 'asset' = 'asset'
-          if (fileName.endsWith('.js')) type = 'js'
-          else if (fileName.endsWith('.css')) type = 'css'
-          
+          if (fileName.endsWith('.js'))
+type = 'js'
+          else if (fileName.endsWith('.css'))
+type = 'css'
+
           stats.files.push({
             name: fileName,
             size,
             gzipSize,
             type
           })
-          
+
           stats.totalSize += size
           stats.totalGzipSize += gzipSize
         }
       })
     },
-    
+
     buildEnd() {
       stats.buildTime = Date.now() - startTime
       this.generateBuildReport(stats)
     },
-    
+
     generateBuildReport(stats: BuildStats) {
       console.log('\n📊 构建报告:')
-      console.log('=' .repeat(50))
-      
+      console.log('='.repeat(50))
+
       // 按类型分组
       const byType = stats.files.reduce((acc, file) => {
-        if (!acc[file.type]) acc[file.type] = []
+        if (!acc[file.type])
+acc[file.type] = []
         acc[file.type].push(file)
         return acc
       }, {} as Record<string, typeof stats.files>)
-      
+
       // 显示各类型文件
-      Object.keys(byType).forEach(type => {
+      Object.keys(byType).forEach((type) => {
         const files = byType[type]
         const totalSize = files.reduce((sum, f) => sum + f.size, 0)
         const totalGzipSize = files.reduce((sum, f) => sum + f.gzipSize, 0)
-        
+
         console.log(`\n${type.toUpperCase()} 文件:`)
-        files.forEach(file => {
+        files.forEach((file) => {
           console.log(`  ${file.name}: ${this.formatSize(file.size)} (gzip: ${this.formatSize(file.gzipSize)})`)
         })
         console.log(`  小计: ${this.formatSize(totalSize)} (gzip: ${this.formatSize(totalGzipSize)})`)
       })
-      
+
       // 总计
       console.log(`\n📦 总大小: ${this.formatSize(stats.totalSize)}`)
       console.log(`🗜️ Gzip 大小: ${this.formatSize(stats.totalGzipSize)}`)
       console.log(`⏱️ 构建时间: ${stats.buildTime}ms`)
-      
+
       // 性能建议
       this.generatePerformanceAdvice(stats)
     },
-    
+
     formatSize(bytes: number): string {
       const sizes = ['B', 'KB', 'MB', 'GB']
-      if (bytes === 0) return '0 B'
+      if (bytes === 0)
+return '0 B'
       const i = Math.floor(Math.log(bytes) / Math.log(1024))
-      return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i]
+      return `${Math.round(bytes / 1024 ** i * 100) / 100} ${sizes[i]}`
     },
-    
+
     generatePerformanceAdvice(stats: BuildStats) {
       console.log('\n💡 性能建议:')
-      
+
       // 检查大文件
       const largeFiles = stats.files.filter(f => f.size > 500 * 1024) // 500KB
       if (largeFiles.length > 0) {
         console.log('⚠️ 发现大文件:')
-        largeFiles.forEach(file => {
+        largeFiles.forEach((file) => {
           console.log(`  - ${file.name}: ${this.formatSize(file.size)}`)
         })
         console.log('  建议: 考虑代码分割或懒加载')
       }
-      
+
       // 检查压缩率
       const compressionRatio = stats.totalGzipSize / stats.totalSize
       if (compressionRatio > 0.7) {
         console.log('⚠️ 压缩率较低，建议检查是否有重复代码或未压缩的资源')
       }
-      
+
       // 检查构建时间
       if (stats.buildTime > 60000) {
         console.log('⚠️ 构建时间较长，建议优化构建配置或使用缓存')
@@ -910,19 +917,19 @@ echo "✅ 构建完成!"
 
 ```javascript
 // scripts/generate-build-report.js
-const fs = require('fs')
-const path = require('path')
-const { gzipSync } = require('zlib')
+const fs = require('node:fs')
+const path = require('node:path')
+const { gzipSync } = require('node:zlib')
 
 function generateBuildReport() {
   const distDir = path.resolve(__dirname, '../dist')
   const reportPath = path.resolve(__dirname, '../build-report.json')
-  
+
   if (!fs.existsSync(distDir)) {
     console.error('构建目录不存在')
     return
   }
-  
+
   const report = {
     timestamp: new Date().toISOString(),
     version: process.env.npm_package_version,
@@ -934,44 +941,45 @@ function generateBuildReport() {
       totalGzipSize: 0
     }
   }
-  
+
   function scanDirectory(dir, relativePath = '') {
     const files = fs.readdirSync(dir)
-    
-    files.forEach(file => {
+
+    files.forEach((file) => {
       const filePath = path.join(dir, file)
       const relativeFilePath = path.join(relativePath, file)
       const stat = fs.statSync(filePath)
-      
+
       if (stat.isDirectory()) {
         scanDirectory(filePath, relativeFilePath)
-      } else {
+      }
+ else {
         const content = fs.readFileSync(filePath)
         const size = stat.size
         const gzipSize = gzipSync(content).length
-        
+
         report.files.push({
           path: relativeFilePath,
           size,
           gzipSize,
           type: path.extname(file).slice(1) || 'unknown'
         })
-        
+
         report.summary.totalFiles++
         report.summary.totalSize += size
         report.summary.totalGzipSize += gzipSize
       }
     })
   }
-  
+
   scanDirectory(distDir)
-  
+
   // 按大小排序
   report.files.sort((a, b) => b.size - a.size)
-  
+
   // 写入报告
   fs.writeFileSync(reportPath, JSON.stringify(report, null, 2))
-  
+
   console.log('📄 构建报告已生成:', reportPath)
   console.log('📊 总文件数:', report.summary.totalFiles)
   console.log('📦 总大小:', formatSize(report.summary.totalSize))
@@ -980,9 +988,10 @@ function generateBuildReport() {
 
 function formatSize(bytes) {
   const sizes = ['B', 'KB', 'MB', 'GB']
-  if (bytes === 0) return '0 B'
+  if (bytes === 0)
+return '0 B'
   const i = Math.floor(Math.log(bytes) / Math.log(1024))
-  return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i]
+  return `${Math.round(bytes / 1024 ** i * 100) / 100} ${sizes[i]}`
 }
 
 generateBuildReport()

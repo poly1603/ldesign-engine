@@ -11,7 +11,7 @@ export enum EngineState {
   UNMOUNTED = 'unmounted',
   DESTROYING = 'destroying',
   DESTROYED = 'destroyed',
-  ERROR = 'error'
+  ERROR = 'error',
 }
 
 /**
@@ -69,8 +69,8 @@ export type MiddlewareFunction = (
  */
 export interface Plugin {
   name: string
-  install(engine: Engine, options?: any): void | Promise<void>
-  uninstall?(engine: Engine): void | Promise<void>
+  install: (engine: Engine, options?: any) => void | Promise<void>
+  uninstall?: (engine: Engine) => void | Promise<void>
   dependencies?: string[]
   priority?: number
 }
@@ -108,16 +108,16 @@ export interface EngineConfig {
   name?: string
   version?: string
   debug?: boolean
-  
+
   // 性能配置
   performance?: PerformanceConfig
-  
+
   // 开发配置
   dev?: DevConfig
-  
+
   // 错误处理
   errorHandler?: ErrorHandler
-  
+
   // 自定义配置
   [key: string]: any
 }
@@ -136,68 +136,68 @@ export interface PluginInfo {
  * 事件发射器接口
  */
 export interface EventEmitter {
-  emit(event: string, ...args: any[]): void
-  on(event: string, handler: EventHandler): UnsubscribeFn
-  off(event: string, handler?: EventHandler): void
-  once(event: string, handler: EventHandler): UnsubscribeFn
-  removeAllListeners(event?: string): void
+  emit: (event: string, ...args: any[]) => void
+  on: (event: string, handler: EventHandler) => UnsubscribeFn
+  off: (event: string, handler?: EventHandler) => void
+  once: (event: string, handler: EventHandler) => UnsubscribeFn
+  removeAllListeners: (event?: string) => void
 }
 
 /**
  * 依赖注入容器接口
  */
 export interface DIContainer {
-  provide(key: string | symbol, value: any): void
-  inject<T>(key: string | symbol): T | undefined
-  has(key: string | symbol): boolean
-  remove(key: string | symbol): boolean
+  provide: (key: string | symbol, value: any) => void
+  inject: <T>(key: string | symbol) => T | undefined
+  has: (key: string | symbol) => boolean
+  remove: (key: string | symbol) => boolean
 }
 
 /**
  * 中间件管理器接口
  */
 export interface MiddlewareManager {
-  add(hook: LifecycleHook, middleware: MiddlewareFunction): void
-  remove(hook: LifecycleHook, middleware: MiddlewareFunction): void
-  execute(hook: LifecycleHook, context: MiddlewareContext): Promise<void>
-  clear(hook?: LifecycleHook): void
+  add: (hook: LifecycleHook, middleware: MiddlewareFunction) => void
+  remove: (hook: LifecycleHook, middleware: MiddlewareFunction) => void
+  execute: (hook: LifecycleHook, context: MiddlewareContext) => Promise<void>
+  clear: (hook?: LifecycleHook) => void
 }
 
 /**
  * 配置管理器接口
  */
 export interface ConfigManager {
-  get<T>(key: string): T | undefined
-  set(key: string, value: any): void
-  update(updates: Partial<EngineConfig>): void
-  watch(key: string, callback: ConfigWatcher): UnwatchFn
-  unwatch(key: string, callback?: ConfigWatcher): void
-  validate(config: Partial<EngineConfig>): boolean
-  merge(config: Partial<EngineConfig>): void
+  get: <T>(key: string) => T | undefined
+  set: (key: string, value: any) => void
+  update: (updates: Partial<EngineConfig>) => void
+  watch: (key: string, callback: ConfigWatcher) => UnwatchFn
+  unwatch: (key: string, callback?: ConfigWatcher) => void
+  validate: (config: Partial<EngineConfig>) => boolean
+  merge: (config: Partial<EngineConfig>) => void
 }
 
 /**
  * 插件管理器接口
  */
 export interface PluginManager {
-  use(plugin: Plugin, options?: any): Promise<void>
-  unuse(pluginName: string): Promise<void>
-  has(pluginName: string): boolean
-  get(pluginName: string): PluginInfo | undefined
-  list(): PluginInfo[]
-  clear(): Promise<void>
+  use: (plugin: Plugin, options?: any) => Promise<void>
+  unuse: (pluginName: string) => Promise<void>
+  has: (pluginName: string) => boolean
+  get: (pluginName: string) => PluginInfo | undefined
+  list: () => PluginInfo[]
+  clear: () => Promise<void>
 }
 
 /**
  * 性能监控器接口
  */
 export interface PerformanceMonitor {
-  start(name: string): void
-  end(name: string): number
-  mark(name: string): void
-  measure(name: string, startMark?: string, endMark?: string): number
-  getMetrics(): Record<string, any>
-  clear(): void
+  start: (name: string) => void
+  end: (name: string) => number
+  mark: (name: string) => void
+  measure: (name: string, startMark?: string, endMark?: string) => number
+  getMetrics: () => Record<string, any>
+  clear: () => void
 }
 
 /**
@@ -205,35 +205,35 @@ export interface PerformanceMonitor {
  */
 export interface Engine {
   // 核心方法
-  mount(selector: string | Element): Promise<ComponentPublicInstance>
-  unmount(): Promise<void>
-  destroy(): Promise<void>
-  
+  mount: (selector: string | Element) => Promise<ComponentPublicInstance>
+  unmount: () => Promise<void>
+  destroy: () => Promise<void>
+
   // 配置管理
-  getConfig<T>(key: string): T | undefined
-  setConfig(key: string, value: any): void
-  updateConfig(updates: Partial<EngineConfig>): void
-  watchConfig(key: string, callback: ConfigWatcher): UnwatchFn
-  
+  getConfig: <T>(key: string) => T | undefined
+  setConfig: (key: string, value: any) => void
+  updateConfig: (updates: Partial<EngineConfig>) => void
+  watchConfig: (key: string, callback: ConfigWatcher) => UnwatchFn
+
   // 插件系统
-  use(plugin: Plugin, options?: any): Promise<Engine>
-  unuse(pluginName: string): Promise<Engine>
-  hasPlugin(pluginName: string): boolean
-  
+  use: (plugin: Plugin, options?: any) => Promise<Engine>
+  unuse: (pluginName: string) => Promise<Engine>
+  hasPlugin: (pluginName: string) => boolean
+
   // 中间件系统
-  addMiddleware(hook: LifecycleHook, middleware: MiddlewareFunction): void
-  removeMiddleware(hook: LifecycleHook, middleware: MiddlewareFunction): void
-  
+  addMiddleware: (hook: LifecycleHook, middleware: MiddlewareFunction) => void
+  removeMiddleware: (hook: LifecycleHook, middleware: MiddlewareFunction) => void
+
   // 事件系统
-  emit(event: string, ...args: any[]): void
-  on(event: string, handler: EventHandler): UnsubscribeFn
-  off(event: string, handler?: EventHandler): void
-  once(event: string, handler: EventHandler): UnsubscribeFn
-  
+  emit: (event: string, ...args: any[]) => void
+  on: (event: string, handler: EventHandler) => UnsubscribeFn
+  off: (event: string, handler?: EventHandler) => void
+  once: (event: string, handler: EventHandler) => UnsubscribeFn
+
   // 依赖注入
-  provide(key: string | symbol, value: any): void
-  inject<T>(key: string | symbol): T | undefined
-  
+  provide: (key: string | symbol, value: any) => void
+  inject: <T>(key: string | symbol) => T | undefined
+
   // 状态查询
   readonly state: EngineState
   readonly app: App | null
@@ -260,7 +260,7 @@ export const SYSTEM_EVENTS = {
   PLUGIN_UNINSTALLED: 'plugin:uninstalled',
   PLUGIN_ERROR: 'plugin:error',
   MIDDLEWARE_ERROR: 'middleware:error',
-  CONFIG_CHANGED: 'config:changed'
+  CONFIG_CHANGED: 'config:changed',
 } as const
 
 /**
@@ -274,14 +274,14 @@ export const DEFAULT_CONFIG: EngineConfig = {
     enabled: false,
     trackMemory: false,
     trackTiming: false,
-    sampleRate: 1.0
+    sampleRate: 1.0,
   },
   dev: {
     enabled: false,
     verbose: false,
     showWarnings: true,
-    enableHotReload: false
-  }
+    enableHotReload: false,
+  },
 }
 
 /**
@@ -291,7 +291,7 @@ export class EngineError extends Error {
   constructor(
     message: string,
     public code?: string,
-    public context?: any
+    public context?: any,
   ) {
     super(message)
     this.name = 'EngineError'
@@ -302,7 +302,7 @@ export class PluginError extends EngineError {
   constructor(
     message: string,
     public pluginName: string,
-    context?: any
+    context?: any,
   ) {
     super(message, 'PLUGIN_ERROR', context)
     this.name = 'PluginError'
@@ -313,7 +313,7 @@ export class MiddlewareError extends EngineError {
   constructor(
     message: string,
     public hook: LifecycleHook,
-    context?: any
+    context?: any,
   ) {
     super(message, 'MIDDLEWARE_ERROR', context)
     this.name = 'MiddlewareError'
@@ -324,7 +324,7 @@ export class ConfigError extends EngineError {
   constructor(
     message: string,
     public key: string,
-    context?: any
+    context?: any,
   ) {
     super(message, 'CONFIG_ERROR', context)
     this.name = 'ConfigError'

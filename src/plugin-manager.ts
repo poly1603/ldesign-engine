@@ -1,8 +1,8 @@
 import type {
+  Engine,
   Plugin,
   PluginInfo,
   PluginManager,
-  Engine
 } from './types'
 import { PluginError } from './types'
 
@@ -44,21 +44,21 @@ export class PluginManagerImpl implements PluginManager {
     if (typeof plugin.install !== 'function') {
       throw new PluginError(
         'Plugin must have an install function',
-        plugin.name
+        plugin.name,
       )
     }
 
     if (this.plugins.has(plugin.name)) {
       throw new PluginError(
         `Plugin '${plugin.name}' is already installed`,
-        plugin.name
+        plugin.name,
       )
     }
 
     if (this.installing.has(plugin.name)) {
       throw new PluginError(
         `Plugin '${plugin.name}' is currently being installed`,
-        plugin.name
+        plugin.name,
       )
     }
 
@@ -67,47 +67,48 @@ export class PluginManagerImpl implements PluginManager {
     try {
       // 检查依赖
       await this.checkDependencies(plugin)
-      
+
       // 安装依赖
       await this.installDependencies(plugin)
-      
+
       // 创建插件信息
       const pluginInfo: PluginInfo = {
         plugin,
         options,
         installed: false,
-        installTime: Date.now()
+        installTime: Date.now(),
       }
 
       // 执行安装
       await this.installPlugin(pluginInfo, engine)
-      
+
       // 注册插件
       this.plugins.set(plugin.name, pluginInfo)
       this.installOrder.push(plugin.name)
-      
+
       // 更新依赖图
       this.updateDependencyGraph(plugin)
-      
+
       // 发射安装事件
       engine.emit('plugin:installed', {
         name: plugin.name,
         plugin,
-        options
+        options,
       })
-      
-    } catch (error) {
+    }
+ catch (error) {
       const pluginError = new PluginError(
         `Failed to install plugin '${plugin.name}': ${error instanceof Error ? error.message : String(error)}`,
         plugin.name,
-        { error, options }
+        { error, options },
       )
-      
+
       // 发射错误事件
       engine.emit('plugin:error', pluginError)
-      
+
       throw pluginError
-    } finally {
+    }
+ finally {
       this.installing.delete(plugin.name)
     }
   }
@@ -127,7 +128,7 @@ export class PluginManagerImpl implements PluginManager {
     // 这是一个设计问题，暂时抛出错误提示
     throw new PluginError(
       'unuse method requires engine parameter. Use uninstall(pluginName, engine) instead.',
-      pluginName
+      pluginName,
     )
   }
 
@@ -138,14 +139,14 @@ export class PluginManagerImpl implements PluginManager {
     if (!this.plugins.has(pluginName)) {
       throw new PluginError(
         `Plugin '${pluginName}' is not installed`,
-        pluginName
+        pluginName,
       )
     }
 
     if (this.uninstalling.has(pluginName)) {
       throw new PluginError(
         `Plugin '${pluginName}' is currently being uninstalled`,
-        pluginName
+        pluginName,
       )
     }
 
@@ -154,7 +155,7 @@ export class PluginManagerImpl implements PluginManager {
     if (dependents.length > 0) {
       throw new PluginError(
         `Cannot uninstall plugin '${pluginName}' because it is required by: ${dependents.join(', ')}`,
-        pluginName
+        pluginName,
       )
     }
 
@@ -162,38 +163,39 @@ export class PluginManagerImpl implements PluginManager {
 
     try {
       const pluginInfo = this.plugins.get(pluginName)!
-      
+
       // 执行卸载
       await this.uninstallPlugin(pluginInfo, engine)
-      
+
       // 移除插件
       this.plugins.delete(pluginName)
       const orderIndex = this.installOrder.indexOf(pluginName)
       if (orderIndex !== -1) {
         this.installOrder.splice(orderIndex, 1)
       }
-      
+
       // 更新依赖图
       this.dependencyGraph.delete(pluginName)
-      
+
       // 发射卸载事件
       engine.emit('plugin:uninstalled', {
         name: pluginName,
-        plugin: pluginInfo.plugin
+        plugin: pluginInfo.plugin,
       })
-      
-    } catch (error) {
+    }
+ catch (error) {
       const pluginError = new PluginError(
         `Failed to uninstall plugin '${pluginName}': ${error instanceof Error ? error.message : String(error)}`,
         pluginName,
-        { error }
+        { error },
       )
-      
+
       // 发射错误事件
       engine.emit('plugin:error', pluginError)
-      
+
       throw pluginError
-    } finally {
+    }
+ finally {
       this.uninstalling.delete(pluginName)
     }
   }
@@ -225,17 +227,18 @@ export class PluginManagerImpl implements PluginManager {
   async clear(engine?: Engine): Promise<void> {
     // 按安装顺序的逆序卸载
     const uninstallOrder = [...this.installOrder].reverse()
-    
+
     for (const pluginName of uninstallOrder) {
       try {
         if (engine) {
           await this.uninstall(pluginName, engine)
         }
-      } catch (error) {
+      }
+ catch (error) {
         console.error(`Error uninstalling plugin '${pluginName}':`, error)
       }
     }
-    
+
     this.plugins.clear()
     this.dependencyGraph.clear()
     this.installOrder.length = 0
@@ -273,7 +276,7 @@ export class PluginManagerImpl implements PluginManager {
     }
 
     const missingDependencies: string[] = []
-    
+
     for (const dependency of plugin.dependencies) {
       if (!this.plugins.has(dependency)) {
         missingDependencies.push(dependency)
@@ -283,7 +286,7 @@ export class PluginManagerImpl implements PluginManager {
     if (missingDependencies.length > 0) {
       throw new PluginError(
         `Plugin '${plugin.name}' has missing dependencies: ${missingDependencies.join(', ')}`,
-        plugin.name
+        plugin.name,
       )
     }
   }
@@ -304,14 +307,14 @@ export class PluginManagerImpl implements PluginManager {
    * 检查循环依赖
    */
   private checkCircularDependency(
-    pluginName: string, 
-    dependencies: string[], 
-    visited = new Set<string>()
+    pluginName: string,
+    dependencies: string[],
+    visited = new Set<string>(),
   ): void {
     if (visited.has(pluginName)) {
       throw new PluginError(
         `Circular dependency detected for plugin '${pluginName}'`,
-        pluginName
+        pluginName,
       )
     }
 
@@ -332,21 +335,22 @@ export class PluginManagerImpl implements PluginManager {
    */
   private async installPlugin(pluginInfo: PluginInfo, engine: Engine): Promise<void> {
     const { plugin, options } = pluginInfo
-    
+
     try {
       const result = plugin.install(engine, options)
-      
+
       // 如果返回Promise，等待完成
       if (result && typeof result.then === 'function') {
         await result
       }
-      
+
       pluginInfo.installed = true
-    } catch (error) {
+    }
+ catch (error) {
       throw new PluginError(
         `Plugin '${plugin.name}' installation failed: ${error instanceof Error ? error.message : String(error)}`,
         plugin.name,
-        { error, options }
+        { error, options },
       )
     }
   }
@@ -356,24 +360,25 @@ export class PluginManagerImpl implements PluginManager {
    */
   private async uninstallPlugin(pluginInfo: PluginInfo, engine: Engine): Promise<void> {
     const { plugin } = pluginInfo
-    
+
     if (typeof plugin.uninstall === 'function') {
       try {
         const result = plugin.uninstall(engine)
-        
+
         // 如果返回Promise，等待完成
         if (result && typeof result.then === 'function') {
           await result
         }
-      } catch (error) {
+      }
+ catch (error) {
         throw new PluginError(
           `Plugin '${plugin.name}' uninstallation failed: ${error instanceof Error ? error.message : String(error)}`,
           plugin.name,
-          { error }
+          { error },
         )
       }
     }
-    
+
     pluginInfo.installed = false
   }
 
@@ -382,17 +387,17 @@ export class PluginManagerImpl implements PluginManager {
    */
   private updateDependencyGraph(plugin: Plugin): void {
     const dependencies = plugin.dependencies || []
-    
+
     // 创建节点
     const node: DependencyNode = {
       plugin,
       dependencies: [...dependencies],
       dependents: [],
-      installed: true
+      installed: true,
     }
-    
+
     this.dependencyGraph.set(plugin.name, node)
-    
+
     // 更新依赖关系
     for (const dependency of dependencies) {
       const depNode = this.dependencyGraph.get(dependency)
@@ -415,7 +420,7 @@ export class PluginManagerImpl implements PluginManager {
       total: this.plugins.size,
       installed: Array.from(this.plugins.values()).filter(p => p.installed).length,
       installing: this.installing.size,
-      uninstalling: this.uninstalling.size
+      uninstalling: this.uninstalling.size,
     }
   }
 
@@ -430,7 +435,7 @@ export class PluginManagerImpl implements PluginManager {
     return {
       plugins: this.plugins.size,
       dependencyNodes: this.dependencyGraph.size,
-      installOrder: this.installOrder.length
+      installOrder: this.installOrder.length,
     }
   }
 

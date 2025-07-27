@@ -1,269 +1,22 @@
-<template>
-  <div class="plugins-page">
-    <div class="page-header">
-      <h1>
-        <Puzzle class="icon" />
-        插件系统演示
-      </h1>
-      <p>展示插件管理、动态加载和依赖关系</p>
-    </div>
-
-    <!-- 插件列表管理 -->
-    <div class="section">
-      <h2 class="section-title">
-        <Package class="icon" />
-        插件列表管理
-      </h2>
-      
-      <div class="plugins-controls">
-        <div class="search-box">
-          <Search class="search-icon" />
-          <input 
-            v-model="searchQuery" 
-            placeholder="搜索插件..."
-            class="search-input"
-          />
-        </div>
-        <select v-model="filterStatus" class="filter-select">
-          <option value="all">所有状态</option>
-          <option value="installed">已安装</option>
-          <option value="available">可用</option>
-        </select>
-      </div>
-
-      <div class="plugins-grid">
-        <div 
-          v-for="plugin in filteredPlugins" 
-          :key="plugin.name"
-          class="plugin-card"
-          :class="{ installed: plugin.installed }"
-        >
-          <div class="plugin-header">
-            <div class="plugin-icon">
-              <component :is="plugin.icon" />
-            </div>
-            <div class="plugin-info">
-              <h3>{{ plugin.name }}</h3>
-              <p>{{ plugin.description }}</p>
-            </div>
-            <div class="plugin-status">
-              <span 
-                class="status-badge" 
-                :class="plugin.installed ? 'installed' : 'available'"
-              >
-                {{ plugin.installed ? '已安装' : '可用' }}
-              </span>
-            </div>
-          </div>
-          
-          <div class="plugin-details">
-            <div class="plugin-meta">
-              <span class="meta-item">
-                <Clock class="meta-icon" />
-                v{{ plugin.version }}
-              </span>
-              <span class="meta-item">
-                <User class="meta-icon" />
-                {{ plugin.author }}
-              </span>
-              <span v-if="plugin.dependencies?.length" class="meta-item">
-                <Link class="meta-icon" />
-                {{ plugin.dependencies.length }} 依赖
-              </span>
-            </div>
-            
-            <div class="plugin-actions">
-              <button 
-                v-if="!plugin.installed"
-                @click="installPlugin(plugin)"
-                class="btn btn-primary"
-                :disabled="installing === plugin.name"
-              >
-                <Download class="btn-icon" />
-                {{ installing === plugin.name ? '安装中...' : '安装' }}
-              </button>
-              <button 
-                v-else
-                @click="uninstallPlugin(plugin)"
-                class="btn btn-danger"
-                :disabled="uninstalling === plugin.name"
-              >
-                <Trash2 class="btn-icon" />
-                {{ uninstalling === plugin.name ? '卸载中...' : '卸载' }}
-              </button>
-              <button @click="showPluginDetails(plugin)" class="btn btn-secondary">
-                <Info class="btn-icon" />
-                详情
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 插件依赖图 -->
-    <div class="section">
-      <h2 class="section-title">
-        <GitBranch class="icon" />
-        插件依赖关系图
-      </h2>
-      
-      <div class="dependency-graph">
-        <svg ref="dependencyGraph" class="graph-svg">
-          <!-- 依赖关系线 -->
-          <g class="links">
-            <line 
-              v-for="link in dependencyLinks" 
-              :key="`${link.source}-${link.target}`"
-              :x1="link.x1" 
-              :y1="link.y1" 
-              :x2="link.x2" 
-              :y2="link.y2"
-              class="dependency-link"
-            />
-          </g>
-          
-          <!-- 插件节点 -->
-          <g class="nodes">
-            <g 
-              v-for="node in dependencyNodes" 
-              :key="node.name"
-              :transform="`translate(${node.x}, ${node.y})`"
-              class="plugin-node"
-              :class="{ installed: node.installed }"
-            >
-              <circle 
-                :r="node.radius" 
-                :class="node.installed ? 'node-installed' : 'node-available'"
-              />
-              <text 
-                :dy="node.radius + 20"
-                text-anchor="middle"
-                class="node-label"
-              >
-                {{ node.name }}
-              </text>
-            </g>
-          </g>
-        </svg>
-      </div>
-    </div>
-
-    <!-- 动态插件加载 -->
-    <div class="section">
-      <h2 class="section-title">
-        <Zap class="icon" />
-        动态插件加载
-      </h2>
-      
-      <div class="dynamic-loading">
-        <div class="loading-demo">
-          <h3>创建自定义插件</h3>
-          <div class="plugin-creator">
-            <div class="form-group">
-              <label>插件名称</label>
-              <input v-model="newPlugin.name" placeholder="输入插件名称" class="form-input" />
-            </div>
-            <div class="form-group">
-              <label>插件描述</label>
-              <input v-model="newPlugin.description" placeholder="输入插件描述" class="form-input" />
-            </div>
-            <div class="form-group">
-              <label>插件代码</label>
-              <textarea 
-                v-model="newPlugin.code" 
-                placeholder="输入插件代码..."
-                class="form-textarea"
-                rows="8"
-              ></textarea>
-            </div>
-            <button @click="createDynamicPlugin" class="btn btn-primary">
-              <Plus class="btn-icon" />
-              创建并安装插件
-            </button>
-          </div>
-        </div>
-        
-        <div class="loading-status">
-          <h3>加载状态</h3>
-          <div class="status-list">
-            <div 
-              v-for="status in loadingStatuses" 
-              :key="status.id"
-              class="status-item"
-              :class="status.type"
-            >
-              <div class="status-icon">
-                <CheckCircle v-if="status.type === 'success'" />
-                <XCircle v-if="status.type === 'error'" />
-                <Loader v-if="status.type === 'loading'" class="spinning" />
-                <Info v-if="status.type === 'info'" />
-              </div>
-              <div class="status-content">
-                <span class="status-time">{{ formatTime(status.timestamp) }}</span>
-                <span class="status-message">{{ status.message }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 插件详情模态框 -->
-    <div v-if="selectedPlugin" class="modal-overlay" @click="closeModal">
-      <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <h3>{{ selectedPlugin.name }}</h3>
-          <button @click="closeModal" class="modal-close">
-            <X class="close-icon" />
-          </button>
-        </div>
-        <div class="modal-body">
-          <div class="plugin-detail">
-            <p><strong>描述:</strong> {{ selectedPlugin.description }}</p>
-            <p><strong>版本:</strong> {{ selectedPlugin.version }}</p>
-            <p><strong>作者:</strong> {{ selectedPlugin.author }}</p>
-            <p><strong>状态:</strong> {{ selectedPlugin.installed ? '已安装' : '未安装' }}</p>
-            
-            <div v-if="selectedPlugin.dependencies?.length" class="dependencies">
-              <h4>依赖项:</h4>
-              <ul>
-                <li v-for="dep in selectedPlugin.dependencies" :key="dep">
-                  {{ dep }}
-                </li>
-              </ul>
-            </div>
-            
-            <div v-if="selectedPlugin.config" class="config">
-              <h4>配置选项:</h4>
-              <pre>{{ JSON.stringify(selectedPlugin.config, null, 2) }}</pre>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { ref, computed, inject, onMounted } from 'vue'
+import { computed, inject, onMounted, ref } from 'vue'
 import {
-  Puzzle,
-  Package,
-  Search,
-  Clock,
-  User,
-  Link,
-  Download,
-  Trash2,
-  Info,
-  GitBranch,
-  Zap,
-  Plus,
   CheckCircle,
-  XCircle,
+  Clock,
+  Download,
+  GitBranch,
+  Info,
+  Link,
   Loader,
-  X
+  Package,
+  Plus,
+  Puzzle,
+  Search,
+  Trash2,
+  User,
+  X,
+  XCircle,
+  Zap,
 } from 'lucide-vue-next'
 
 // 注入引擎服务
@@ -299,7 +52,7 @@ const newPlugin = ref({
   uninstall(engine) {
     console.log('Plugin uninstalled')
   }
-}`
+}`,
 })
 
 // 加载状态
@@ -320,7 +73,7 @@ const availablePlugins = ref([
     icon: 'Palette',
     installed: true,
     dependencies: [],
-    config: { defaultTheme: 'light' }
+    config: { defaultTheme: 'light' },
   },
   {
     name: 'notification',
@@ -330,7 +83,7 @@ const availablePlugins = ref([
     icon: 'Bell',
     installed: true,
     dependencies: [],
-    config: { position: 'top-right' }
+    config: { position: 'top-right' },
   },
   {
     name: 'router',
@@ -340,7 +93,7 @@ const availablePlugins = ref([
     icon: 'Navigation',
     installed: false,
     dependencies: [],
-    config: { mode: 'history' }
+    config: { mode: 'history' },
   },
   {
     name: 'http',
@@ -350,7 +103,7 @@ const availablePlugins = ref([
     icon: 'Globe',
     installed: false,
     dependencies: [],
-    config: { baseURL: '/api' }
+    config: { baseURL: '/api' },
   },
   {
     name: 'logger',
@@ -360,7 +113,7 @@ const availablePlugins = ref([
     icon: 'FileText',
     installed: false,
     dependencies: [],
-    config: { level: 'info' }
+    config: { level: 'info' },
   },
   {
     name: 'analytics',
@@ -370,30 +123,31 @@ const availablePlugins = ref([
     icon: 'BarChart',
     installed: false,
     dependencies: ['logger'],
-    config: { trackingId: 'GA-XXXXX' }
-  }
+    config: { trackingId: 'GA-XXXXX' },
+  },
 ])
 
 // 计算属性
 const filteredPlugins = computed(() => {
   let plugins = availablePlugins.value
-  
+
   // 状态过滤
   if (filterStatus.value === 'installed') {
     plugins = plugins.filter(p => p.installed)
-  } else if (filterStatus.value === 'available') {
+  }
+ else if (filterStatus.value === 'available') {
     plugins = plugins.filter(p => !p.installed)
   }
-  
+
   // 搜索过滤
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
-    plugins = plugins.filter(p => 
-      p.name.toLowerCase().includes(query) ||
-      p.description.toLowerCase().includes(query)
+    plugins = plugins.filter(p =>
+      p.name.toLowerCase().includes(query)
+      || p.description.toLowerCase().includes(query),
     )
   }
-  
+
   return plugins
 })
 
@@ -404,28 +158,28 @@ const dependencyNodes = computed(() => {
     const radius = 150
     const centerX = 300
     const centerY = 200
-    
+
     return {
       name: plugin.name,
       installed: plugin.installed,
       x: centerX + Math.cos(angle) * radius,
       y: centerY + Math.sin(angle) * radius,
-      radius: plugin.installed ? 25 : 20
+      radius: plugin.installed ? 25 : 20,
     }
   })
-  
+
   return nodes
 })
 
 const dependencyLinks = computed(() => {
-  const links: Array<{ source: string; target: string; x1: number; y1: number; x2: number; y2: number }> = []
-  
-  availablePlugins.value.forEach(plugin => {
+  const links: Array<{ source: string, target: string, x1: number, y1: number, x2: number, y2: number }> = []
+
+  availablePlugins.value.forEach((plugin) => {
     if (plugin.dependencies?.length) {
-      plugin.dependencies.forEach(dep => {
+      plugin.dependencies.forEach((dep) => {
         const sourceNode = dependencyNodes.value.find(n => n.name === dep)
         const targetNode = dependencyNodes.value.find(n => n.name === plugin.name)
-        
+
         if (sourceNode && targetNode) {
           links.push({
             source: dep,
@@ -433,95 +187,99 @@ const dependencyLinks = computed(() => {
             x1: sourceNode.x,
             y1: sourceNode.y,
             x2: targetNode.x,
-            y2: targetNode.y
+            y2: targetNode.y,
           })
         }
       })
     }
   })
-  
+
   return links
 })
 
 // 方法
-const addStatus = (type: string, message: string) => {
+function addStatus(type: string, message: string) {
   loadingStatuses.value.unshift({
     id: Date.now(),
     type: type as any,
     message,
-    timestamp: Date.now()
+    timestamp: Date.now(),
   })
-  
+
   // 限制状态数量
   if (loadingStatuses.value.length > 10) {
     loadingStatuses.value.pop()
   }
 }
 
-const installPlugin = async (plugin: any) => {
+async function installPlugin(plugin: any) {
   installing.value = plugin.name
   addStatus('loading', `开始安装插件: ${plugin.name}`)
-  
+
   try {
     // 模拟安装过程
     await new Promise(resolve => setTimeout(resolve, 1500))
-    
+
     plugin.installed = true
     addStatus('success', `插件 ${plugin.name} 安装成功`)
-    
+
     // 触发引擎事件
     if (engine) {
       engine.emit('plugin:installed', { name: plugin.name })
     }
-  } catch (error) {
+  }
+ catch (error) {
     addStatus('error', `插件 ${plugin.name} 安装失败: ${error}`)
-  } finally {
+  }
+ finally {
     installing.value = ''
   }
 }
 
-const uninstallPlugin = async (plugin: any) => {
+async function uninstallPlugin(plugin: any) {
   uninstalling.value = plugin.name
   addStatus('loading', `开始卸载插件: ${plugin.name}`)
-  
+
   try {
     // 模拟卸载过程
     await new Promise(resolve => setTimeout(resolve, 1000))
-    
+
     plugin.installed = false
     addStatus('success', `插件 ${plugin.name} 卸载成功`)
-    
+
     // 触发引擎事件
     if (engine) {
       engine.emit('plugin:uninstalled', { name: plugin.name })
     }
-  } catch (error) {
+  }
+ catch (error) {
     addStatus('error', `插件 ${plugin.name} 卸载失败: ${error}`)
-  } finally {
+  }
+ finally {
     uninstalling.value = ''
   }
 }
 
-const showPluginDetails = (plugin: any) => {
+function showPluginDetails(plugin: any) {
   selectedPlugin.value = plugin
 }
 
-const closeModal = () => {
+function closeModal() {
   selectedPlugin.value = null
 }
 
-const createDynamicPlugin = async () => {
+async function createDynamicPlugin() {
   if (!newPlugin.value.name || !newPlugin.value.code) {
     addStatus('error', '请填写插件名称和代码')
     return
   }
-  
+
   addStatus('loading', `创建动态插件: ${newPlugin.value.name}`)
-  
+
   try {
     // 模拟动态插件创建
     await new Promise(resolve => setTimeout(resolve, 1000))
-    
+
     const plugin = {
       name: newPlugin.value.name,
       description: newPlugin.value.description || '动态创建的插件',
@@ -530,24 +288,25 @@ const createDynamicPlugin = async () => {
       icon: 'Code',
       installed: true,
       dependencies: [],
-      config: {}
+      config: {},
     }
-    
+
     availablePlugins.value.push(plugin)
     addStatus('success', `动态插件 ${plugin.name} 创建并安装成功`)
-    
+
     // 重置表单
     newPlugin.value = {
       name: '',
       description: '',
-      code: newPlugin.value.code // 保留代码模板
+      code: newPlugin.value.code, // 保留代码模板
     }
-  } catch (error) {
+  }
+ catch (error) {
     addStatus('error', `动态插件创建失败: ${error}`)
   }
 }
 
-const formatTime = (timestamp: number) => {
+function formatTime(timestamp: number) {
   return new Date(timestamp).toLocaleTimeString()
 }
 
@@ -556,6 +315,259 @@ onMounted(() => {
   addStatus('info', '插件系统演示页面已加载')
 })
 </script>
+
+<template>
+  <div class="plugins-page">
+    <div class="page-header">
+      <h1>
+        <Puzzle class="icon" />
+        插件系统演示
+      </h1>
+      <p>展示插件管理、动态加载和依赖关系</p>
+    </div>
+
+    <!-- 插件列表管理 -->
+    <div class="section">
+      <h2 class="section-title">
+        <Package class="icon" />
+        插件列表管理
+      </h2>
+
+      <div class="plugins-controls">
+        <div class="search-box">
+          <Search class="search-icon" />
+          <input
+            v-model="searchQuery"
+            placeholder="搜索插件..."
+            class="search-input"
+          >
+        </div>
+        <select v-model="filterStatus" class="filter-select">
+          <option value="all">
+            所有状态
+          </option>
+          <option value="installed">
+            已安装
+          </option>
+          <option value="available">
+            可用
+          </option>
+        </select>
+      </div>
+
+      <div class="plugins-grid">
+        <div
+          v-for="plugin in filteredPlugins"
+          :key="plugin.name"
+          class="plugin-card"
+          :class="{ installed: plugin.installed }"
+        >
+          <div class="plugin-header">
+            <div class="plugin-icon">
+              <component :is="plugin.icon" />
+            </div>
+            <div class="plugin-info">
+              <h3>{{ plugin.name }}</h3>
+              <p>{{ plugin.description }}</p>
+            </div>
+            <div class="plugin-status">
+              <span
+                class="status-badge"
+                :class="plugin.installed ? 'installed' : 'available'"
+              >
+                {{ plugin.installed ? '已安装' : '可用' }}
+              </span>
+            </div>
+          </div>
+
+          <div class="plugin-details">
+            <div class="plugin-meta">
+              <span class="meta-item">
+                <Clock class="meta-icon" />
+                v{{ plugin.version }}
+              </span>
+              <span class="meta-item">
+                <User class="meta-icon" />
+                {{ plugin.author }}
+              </span>
+              <span v-if="plugin.dependencies?.length" class="meta-item">
+                <Link class="meta-icon" />
+                {{ plugin.dependencies.length }} 依赖
+              </span>
+            </div>
+
+            <div class="plugin-actions">
+              <button
+                v-if="!plugin.installed"
+                class="btn btn-primary"
+                :disabled="installing === plugin.name"
+                @click="installPlugin(plugin)"
+              >
+                <Download class="btn-icon" />
+                {{ installing === plugin.name ? '安装中...' : '安装' }}
+              </button>
+              <button
+                v-else
+                class="btn btn-danger"
+                :disabled="uninstalling === plugin.name"
+                @click="uninstallPlugin(plugin)"
+              >
+                <Trash2 class="btn-icon" />
+                {{ uninstalling === plugin.name ? '卸载中...' : '卸载' }}
+              </button>
+              <button class="btn btn-secondary" @click="showPluginDetails(plugin)">
+                <Info class="btn-icon" />
+                详情
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 插件依赖图 -->
+    <div class="section">
+      <h2 class="section-title">
+        <GitBranch class="icon" />
+        插件依赖关系图
+      </h2>
+
+      <div class="dependency-graph">
+        <svg ref="dependencyGraph" class="graph-svg">
+          <!-- 依赖关系线 -->
+          <g class="links">
+            <line
+              v-for="link in dependencyLinks"
+              :key="`${link.source}-${link.target}`"
+              :x1="link.x1"
+              :y1="link.y1"
+              :x2="link.x2"
+              :y2="link.y2"
+              class="dependency-link"
+            />
+          </g>
+
+          <!-- 插件节点 -->
+          <g class="nodes">
+            <g
+              v-for="node in dependencyNodes"
+              :key="node.name"
+              :transform="`translate(${node.x}, ${node.y})`"
+              class="plugin-node"
+              :class="{ installed: node.installed }"
+            >
+              <circle
+                :r="node.radius"
+                :class="node.installed ? 'node-installed' : 'node-available'"
+              />
+              <text
+                :dy="node.radius + 20"
+                text-anchor="middle"
+                class="node-label"
+              >
+                {{ node.name }}
+              </text>
+            </g>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <!-- 动态插件加载 -->
+    <div class="section">
+      <h2 class="section-title">
+        <Zap class="icon" />
+        动态插件加载
+      </h2>
+
+      <div class="dynamic-loading">
+        <div class="loading-demo">
+          <h3>创建自定义插件</h3>
+          <div class="plugin-creator">
+            <div class="form-group">
+              <label>插件名称</label>
+              <input v-model="newPlugin.name" placeholder="输入插件名称" class="form-input">
+            </div>
+            <div class="form-group">
+              <label>插件描述</label>
+              <input v-model="newPlugin.description" placeholder="输入插件描述" class="form-input">
+            </div>
+            <div class="form-group">
+              <label>插件代码</label>
+              <textarea
+                v-model="newPlugin.code"
+                placeholder="输入插件代码..."
+                class="form-textarea"
+                rows="8"
+              />
+            </div>
+            <button class="btn btn-primary" @click="createDynamicPlugin">
+              <Plus class="btn-icon" />
+              创建并安装插件
+            </button>
+          </div>
+        </div>
+
+        <div class="loading-status">
+          <h3>加载状态</h3>
+          <div class="status-list">
+            <div
+              v-for="status in loadingStatuses"
+              :key="status.id"
+              class="status-item"
+              :class="status.type"
+            >
+              <div class="status-icon">
+                <CheckCircle v-if="status.type === 'success'" />
+                <XCircle v-if="status.type === 'error'" />
+                <Loader v-if="status.type === 'loading'" class="spinning" />
+                <Info v-if="status.type === 'info'" />
+              </div>
+              <div class="status-content">
+                <span class="status-time">{{ formatTime(status.timestamp) }}</span>
+                <span class="status-message">{{ status.message }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 插件详情模态框 -->
+    <div v-if="selectedPlugin" class="modal-overlay" @click="closeModal">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>{{ selectedPlugin.name }}</h3>
+          <button class="modal-close" @click="closeModal">
+            <X class="close-icon" />
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="plugin-detail">
+            <p><strong>描述:</strong> {{ selectedPlugin.description }}</p>
+            <p><strong>版本:</strong> {{ selectedPlugin.version }}</p>
+            <p><strong>作者:</strong> {{ selectedPlugin.author }}</p>
+            <p><strong>状态:</strong> {{ selectedPlugin.installed ? '已安装' : '未安装' }}</p>
+
+            <div v-if="selectedPlugin.dependencies?.length" class="dependencies">
+              <h4>依赖项:</h4>
+              <ul>
+                <li v-for="dep in selectedPlugin.dependencies" :key="dep">
+                  {{ dep }}
+                </li>
+              </ul>
+            </div>
+
+            <div v-if="selectedPlugin.config" class="config">
+              <h4>配置选项:</h4>
+              <pre>{{ JSON.stringify(selectedPlugin.config, null, 2) }}</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
 
 <style scoped>
 .plugins-page {
@@ -1077,20 +1089,20 @@ onMounted(() => {
   .plugins-page {
     padding: 1rem;
   }
-  
+
   .plugins-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .dynamic-loading {
     grid-template-columns: 1fr;
   }
-  
+
   .plugins-controls {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .search-box {
     max-width: none;
   }

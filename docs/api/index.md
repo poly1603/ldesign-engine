@@ -254,8 +254,8 @@ engine.on('user:login', (user) => {
 
 // 注册多个事件
 engine.on({
-  'user:login': (user) => console.log('登录:', user.name),
-  'user:logout': (user) => console.log('登出:', user.name)
+  'user:login': user => console.log('登录:', user.name),
+  'user:logout': user => console.log('登出:', user.name)
 })
 ```
 
@@ -443,12 +443,12 @@ subscribe(path: string, listener: (value: any) => void): () => void
 **示例：**
 ```typescript
 // 订阅整个状态变化
-const unsubscribe = engine.subscribe(state => {
+const unsubscribe = engine.subscribe((state) => {
   console.log('状态变化:', state)
 })
 
 // 订阅特定路径的状态变化
-const unsubscribeUser = engine.subscribe('user', user => {
+const unsubscribeUser = engine.subscribe('user', (user) => {
   console.log('用户信息变化:', user)
 })
 
@@ -589,7 +589,7 @@ onError(handler: (error: Error, context?: any) => void): Engine
 engine.onError((error, context) => {
   console.error('引擎错误:', error.message)
   console.error('错误上下文:', context)
-  
+
   // 发送错误报告
   errorReportingService.report(error, context)
 })
@@ -614,38 +614,38 @@ handleError(error: Error, context?: any): void
 ```typescript
 interface EngineConfig {
   // 基本信息
-  name: string                    // 引擎名称
-  version: string                 // 引擎版本
-  description?: string            // 引擎描述
-  
+  name: string // 引擎名称
+  version: string // 引擎版本
+  description?: string // 引擎描述
+
   // 调试配置
-  debug?: boolean                 // 是否启用调试模式
-  logLevel?: 'error' | 'warn' | 'info' | 'debug'  // 日志级别
-  
+  debug?: boolean // 是否启用调试模式
+  logLevel?: 'error' | 'warn' | 'info' | 'debug' // 日志级别
+
   // 事件配置
-  maxListeners?: number           // 最大监听器数量
-  
+  maxListeners?: number // 最大监听器数量
+
   // 插件配置
-  plugins?: PluginConfig[]        // 预配置的插件
-  
+  plugins?: PluginConfig[] // 预配置的插件
+
   // 状态配置
-  initialState?: any              // 初始状态
-  
+  initialState?: any // 初始状态
+
   // 性能配置
   performance?: {
-    enableMetrics?: boolean       // 是否启用性能指标
-    metricsInterval?: number      // 指标收集间隔
+    enableMetrics?: boolean // 是否启用性能指标
+    metricsInterval?: number // 指标收集间隔
   }
-  
+
   // 错误处理配置
   errorHandling?: {
-    catchUnhandledRejections?: boolean  // 是否捕获未处理的 Promise 拒绝
-    catchUncaughtExceptions?: boolean   // 是否捕获未捕获的异常
+    catchUnhandledRejections?: boolean // 是否捕获未处理的 Promise 拒绝
+    catchUncaughtExceptions?: boolean // 是否捕获未捕获的异常
   }
-  
+
   // 环境配置
-  env?: 'development' | 'production' | 'test'  // 运行环境
-  
+  env?: 'development' | 'production' | 'test' // 运行环境
+
   // 自定义配置
   [key: string]: any
 }
@@ -658,37 +658,37 @@ interface EngineConfig {
 ```typescript
 interface Plugin {
   // 基本信息
-  name: string                    // 插件唯一标识
-  version: string                 // 插件版本
-  description?: string            // 插件描述
-  author?: string                 // 插件作者
-  license?: string                // 插件许可证
-  homepage?: string               // 插件主页
-  keywords?: string[]             // 插件关键词
-  
+  name: string // 插件唯一标识
+  version: string // 插件版本
+  description?: string // 插件描述
+  author?: string // 插件作者
+  license?: string // 插件许可证
+  homepage?: string // 插件主页
+  keywords?: string[] // 插件关键词
+
   // 依赖关系
-  dependencies?: string[]         // 必需依赖
-  peerDependencies?: string[]     // 对等依赖
+  dependencies?: string[] // 必需依赖
+  peerDependencies?: string[] // 对等依赖
   optionalDependencies?: string[] // 可选依赖
-  
+
   // 生命周期钩子
   install: (engine: Engine) => void | Promise<void>
   uninstall?: (engine: Engine) => void | Promise<void>
   enable?: (engine: Engine) => void | Promise<void>
   disable?: (engine: Engine) => void | Promise<void>
-  
+
   // 配置
-  config?: any                    // 默认配置
-  schema?: JSONSchema             // 配置验证模式
-  
+  config?: any // 默认配置
+  schema?: JSONSchema // 配置验证模式
+
   // 元数据
-  tags?: string[]                 // 插件标签
-  category?: string               // 插件分类
-  priority?: number               // 加载优先级
-  
+  tags?: string[] // 插件标签
+  category?: string // 插件分类
+  priority?: number // 加载优先级
+
   // 兼容性
   engines?: {
-    '@ldesign/engine': string     // 支持的引擎版本
+    '@ldesign/engine': string // 支持的引擎版本
   }
 }
 ```
@@ -1061,8 +1061,8 @@ const STATE_EVENTS = {
 ### 完整的应用示例
 
 ```typescript
-import { Engine, createEngine } from '@ldesign/engine'
 import { myPlugin } from './plugins/my-plugin'
+import { Engine, createEngine } from '@ldesign/engine'
 
 // 创建引擎实例
 const engine = createEngine({
@@ -1115,7 +1115,8 @@ engine.use(async (ctx, next) => {
 engine.subscribe('user', (user) => {
   if (user) {
     console.log('用户已登录:', user.name)
-  } else {
+  }
+ else {
     console.log('用户已登出')
   }
 })
