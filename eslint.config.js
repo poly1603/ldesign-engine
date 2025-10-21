@@ -1,41 +1,18 @@
-import tseslint from 'typescript-eslint'
+import antfu from '@antfu/eslint-config'
 
-export default tseslint.config(
-  {
-    ignores: [
-      'package.json',
-      'dist/**',
-      'lib/**',
-      'es/**',
-      'types/**',
-      'coverage/**',
-      'node_modules/**',
-      'examples/**',
-      'tests/**',
-      'test/**',
-      '__tests__/**',
-      'e2e/**',
-      'docs/**',
-      'scripts/**',
-      'src/security/**',
-    ],
+export default antfu({
+  typescript: true,
+  vue: false,
+  jsonc: true,
+  markdown: true,
+  formatters: {
+    css: true,
+    html: true,
+    markdown: 'prettier',
   },
-  {
-    plugins: {
-      ts: tseslint.plugin,
-    },
+  rules: {
+    // 自定义规则
+    'no-console': 'off',
+    'no-debugger': 'warn',
   },
-  ...tseslint.configs.recommended,
-  {
-    files: ['**/*.{ts,tsx}'],
-    rules: {
-      '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-non-null-assertion': 'off',
-      '@typescript-eslint/no-unused-vars': ['error', {
-        'argsIgnorePattern': '^_',
-        'varsIgnorePattern': '^_',
-        'caughtErrorsIgnorePattern': '^_'
-      }],
-    },
-  },
-)
+})
