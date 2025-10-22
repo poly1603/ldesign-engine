@@ -22,16 +22,24 @@ export class PluginManagerImpl implements PluginManager {
 
   // 缓存优化：使用 WeakMap 避免内存泄漏
   private dependencyCache = new WeakMap<Plugin, string[]>()
-  
+
   // 性能优化：缓存依赖图和查询结果
   private dependencyGraphCache?: Record<string, string[]>
   private dependentsCache = new Map<string, string[]>()
   private cacheInvalidated = true
 
+  // 🚀 新增：依赖校验结果缓存
+  private dependencyCheckCache = new Map<string, { satisfied: boolean; missing: string[]; conflicts: string[]; timestamp: number }>()
+  private readonly DEPENDENCY_CHECK_CACHE_TTL = 60000 // 1分钟过期
+
+  // 🚀 新增：拓扑排序缓存
+  private topologicalOrderCache?: string[]
+  private topologicalOrderDirty = true
+
   constructor(engine?: Engine) {
     this.engine = engine
   }
-  
+
   /**
    * 使缓存失效
    */
@@ -39,6 +47,9 @@ export class PluginManagerImpl implements PluginManager {
     this.cacheInvalidated = true
     this.dependencyGraphCache = undefined
     this.dependentsCache.clear()
+    this.dependencyCheckCache.clear()
+    this.topologicalOrderDirty = true
+    this.topologicalOrderCache = undefined
   }
 
   /**
@@ -71,7 +82,7 @@ export class PluginManagerImpl implements PluginManager {
       // 注册插件
       this.plugins.set(plugin.name, plugin)
       this.loadOrder.push(plugin.name)
-      
+
       // 使缓存失效
       this.invalidateCache()
 
@@ -138,7 +149,7 @@ export class PluginManagerImpl implements PluginManager {
       if (index > -1) {
         this.loadOrder.splice(index, 1)
       }
-      
+
       // 使缓存失效
       this.invalidateCache()
 
@@ -178,13 +189,23 @@ export class PluginManagerImpl implements PluginManager {
   }
 
   /**
-   * 检查插件依赖满足情况（不修改状态）。
+   * 检查插件依赖满足情况（不修改状态）- 🚀 优化版：使用缓存
    */
   checkDependencies(plugin: Plugin): {
     satisfied: boolean
     missing: string[]
     conflicts: string[]
   } {
+    // 🚀 检查缓存
+    const cached = this.dependencyCheckCache.get(plugin.name)
+    if (cached && (Date.now() - cached.timestamp < this.DEPENDENCY_CHECK_CACHE_TTL)) {
+      return {
+        satisfied: cached.satisfied,
+        missing: [...cached.missing],
+        conflicts: [...cached.conflicts]
+      }
+    }
+
     const missing: string[] = []
     const conflicts: string[] = []
 
@@ -196,11 +217,19 @@ export class PluginManagerImpl implements PluginManager {
       }
     }
 
-    return {
+    const result = {
       satisfied: missing.length === 0 && conflicts.length === 0,
       missing,
       conflicts,
     }
+
+    // 🚀 缓存结果
+    this.dependencyCheckCache.set(plugin.name, {
+      ...result,
+      timestamp: Date.now()
+    })
+
+    return result
   }
 
   /**
@@ -211,17 +240,17 @@ export class PluginManagerImpl implements PluginManager {
     if (!this.cacheInvalidated && this.dependentsCache.has(pluginName)) {
       return this.dependentsCache.get(pluginName)!
     }
-    
+
     const dependents: string[] = []
     for (const [name, plugin] of this.plugins) {
       if (plugin.dependencies?.includes(pluginName)) {
         dependents.push(name)
       }
     }
-    
+
     // 更新缓存
     this.dependentsCache.set(pluginName, dependents)
-    
+
     return dependents
   }
 
@@ -241,16 +270,16 @@ export class PluginManagerImpl implements PluginManager {
     if (!this.cacheInvalidated && this.dependencyGraphCache) {
       return { ...this.dependencyGraphCache }
     }
-    
+
     const graph: Record<string, string[]> = {}
     for (const [name, plugin] of this.plugins) {
       graph[name] = plugin.dependencies ? [...plugin.dependencies] : []
     }
-    
+
     // 更新缓存
     this.dependencyGraphCache = graph
     this.cacheInvalidated = false
-    
+
     return { ...graph }
   }
 
@@ -337,13 +366,83 @@ export class PluginManagerImpl implements PluginManager {
     return 'installed' // 简化实现
   }
 
-  // 解析依赖
+  // 解析依赖 - 🚀 优化版：使用拓扑排序
   /**
-   * 解析插件依赖并按合适顺序返回（当前实现简化为原序）。
+   * 解析插件依赖并按拓扑顺序返回
    */
   resolveDependencies(plugins: Plugin[]): Plugin[] {
-    // 简化实现，返回原数组
-    return plugins
+    // 使用拓扑排序算法
+    const sorted = this.topologicalSort(plugins)
+    return sorted
+  }
+
+  /**
+   * 🚀 拓扑排序算法 - 确保依赖先于被依赖者加载
+   * @param plugins 要排序的插件列表
+   * @returns 排序后的插件列表
+   */
+  private topologicalSort(plugins: Plugin[]): Plugin[] {
+    const pluginMap = new Map(plugins.map(p => [p.name, p]))
+    const inDegree = new Map<string, number>()
+    const adjList = new Map<string, string[]>()
+
+    // 初始化入度和邻接表
+    for (const plugin of plugins) {
+      inDegree.set(plugin.name, 0)
+      adjList.set(plugin.name, [])
+    }
+
+    // 构建依赖图
+    for (const plugin of plugins) {
+      if (plugin.dependencies) {
+        for (const dep of plugin.dependencies) {
+          if (pluginMap.has(dep)) {
+            inDegree.set(plugin.name, (inDegree.get(plugin.name) || 0) + 1)
+            const deps = adjList.get(dep) || []
+            deps.push(plugin.name)
+            adjList.set(dep, deps)
+          }
+        }
+      }
+    }
+
+    // 使用队列进行拓扑排序
+    const queue: string[] = []
+    const result: Plugin[] = []
+
+    // 将入度为0的节点加入队列
+    for (const [name, degree] of inDegree.entries()) {
+      if (degree === 0) {
+        queue.push(name)
+      }
+    }
+
+    // BFS遍历
+    while (queue.length > 0) {
+      const current = queue.shift()!
+      const plugin = pluginMap.get(current)
+      if (plugin) {
+        result.push(plugin)
+      }
+
+      // 减少依赖此插件的其他插件的入度
+      const dependents = adjList.get(current) || []
+      for (const dep of dependents) {
+        const degree = (inDegree.get(dep) || 1) - 1
+        inDegree.set(dep, degree)
+        if (degree === 0) {
+          queue.push(dep)
+        }
+      }
+    }
+
+    // 检测循环依赖
+    if (result.length !== plugins.length) {
+      this.logger?.warn('Circular dependency detected in plugins')
+      return plugins // 返回原数组
+    }
+
+    return result
   }
 
   // 按关键词查找插件
@@ -353,14 +452,14 @@ export class PluginManagerImpl implements PluginManager {
   findByKeyword(keyword: string): Plugin[] {
     const lowerKeyword = keyword.toLowerCase()
     const results: Plugin[] = []
-    
+
     for (const plugin of this.plugins.values()) {
       if (plugin.name.toLowerCase().includes(lowerKeyword) ||
-          plugin.description?.toLowerCase().includes(lowerKeyword)) {
+        plugin.description?.toLowerCase().includes(lowerKeyword)) {
         results.push(plugin)
       }
     }
-    
+
     return results
   }
 
@@ -420,6 +519,9 @@ export class PluginManagerImpl implements PluginManager {
     this.dependencyGraphCache = undefined
     this.dependentsCache.clear()
     this.cacheInvalidated = true
+    this.dependencyCheckCache.clear()
+    this.topologicalOrderCache = undefined
+    this.topologicalOrderDirty = true
   }
 
   // 实现接口需要的额外方法

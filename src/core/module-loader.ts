@@ -4,6 +4,7 @@
  */
 
 import type { Logger } from '../types'
+import { LRUCache } from '../utils/lru-cache'
 
 // 模块元数据
 export interface ModuleMetadata {
@@ -43,7 +44,11 @@ export class ModuleLoader {
   private modules = new Map<string, ModuleMetadata>()
   private loadingPromises = new Map<string, Promise<any>>()
   private config: Required<ModuleLoaderConfig>
-  private moduleCache = new Map<string, { module: any; timestamp: number }>()
+
+  // 🚀 使用LRU缓存替代普通Map，自动淘汰最久未使用的模块
+  private moduleCache: LRUCache<{ module: any; timestamp: number }>
+  private readonly MAX_MODULE_CACHE = 50
+
   private loadQueue: Array<{ name: string; priority: number }> = []
   private currentLoads = 0
 
@@ -60,6 +65,14 @@ export class ModuleLoader {
       onModuleLoad: config.onModuleLoad || (() => { }),
       onModuleError: config.onModuleError || (() => { })
     }
+
+    // 🚀 初始化LRU缓存
+    this.moduleCache = new LRUCache({
+      maxSize: this.MAX_MODULE_CACHE,
+      onEvict: (moduleName) => {
+        this.logger?.debug(`Module cache evicted: ${moduleName}`)
+      }
+    })
   }
 
   /**
@@ -98,7 +111,7 @@ export class ModuleLoader {
       const module = await promise
       this.loadingPromises.delete(moduleName)
 
-      // 缓存模块
+      // 🚀 使用LRU缓存存储模块
       if (this.config.enableCache) {
         this.moduleCache.set(moduleName, {
           module,
@@ -110,6 +123,72 @@ export class ModuleLoader {
     } catch (error) {
       this.loadingPromises.delete(moduleName)
       throw error
+    }
+  }
+
+  /**
+   * 🚀 新增：卸载模块
+   * @param moduleName 模块名称
+   * @returns 是否卸载成功
+   */
+  unload(moduleName: string): boolean {
+    const metadata = this.modules.get(moduleName)
+    if (!metadata) {
+      return false
+    }
+
+    // 从缓存中移除
+    this.moduleCache.delete(moduleName)
+
+    // 更新元数据
+    metadata.loaded = false
+    metadata.loadTime = undefined
+
+    this.logger?.debug(`Module unloaded: ${moduleName}`)
+    return true
+  }
+
+  /**
+   * 🚀 新增：批量卸载模块
+   * @param moduleNames 模块名称数组
+   */
+  unloadBatch(moduleNames: string[]): number {
+    let unloaded = 0
+    for (const name of moduleNames) {
+      if (this.unload(name)) {
+        unloaded++
+      }
+    }
+    return unloaded
+  }
+
+  /**
+   * 🚀 新增：响应内存压力 - 卸载最久未使用的模块
+   * @param targetSize 目标缓存大小
+   */
+  shrinkCache(targetSize: number = 25): void {
+    const currentSize = this.moduleCache.size()
+    if (currentSize <= targetSize) {
+      return
+    }
+
+    const toRemove = currentSize - targetSize
+    let removed = 0
+
+    // LRU缓存会自动淘汰，这里只需要记录日志
+    this.logger?.info(`Shrinking module cache`, {
+      from: currentSize,
+      to: targetSize,
+      removing: toRemove
+    })
+
+    // 通过手动删除最旧的项来实现收缩
+    const allKeys = this.moduleCache.keys()
+    for (let i = 0; i < toRemove && removed < toRemove; i++) {
+      if (i < allKeys.length) {
+        this.moduleCache.delete(allKeys[i])
+        removed++
+      }
     }
   }
 
@@ -193,7 +272,7 @@ export class ModuleLoader {
     return {
       registered: allModules.length,
       loaded: loaded.length,
-      cached: this.moduleCache.size,
+      cached: this.moduleCache.size(), // 🚀 使用LRU的size()方法
       loading: this.loadingPromises.size,
       averageLoadTime
     }
@@ -255,6 +334,18 @@ export class ModuleLoader {
     this.moduleCache.clear()
     this.modules.clear()
     this.loadQueue = []
+  }
+
+  /**
+   * 🚀 新增：获取缓存使用情况
+   */
+  getCacheStats(): {
+    size: number
+    maxSize: number
+    hitRate: number
+    mostUsed: Array<{ key: string; hits: number }>
+  } {
+    return this.moduleCache.getStats()
   }
 
   /**

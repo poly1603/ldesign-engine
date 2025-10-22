@@ -30,6 +30,15 @@ export interface PerformanceMetric {
 }
 
 export type BudgetExceededCallback = (metric: PerformanceMetric) => void
+export type DegradationCallback = (level: 'warning' | 'critical', metrics: PerformanceMetric[]) => void
+
+// 🚀 新增：性能降级配置
+export interface DegradationConfig {
+  warningThreshold: number   // 警告阈值（百分比）
+  criticalThreshold: number  // 严重阈值（百分比）
+  autoDegrade?: boolean      // 自动降级
+  onDegrade?: DegradationCallback
+}
 
 export class PerformanceBudgetManager {
   private budget: PerformanceBudget
@@ -39,9 +48,29 @@ export class PerformanceBudgetManager {
   private observer?: PerformanceObserver
   private animationFrameId?: number
 
-  constructor(budget: PerformanceBudget, onExceeded?: BudgetExceededCallback) {
+  // 🚀 新增：实时检查和降级
+  private degradationConfig?: DegradationConfig
+  private checkTimer?: number
+  private violationHistory: Array<{
+    metric: string
+    timestamp: number
+    value: number
+    limit: number
+  }> = []
+  private readonly MAX_VIOLATION_HISTORY = 100
+
+  // 🚀 新增：性能趋势跟踪
+  private metricHistory = new Map<string, Array<{ value: number; timestamp: number }>>()
+  private readonly METRIC_HISTORY_SIZE = 20
+
+  constructor(
+    budget: PerformanceBudget,
+    onExceeded?: BudgetExceededCallback,
+    degradationConfig?: DegradationConfig
+  ) {
     this.budget = budget
     this.onExceeded = onExceeded
+    this.degradationConfig = degradationConfig
     this.initializeMetrics()
   }
 
@@ -148,6 +177,9 @@ export class PerformanceBudgetManager {
 
     // 监控网络请求
     this.monitorNetwork()
+
+    // 🚀 启动实时检查
+    this.startRealtimeCheck()
   }
 
   /**
@@ -164,6 +196,12 @@ export class PerformanceBudgetManager {
     if (this.animationFrameId) {
       cancelAnimationFrame(this.animationFrameId)
       this.animationFrameId = undefined
+    }
+
+    // 🚀 停止实时检查
+    if (this.checkTimer) {
+      clearInterval(this.checkTimer)
+      this.checkTimer = undefined
     }
   }
 
@@ -323,7 +361,7 @@ export class PerformanceBudgetManager {
   }
 
   /**
-   * 更新指标
+   * 更新指标 - 🚀 增强版：添加历史跟踪和降级检查
    */
   private updateMetric(name: string, value: number): void {
     const metric = this.metrics.get(name)
@@ -337,9 +375,184 @@ export class PerformanceBudgetManager {
       ? value < metric.limit
       : value > metric.limit
 
+    // 🚀 记录指标历史
+    if (!this.metricHistory.has(name)) {
+      this.metricHistory.set(name, [])
+    }
+    const history = this.metricHistory.get(name)!
+    history.push({ value, timestamp: Date.now() })
+
+    // 限制历史大小
+    if (history.length > this.METRIC_HISTORY_SIZE) {
+      history.shift()
+    }
+
+    // 🚀 记录违规历史
+    if (metric.exceeded) {
+      this.violationHistory.push({
+        metric: name,
+        timestamp: Date.now(),
+        value,
+        limit: metric.limit
+      })
+
+      // 限制违规历史大小
+      if (this.violationHistory.length > this.MAX_VIOLATION_HISTORY) {
+        this.violationHistory.shift()
+      }
+    }
+
     // 如果首次超出预算，触发回调
     if (!wasExceeded && metric.exceeded && this.onExceeded) {
       this.onExceeded(metric)
+    }
+
+    // 🚀 检查是否需要降级
+    this.checkDegradation()
+  }
+
+  /**
+   * 🚀 新增：启动实时检查
+   */
+  private startRealtimeCheck(): void {
+    this.checkTimer = window.setInterval(() => {
+      this.performRealtimeCheck()
+    }, 5000) // 每5秒检查一次
+  }
+
+  /**
+   * 🚀 新增：执行实时检查
+   */
+  private performRealtimeCheck(): void {
+    const exceeded = this.getExceededMetrics()
+
+    // 分析趋势
+    for (const metric of this.metrics.values()) {
+      const history = this.metricHistory.get(metric.name)
+      if (!history || history.length < 3) {
+        continue
+      }
+
+      // 检查趋势
+      const recent = history.slice(-3)
+      const trend = this.analyzeTrend(recent)
+
+      // 如果趋势恶化，发出警告
+      if (trend === 'worsening' && metric.percentage > 80) {
+        console.warn(`Performance metric "${metric.name}" is trending worse`, {
+          current: metric.percentage.toFixed(1) + '%',
+          history: recent.map(h => h.value)
+        })
+      }
+    }
+  }
+
+  /**
+   * 🚀 新增：分析指标趋势
+   */
+  private analyzeTrend(
+    history: Array<{ value: number; timestamp: number }>
+  ): 'improving' | 'stable' | 'worsening' {
+    if (history.length < 2) {
+      return 'stable'
+    }
+
+    const first = history[0].value
+    const last = history[history.length - 1].value
+    const change = ((last - first) / first) * 100
+
+    if (Math.abs(change) < 5) {
+      return 'stable'
+    }
+
+    return change > 0 ? 'worsening' : 'improving'
+  }
+
+  /**
+   * 🚀 新增：检查性能降级
+   */
+  private checkDegradation(): void {
+    if (!this.degradationConfig) {
+      return
+    }
+
+    const metrics = Array.from(this.metrics.values())
+    const warningMetrics = metrics.filter(
+      m => m.percentage >= this.degradationConfig!.warningThreshold &&
+        m.percentage < this.degradationConfig!.criticalThreshold
+    )
+    const criticalMetrics = metrics.filter(
+      m => m.percentage >= this.degradationConfig!.criticalThreshold
+    )
+
+    // 警告级别降级
+    if (warningMetrics.length > 0 && this.degradationConfig.onDegrade) {
+      this.degradationConfig.onDegrade('warning', warningMetrics)
+    }
+
+    // 严重级别降级
+    if (criticalMetrics.length > 0) {
+      if (this.degradationConfig.onDegrade) {
+        this.degradationConfig.onDegrade('critical', criticalMetrics)
+      }
+
+      // 自动降级
+      if (this.degradationConfig.autoDegrade) {
+        this.performAutoDegradation(criticalMetrics)
+      }
+    }
+  }
+
+  /**
+   * 🚀 新增：执行自动降级
+   */
+  private performAutoDegradation(metrics: PerformanceMetric[]): void {
+    console.warn('Performance budget critically exceeded, auto-degrading', {
+      metrics: metrics.map(m => ({ name: m.name, percentage: m.percentage.toFixed(1) }))
+    })
+
+    // 触发浏览器事件，让应用层处理降级
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('performance-degrade', {
+        detail: {
+          level: 'critical',
+          metrics
+        }
+      }))
+    }
+  }
+
+  /**
+   * 🚀 新增：获取违规历史
+   */
+  getViolationHistory(): typeof PerformanceBudgetManager.prototype.violationHistory {
+    return [...this.violationHistory]
+  }
+
+  /**
+   * 🚀 新增：获取指标趋势
+   */
+  getMetricTrend(metricName: string): {
+    trend: 'improving' | 'stable' | 'worsening'
+    history: Array<{ value: number; timestamp: number }>
+    prediction: number
+  } | null {
+    const history = this.metricHistory.get(metricName)
+    if (!history || history.length < 3) {
+      return null
+    }
+
+    const trend = this.analyzeTrend(history)
+
+    // 简单的线性预测
+    const recent = history.slice(-3)
+    const avgChange = (recent[recent.length - 1].value - recent[0].value) / recent.length
+    const prediction = history[history.length - 1].value + avgChange
+
+    return {
+      trend,
+      history: [...history],
+      prediction: Math.max(0, prediction)
     }
   }
 
@@ -410,10 +623,102 @@ export class PerformanceBudgetManager {
   }
 
   /**
+   * 🚀 新增：生成可视化数据（用于图表渲染）
+   */
+  getVisualizationData(): {
+    metrics: Array<{
+      name: string
+      value: number
+      limit: number
+      percentage: number
+      status: 'good' | 'warning' | 'critical'
+    }>
+    timeline: Array<{
+      timestamp: number
+      metrics: Record<string, number>
+    }>
+    violations: typeof PerformanceBudgetManager.prototype.violationHistory
+  } {
+    const metrics = Array.from(this.metrics.values()).map(m => ({
+      name: m.name,
+      value: m.value,
+      limit: m.limit,
+      percentage: m.percentage,
+      status: m.percentage < 80 ? 'good' as const
+        : m.percentage < 100 ? 'warning' as const
+          : 'critical' as const
+    }))
+
+    // 构建时间线数据
+    const timeline: Array<{ timestamp: number; metrics: Record<string, number> }> = []
+    const maxHistoryLength = Math.max(
+      ...Array.from(this.metricHistory.values()).map(h => h.length)
+    )
+
+    for (let i = 0; i < maxHistoryLength; i++) {
+      const dataPoint: { timestamp: number; metrics: Record<string, number> } = {
+        timestamp: 0,
+        metrics: {}
+      }
+
+      for (const [name, history] of this.metricHistory.entries()) {
+        if (i < history.length) {
+          dataPoint.timestamp = history[i].timestamp
+          dataPoint.metrics[name] = history[i].value
+        }
+      }
+
+      if (dataPoint.timestamp > 0) {
+        timeline.push(dataPoint)
+      }
+    }
+
+    return {
+      metrics,
+      timeline,
+      violations: this.violationHistory
+    }
+  }
+
+  /**
+   * 🚀 新增：导出报告为JSON
+   */
+  exportReport(): string {
+    const report = this.getReport()
+    const visualization = this.getVisualizationData()
+    const trends: Record<string, ReturnType<typeof this.getMetricTrend>> = {}
+
+    for (const metricName of this.metrics.keys()) {
+      trends[metricName] = this.getMetricTrend(metricName)
+    }
+
+    return JSON.stringify({
+      report,
+      visualization,
+      trends,
+      exportedAt: Date.now()
+    }, null, 2)
+  }
+
+  /**
    * 销毁
    */
   destroy(): void {
     this.stopMonitoring()
     this.metrics.clear()
+    this.metricHistory.clear()
+    this.violationHistory = []
   }
 }
+
+/**
+ * 🚀 创建性能预算管理器
+ */
+export function createPerformanceBudgetManager(
+  budget: PerformanceBudget,
+  onExceeded?: BudgetExceededCallback,
+  degradationConfig?: DegradationConfig
+): PerformanceBudgetManager {
+  return new PerformanceBudgetManager(budget, onExceeded, degradationConfig)
+}
+

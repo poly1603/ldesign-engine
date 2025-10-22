@@ -370,10 +370,58 @@ class FPSMonitor {
   }
 }
 
+// 🚀 新增：滑动窗口数据结构
+class SlidingWindow<T> {
+  private data: T[] = []
+  private maxSize: number
+  private aggregated?: T
+
+  constructor(maxSize: number) {
+    this.maxSize = maxSize
+  }
+
+  push(item: T): void {
+    this.data.push(item)
+    if (this.data.length > this.maxSize) {
+      this.data.shift()
+    }
+    this.aggregated = undefined // 清除聚合缓存
+  }
+
+  get(index: number): T | undefined {
+    return this.data[index]
+  }
+
+  getAll(): T[] {
+    return [...this.data]
+  }
+
+  size(): number {
+    return this.data.length
+  }
+
+  clear(): void {
+    this.data = []
+    this.aggregated = undefined
+  }
+
+  // 聚合数据（避免重复计算）
+  aggregate(aggregator: (items: T[]) => T): T {
+    if (!this.aggregated) {
+      this.aggregated = aggregator(this.data)
+    }
+    return this.aggregated
+  }
+}
+
 // 性能管理器实现
 export class PerformanceManagerImpl implements PerformanceManager {
   private events = new Map<string, PerformanceEvent>()
-  private metrics: PerformanceMetrics[] = []
+
+  // 🚀 使用滑动窗口存储指标，自动淘汰旧数据
+  private metricsWindow: SlidingWindow<PerformanceMetrics>
+  private readonly MAX_METRICS_WINDOW = 100 // 滑动窗口大小
+
   private thresholds: PerformanceThresholds
   private violationCallbacks: ((violation: PerformanceViolation) => void)[] = []
   private metricsCallbacks: ((metrics: PerformanceMetrics) => void)[] = []
@@ -384,11 +432,20 @@ export class PerformanceManagerImpl implements PerformanceManager {
   private engine?: Engine
   private eventIdCounter = 0
   private maxEvents = 50 // 限制最大事件数量
-  private maxMetrics = 50 // 限制最大指标数量
   private destroyed = false
+
+  // 🚀 数据聚合缓存
+  private aggregatedMetrics?: {
+    averageResponseTime: number
+    averageFPS: number
+    averageMemory: number
+    timestamp: number
+  }
+  private readonly AGGREGATION_CACHE_TTL = 5000 // 5秒
 
   constructor(thresholds: PerformanceThresholds = {}, engine?: Engine) {
     this.engine = engine
+    this.metricsWindow = new SlidingWindow(this.MAX_METRICS_WINDOW)
     this.thresholds = {
       responseTime: { good: 100, poor: 1000 },
       fps: { good: 55, poor: 30 },
@@ -519,12 +576,11 @@ export class PerformanceManagerImpl implements PerformanceManager {
       ...metrics,
     }
 
-    this.metrics.push(fullMetrics)
+    // 🚀 使用滑动窗口自动淘汰旧数据
+    this.metricsWindow.push(fullMetrics)
 
-    // 限制存储的指标数量，减少内存占用
-    if (this.metrics.length > this.maxMetrics) {
-      this.metrics = this.metrics.slice(-this.maxMetrics)
-    }
+    // 🚀 清除聚合缓存
+    this.aggregatedMetrics = undefined
 
     // 检查指标违规
     this.checkMetricsViolations(fullMetrics)
@@ -622,7 +678,8 @@ export class PerformanceManagerImpl implements PerformanceManager {
   }
 
   getMetrics(timeRange?: { start: number; end: number }): PerformanceMetrics[] {
-    let metrics = [...this.metrics]
+    // 🚀 从滑动窗口获取数据
+    let metrics = this.metricsWindow.getAll()
 
     if (timeRange) {
       metrics = metrics.filter(
@@ -1066,7 +1123,9 @@ export class PerformanceManagerImpl implements PerformanceManager {
   }
 
   clearMetrics(): void {
-    this.metrics = []
+    // 🚀 清空滑动窗口
+    this.metricsWindow.clear()
+    this.aggregatedMetrics = undefined
   }
 
   clearMarks(): void {
@@ -1139,7 +1198,11 @@ export class PerformanceManagerImpl implements PerformanceManager {
 
     // 清理数据
     this.events.clear()
-    this.metrics = []
+
+    // 🚀 清空滑动窗口和聚合缓存
+    this.metricsWindow.clear()
+    this.aggregatedMetrics = undefined
+
     this.violationCallbacks = []
     this.metricsCallbacks = []
 

@@ -15,8 +15,10 @@ type WatchCallback = (newValue: unknown, oldValue: unknown) => void
  */
 export class StateManagerImpl implements StateManager {
   private state = reactive<Record<string, unknown>>({})
-  // 使用WeakMap减少内存占用，自动垃圾回收
-  private watchers = new Map<string, Set<WeakRef<WatchCallback>>>()
+
+  // 🚀 优化：使用强引用+引用计数，避免WeakRef的不确定性
+  private watchers = new Map<string, Set<WatchCallback>>()
+  private watcherRefCounts = new Map<WatchCallback, number>()
 
   // 优化：使用环形缓冲区，固定内存占用
   private changeHistory: Array<{
@@ -41,6 +43,10 @@ export class StateManagerImpl implements StateManager {
   // LRU缓存优化 - 使用专用LRU实现
   private pathCache: LRUCache<unknown>
   private readonly MAX_CACHE_SIZE = 100 // 增加缓存大小 // 减少缓存大小
+
+  // 🚀 新增：路径编译缓存 - 预解析split结果
+  private pathSegmentsCache = new Map<string, string[]>()
+  private readonly MAX_PATH_SEGMENTS = 200
 
   constructor(private logger?: Logger) {
     // 初始化LRU缓存
@@ -121,6 +127,9 @@ export class StateManagerImpl implements StateManager {
     // 清理所有监听器
     this.watchers.clear()
 
+    // 🚀 清理引用计数
+    this.watcherRefCounts.clear()
+
     // 清空路径缓存
     this.pathCache.clear()
 
@@ -140,25 +149,32 @@ export class StateManagerImpl implements StateManager {
     key: string,
     callback: (newValue: T, oldValue: T) => void
   ): () => void {
-    // 使用弱引用存储监听器，减少内存泄漏
+    // 🚀 使用强引用+引用计数，避免WeakRef的不确定性
     if (!this.watchers.has(key)) {
       this.watchers.set(key, new Set())
     }
 
     const watcherSet = this.watchers.get(key)!
-    const weakCallback = new WeakRef(callback as WatchCallback)
-    watcherSet.add(weakCallback)
+    const typedCallback = callback as WatchCallback
+    watcherSet.add(typedCallback)
+
+    // 增加引用计数
+    const currentCount = this.watcherRefCounts.get(typedCallback) || 0
+    this.watcherRefCounts.set(typedCallback, currentCount + 1)
 
     // 返回优化的取消监听函数
     return () => {
       const callbacks = this.watchers.get(key)
       if (callbacks) {
-        // 清理弱引用
-        callbacks.forEach(ref => {
-          if (ref.deref() === callback) {
-            callbacks.delete(ref)
-          }
-        })
+        callbacks.delete(typedCallback)
+
+        // 减少引用计数
+        const count = (this.watcherRefCounts.get(typedCallback) || 1) - 1
+        if (count <= 0) {
+          this.watcherRefCounts.delete(typedCallback)
+        } else {
+          this.watcherRefCounts.set(typedCallback, count)
+        }
 
         if (callbacks.size === 0) {
           this.watchers.delete(key)
@@ -174,31 +190,40 @@ export class StateManagerImpl implements StateManager {
   ): void {
     const callbacks = this.watchers.get(key)
     if (callbacks) {
-      // 清理已被垃圾回收的监听器
-      const deadRefs: WeakRef<WatchCallback>[] = []
-
-      callbacks.forEach((weakCallback) => {
-        const callback = weakCallback.deref()
-        if (callback) {
-          try {
-            // 异步执行避免阻塞
-            queueMicrotask(() => callback(newValue, oldValue))
-          } catch (error) {
-            this.logger?.error('Error in state watcher callback', { key, error })
-          }
-        } else {
-          deadRefs.push(weakCallback)
+      // 🚀 直接遍历强引用，无需检查垃圾回收
+      callbacks.forEach((callback) => {
+        try {
+          // 异步执行避免阻塞
+          queueMicrotask(() => callback(newValue, oldValue))
+        } catch (error) {
+          this.logger?.error('Error in state watcher callback', { key, error })
         }
       })
-
-      // 清理无效引用
-      deadRefs.forEach(ref => callbacks.delete(ref))
     }
   }
 
-  // 获取嵌套值
+  // 获取嵌套值 - 🚀 优化版：使用路径编译缓存
   private getNestedValue(obj: Record<string, unknown>, path: string): unknown {
-    const keys = path.split('.')
+    // 快速路径：单层访问
+    if (!path.includes('.')) {
+      return obj[path]
+    }
+
+    // 使用路径编译缓存
+    let keys = this.pathSegmentsCache.get(path)
+    if (!keys) {
+      keys = path.split('.')
+
+      // 限制缓存大小
+      if (this.pathSegmentsCache.size >= this.MAX_PATH_SEGMENTS) {
+        // 清理最旧的一半
+        const keysToDelete = Array.from(this.pathSegmentsCache.keys()).slice(0, this.MAX_PATH_SEGMENTS / 2)
+        keysToDelete.forEach(k => this.pathSegmentsCache.delete(k))
+      }
+
+      this.pathSegmentsCache.set(path, keys)
+    }
+
     let current: unknown = obj
 
     for (const key of keys) {
@@ -212,9 +237,27 @@ export class StateManagerImpl implements StateManager {
     return current
   }
 
-  // 设置嵌套值
+  // 设置嵌套值 - 🚀 优化版：使用路径编译缓存
   private setNestedValue(obj: Record<string, unknown>, path: string, value: unknown): void {
-    const keys = path.split('.')
+    // 快速路径：单层设置
+    if (!path.includes('.')) {
+      obj[path] = value
+      return
+    }
+
+    // 使用路径编译缓存
+    let keys = this.pathSegmentsCache.get(path)
+    if (!keys) {
+      keys = path.split('.')
+
+      if (this.pathSegmentsCache.size >= this.MAX_PATH_SEGMENTS) {
+        const keysToDelete = Array.from(this.pathSegmentsCache.keys()).slice(0, this.MAX_PATH_SEGMENTS / 2)
+        keysToDelete.forEach(k => this.pathSegmentsCache.delete(k))
+      }
+
+      this.pathSegmentsCache.set(path, keys)
+    }
+
     let current: Record<string, unknown> = obj
 
     for (let i = 0; i < keys.length - 1; i++) {
@@ -229,9 +272,27 @@ export class StateManagerImpl implements StateManager {
     current[keys[keys.length - 1]] = value
   }
 
-  // 删除嵌套值
+  // 删除嵌套值 - 🚀 优化版：使用路径编译缓存
   private deleteNestedValue(obj: Record<string, unknown>, path: string): void {
-    const keys = path.split('.')
+    // 快速路径：单层删除
+    if (!path.includes('.')) {
+      delete obj[path]
+      return
+    }
+
+    // 使用路径编译缓存
+    let keys = this.pathSegmentsCache.get(path)
+    if (!keys) {
+      keys = path.split('.')
+
+      if (this.pathSegmentsCache.size >= this.MAX_PATH_SEGMENTS) {
+        const keysToDelete = Array.from(this.pathSegmentsCache.keys()).slice(0, this.MAX_PATH_SEGMENTS / 2)
+        keysToDelete.forEach(k => this.pathSegmentsCache.delete(k))
+      }
+
+      this.pathSegmentsCache.set(path, keys)
+    }
+
     let current: unknown = obj
 
     for (let i = 0; i < keys.length - 1; i++) {
@@ -505,17 +566,37 @@ export class StateManagerImpl implements StateManager {
     }
   }
 
-  // 清理空的监听器
+  // 清理空的监听器 - 🚀 增强版：同时清理未使用的引用计数
   private cleanupEmptyWatchers(): void {
     const emptyKeys: string[] = []
+    const activeCallbacks = new Set<WatchCallback>()
 
+    // 收集所有活跃的回调
     for (const [key, callbacks] of this.watchers.entries()) {
       if (callbacks.size === 0) {
         emptyKeys.push(key)
+      } else {
+        callbacks.forEach(cb => activeCallbacks.add(cb))
       }
     }
 
+    // 清理空键
     emptyKeys.forEach(key => this.watchers.delete(key))
+
+    // 🚀 清理未使用的引用计数
+    const unusedCallbacks: WatchCallback[] = []
+    for (const [callback] of this.watcherRefCounts.entries()) {
+      if (!activeCallbacks.has(callback)) {
+        unusedCallbacks.push(callback)
+      }
+    }
+    unusedCallbacks.forEach(cb => this.watcherRefCounts.delete(cb))
+
+    if (unusedCallbacks.length > 0) {
+      this.logger?.debug('Cleaned unused watcher references', {
+        removed: unusedCallbacks.length
+      })
+    }
   }
 
   // 记录变更历史 - 优化版使用环形缓冲区
@@ -567,6 +648,80 @@ export class StateManagerImpl implements StateManager {
   // 清除变更历史
   clearHistory(): void {
     this.changeHistory = []
+  }
+
+  // 🚀 新增：批量操作API
+  /**
+   * 批量设置状态 - 优化版，避免多次触发监听器
+   * @param updates 键值对对象
+   * @param triggerWatchers 是否触发监听器（默认true）
+   */
+  batchSet(updates: Record<string, unknown>, triggerWatchers = true): void {
+    const changedKeys: string[] = []
+
+    // 第一阶段：批量更新状态
+    for (const [key, value] of Object.entries(updates)) {
+      const oldValue = this.getNestedValue(this.state, key)
+
+      if (oldValue !== value) {
+        this.recordChange(key, oldValue, value)
+        this.setNestedValue(this.state, key, value)
+        this.invalidatePathCache(key)
+        changedKeys.push(key)
+      }
+    }
+
+    // 第二阶段：统一触发监听器
+    if (triggerWatchers) {
+      for (const key of changedKeys) {
+        const newValue = this.getNestedValue(this.state, key)
+        const oldValue = this.changeHistory[0]?.oldValue // 获取最近的旧值
+        this.triggerWatchers(key, newValue, oldValue)
+      }
+    }
+  }
+
+  /**
+   * 批量获取状态
+   * @param keys 要获取的键数组
+   * @returns 键值对对象
+   */
+  batchGet<T = unknown>(keys: string[]): Record<string, T | undefined> {
+    const result: Record<string, T | undefined> = {}
+
+    for (const key of keys) {
+      result[key] = this.get<T>(key)
+    }
+
+    return result
+  }
+
+  /**
+   * 批量删除状态
+   * @param keys 要删除的键数组
+   */
+  batchRemove(keys: string[]): void {
+    for (const key of keys) {
+      this.remove(key)
+    }
+  }
+
+  /**
+   * 事务操作 - 确保原子性
+   * @param operation 事务操作函数
+   * @returns 操作结果
+   */
+  transaction<T>(operation: () => T): T {
+    const snapshot = this.getSnapshot()
+
+    try {
+      const result = operation()
+      return result
+    } catch (error) {
+      // 发生错误时回滚到快照
+      this.restoreFromSnapshot(snapshot)
+      throw error
+    }
   }
 
   // 撤销最后一次变更
@@ -762,6 +917,11 @@ export function createStateManager(logger?: Logger): StateManagerWithDestroy {
     // 清理路径缓存
     if (this.pathCache) {
       this.pathCache.clear()
+    }
+
+    // 🚀 清理路径编译缓存
+    if (this.pathSegmentsCache) {
+      this.pathSegmentsCache.clear()
     }
 
     // 清空历史记录

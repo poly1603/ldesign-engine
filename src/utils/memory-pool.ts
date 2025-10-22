@@ -14,7 +14,7 @@ export class ObjectPool<T extends PoolableObject> {
   private maxCreated: number
   private lastCleanup = Date.now()
   private readonly CLEANUP_INTERVAL = 60000 // 1 minute
-  
+
   constructor(
     private factory: () => T,
     private options: {
@@ -26,7 +26,7 @@ export class ObjectPool<T extends PoolableObject> {
   ) {
     const { preAllocate = 0, maxCreated = 10000 } = options
     this.maxCreated = maxCreated
-    
+
     // 预分配对象
     const allocateCount = Math.min(preAllocate, this.maxCreated)
     for (let i = 0; i < allocateCount; i++) {
@@ -40,9 +40,9 @@ export class ObjectPool<T extends PoolableObject> {
   acquire(): T | null {
     // Periodic cleanup
     this.maybeCleanup()
-    
+
     let obj = this.pool.pop()
-    
+
     if (!obj) {
       // Check if we've hit the creation limit
       if (this.created >= this.maxCreated) {
@@ -51,7 +51,7 @@ export class ObjectPool<T extends PoolableObject> {
       }
       obj = this.createObject()
     }
-    
+
     this.inUse.add(obj)
     return obj
   }
@@ -63,14 +63,14 @@ export class ObjectPool<T extends PoolableObject> {
     if (!this.inUse.has(obj)) {
       return // 对象不是从这个池中获取的
     }
-    
+
     this.inUse.delete(obj)
-    
+
     // 重置对象状态
     if (this.options.resetOnRelease !== false && obj.reset) {
       obj.reset()
     }
-    
+
     // 检查池大小限制
     const maxSize = this.options.maxSize || 1000
     if (this.pool.length < maxSize) {
@@ -101,7 +101,7 @@ export class ObjectPool<T extends PoolableObject> {
     this.created = 0
     // WeakSet 会自动清理
   }
-  
+
   /**
    * Perform periodic cleanup
    */
@@ -163,11 +163,11 @@ export class MemoryPoolManager {
     }
   ): ObjectPool<T> {
     if (this.pools.has(name)) {
-      throw new Error(`Pool "${name}" already exists`)
+      throw new Error('Pool "' + name + '" already exists')
     }
-    
+
     if (this.pools.size >= this.MAX_POOLS) {
-      console.warn(`MemoryPoolManager: Reached max pools limit (${this.MAX_POOLS})`)
+      console.warn('MemoryPoolManager: Reached max pools limit (' + this.MAX_POOLS + ')')
       // Remove oldest pool
       const firstKey = this.pools.keys().next().value
       if (firstKey) {
@@ -175,7 +175,7 @@ export class MemoryPoolManager {
         this.pools.delete(firstKey)
       }
     }
-    
+
     const pool = new ObjectPool(factory, options)
     this.pools.set(name, pool)
     return pool
@@ -197,11 +197,11 @@ export class MemoryPoolManager {
     available: number
   }> {
     const stats: Record<string, any> = {}
-    
+
     for (const [name, pool] of this.pools) {
       stats[name] = pool.getStats()
     }
-    
+
     return stats
   }
 
@@ -239,14 +239,14 @@ export class ArrayPool<T> {
     if (size > this.MAX_ARRAY_SIZE) {
       return Array.from({ length: size }) as T[]
     }
-    
+
     const pool = this.getPoolForSize(size)
     const array = pool.pop()
-    
+
     if (array) {
       return array
     }
-    
+
     return Array.from({ length: size }) as T[]
   }
 
@@ -255,17 +255,17 @@ export class ArrayPool<T> {
    */
   release(array: T[]): void {
     const size = array.length
-    
+
     // Don't pool very large arrays
     if (size > this.MAX_ARRAY_SIZE) {
       return
     }
-    
+
     // 清空数组内容
     array.length = 0
-    
+
     const pool = this.getPoolForSize(size)
-    
+
     // 限制每个尺寸的池大小
     if (pool.length < this.MAX_POOLS_PER_SIZE) {
       pool.push(array)
@@ -274,7 +274,7 @@ export class ArrayPool<T> {
 
   private getPoolForSize(size: number): T[][] {
     let pool = this.pools.get(size)
-    
+
     if (!pool) {
       // Limit total number of size pools
       if (this.pools.size >= 50) {
@@ -287,7 +287,7 @@ export class ArrayPool<T> {
       pool = []
       this.pools.set(size, pool)
     }
-    
+
     return pool
   }
 
@@ -313,7 +313,7 @@ export class StringBuilderPool {
 
   release(builder: StringBuilder): void {
     builder.clear()
-    
+
     if (this.pool.length < this.maxPoolSize) {
       this.pool.push(builder)
     }
@@ -354,7 +354,7 @@ let globalMemoryPoolManager: MemoryPoolManager | undefined
 export function getGlobalMemoryPoolManager(): MemoryPoolManager {
   if (!globalMemoryPoolManager) {
     globalMemoryPoolManager = new MemoryPoolManager()
-    
+
     // 注册常用的对象池
     globalMemoryPoolManager.registerPool('event', () => ({
       type: '',
@@ -368,7 +368,7 @@ export function getGlobalMemoryPoolManager(): MemoryPoolManager {
       preAllocate: 10,
       resetOnRelease: true
     })
-    
+
     globalMemoryPoolManager.registerPool('promise', () => ({
       resolve: null as any,
       reject: null as any,
@@ -382,7 +382,7 @@ export function getGlobalMemoryPoolManager(): MemoryPoolManager {
       resetOnRelease: true
     })
   }
-  
+
   return globalMemoryPoolManager
 }
 
@@ -394,13 +394,13 @@ export const memoryPool = {
     const acquired = (pool ? pool.acquire() : undefined) as unknown as T | null | undefined
     return acquired === null ? undefined : acquired
   },
-  
+
   release<T extends PoolableObject>(poolName: string, obj: T): void {
     const manager = getGlobalMemoryPoolManager()
     const pool = manager.getPool<T>(poolName)
     pool?.release(obj)
   },
-  
+
   getStats(poolName?: string): any {
     const manager = getGlobalMemoryPoolManager()
     if (poolName) {
@@ -417,32 +417,32 @@ export const memoryPool = {
 export function Poolable(poolName: string) {
   return function (constructor: any) {
     const originalConstructor = constructor
-    
+
     // 新的构造函数
     function newConstructor(...args: any[]) {
       const manager = getGlobalMemoryPoolManager()
       let pool = manager.getPool(poolName)
-      
+
       if (!pool) {
         pool = manager.registerPool(poolName, () => new (originalConstructor as any)(...args), {
           maxSize: 100,
           resetOnRelease: true
         })
       }
-      
+
       return pool.acquire()
     }
-    
+
     // 复制原型
     newConstructor.prototype = originalConstructor.prototype
-    
+
     // 添加释放方法
-    newConstructor.prototype.release = function() {
+    newConstructor.prototype.release = function () {
       const manager = getGlobalMemoryPoolManager()
       const pool = manager.getPool(poolName)
       pool?.release(this)
     }
-    
+
     return newConstructor as any
   }
 }

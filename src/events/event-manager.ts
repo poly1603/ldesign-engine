@@ -50,6 +50,10 @@ export class EventManagerImpl<TEventMap extends EventMap = EventMap>
   private cleanupInterval = 60000 // 降低到1分钟
   private cleanupTimer: number | null = null // 存储定时器引用
 
+  // 🚀 新增：优先级桶优化 - 按优先级分组存储监听器
+  private priorityBuckets: Map<string, Map<number, EventListener[]>> = new Map()
+  private hasPriorityListeners: Map<string, boolean> = new Map()
+
   constructor(private logger?: Logger) {
     // 更频繁地清理统计数据
     this.setupCleanupTimer()
@@ -104,18 +108,52 @@ export class EventManagerImpl<TEventMap extends EventMap = EventMap>
 
     if (!handler) {
       // 移除所有监听器
+      // 🚀 清理优先级桶
       this.events.delete(key)
       this.sortedListenersCache.delete(key)
+      this.priorityBuckets.delete(key)
+      this.hasPriorityListeners.delete(key)
+
+      // 释放所有监听器到对象池
+      for (const listener of listeners) {
+        this.eventPool.release(listener)
+      }
       return
     }
 
     // 移除指定监听器
     const index = listeners.findIndex(listener => listener.handler === handler)
     if (index > -1) {
+      const listener = listeners[index]
+      this.eventPool.release(listener)
       listeners.splice(index, 1)
+
+      // 🚀 同时从优先级桶中移除
+      if (listener.priority !== 0) {
+        const buckets = this.priorityBuckets.get(key)
+        if (buckets) {
+          const bucket = buckets.get(listener.priority)
+          if (bucket) {
+            const bucketIndex = bucket.indexOf(listener)
+            if (bucketIndex > -1) {
+              bucket.splice(bucketIndex, 1)
+            }
+            if (bucket.length === 0) {
+              buckets.delete(listener.priority)
+            }
+          }
+          if (buckets.size === 0) {
+            this.priorityBuckets.delete(key)
+            this.hasPriorityListeners.set(key, false)
+          }
+        }
+      }
+
       if (listeners.length === 0) {
         this.events.delete(key)
         this.sortedListenersCache.delete(key)
+        this.priorityBuckets.delete(key)
+        this.hasPriorityListeners.delete(key)
       } else {
         this.sortedListenersCache.delete(key)
       }
@@ -134,11 +172,111 @@ export class EventManagerImpl<TEventMap extends EventMap = EventMap>
       return
     }
 
-    // 优化：使用WeakMap缓存以避免重复排序
+    // 🚀 快速路径1：单个监听器，无需排序
+    if (listeners.length === 1) {
+      const listener = listeners[0]
+      try {
+        listener.handler(args[0] as unknown)
+      } catch (error) {
+        this.logger?.error(`Error in event handler for "${key}":`, error)
+      }
+      if (listener.once) {
+        this.events.delete(key)
+        this.eventPool.release(listener)
+        this.priorityBuckets.delete(key)
+        this.hasPriorityListeners.delete(key)
+      }
+      return
+    }
+
+    // 🚀 快速路径2：所有监听器优先级相同（最常见情况）
+    const hasPriority = this.hasPriorityListeners.get(key)
+    if (!hasPriority) {
+      // 直接遍历，无需排序
+      const toRemove: number[] = []
+      for (let i = 0; i < listeners.length; i++) {
+        const listener = listeners[i]
+        try {
+          listener.handler(args[0] as unknown)
+        } catch (error) {
+          this.logger?.error('Error in event handler for "' + key + '":', error)
+        }
+        if (listener.once) {
+          toRemove.push(i)
+        }
+      }
+
+      // 清理一次性监听器
+      if (toRemove.length > 0) {
+        for (let i = toRemove.length - 1; i >= 0; i--) {
+          const idx = toRemove[i]
+          this.eventPool.release(listeners[idx])
+          listeners.splice(idx, 1)
+        }
+        if (listeners.length === 0) {
+          this.events.delete(key)
+        }
+      }
+      return
+    }
+
+    // 🚀 优先级桶路径：使用预排序的桶
+    const buckets = this.priorityBuckets.get(key)
+    if (buckets) {
+      // 按优先级从高到低遍历桶
+      const priorities = Array.from(buckets.keys()).sort((a, b) => a - b)
+      const toRemove: Array<{ priority: number; index: number }> = []
+
+      for (const priority of priorities) {
+        const bucket = buckets.get(priority)!
+        for (let i = 0; i < bucket.length; i++) {
+          const listener = bucket[i]
+          try {
+            listener.handler(args[0] as unknown)
+          } catch (error) {
+            this.logger?.error('Error in event handler for "' + key + '":', error)
+          }
+          if (listener.once) {
+            toRemove.push({ priority, index: i })
+          }
+        }
+      }
+
+      // 清理一次性监听器
+      if (toRemove.length > 0) {
+        // 倒序删除避免索引偏移
+        for (let i = toRemove.length - 1; i >= 0; i--) {
+          const { priority, index } = toRemove[i]
+          const bucket = buckets.get(priority)!
+          const listener = bucket[index]
+          this.eventPool.release(listener)
+          bucket.splice(index, 1)
+
+          // 同时从主数组中删除
+          const mainIdx = listeners.indexOf(listener)
+          if (mainIdx > -1) {
+            listeners.splice(mainIdx, 1)
+          }
+
+          // 如果桶为空，删除桶
+          if (bucket.length === 0) {
+            buckets.delete(priority)
+          }
+        }
+
+        // 如果所有桶都空了，清理
+        if (buckets.size === 0) {
+          this.events.delete(key)
+          this.priorityBuckets.delete(key)
+          this.hasPriorityListeners.delete(key)
+        }
+      }
+      return
+    }
+
+    // 降级路径：原始排序逻辑（仅作为后备）
     let listenersToExecute = this.weakSortedCache.get(listeners)
     if (!listenersToExecute) {
-      // 只有在没有缓存时才排序 - 优化：使用更高效的排序
-      // 对于少量监听器，使用插入排序更快
       if (listeners.length < 10) {
         listenersToExecute = this.insertionSort([...listeners])
       } else {
@@ -147,28 +285,22 @@ export class EventManagerImpl<TEventMap extends EventMap = EventMap>
       this.weakSortedCache.set(listeners, listenersToExecute)
     }
 
-    // 使用位图标记需要移除的一次性监听器，避免多次数组操作
     const removeIndexes = new Uint8Array(listenersToExecute.length)
     let hasOnceListeners = false
 
-    // 单次循环处理事件触发和标记移除
     for (let i = 0; i < listenersToExecute.length; i++) {
       const listener = listenersToExecute[i]
-
       try {
         listener.handler(args[0] as unknown)
       } catch (error) {
-        this.logger?.error(`Error in event handler for "${key}":`, error)
+        this.logger?.error('Error in event handler for "' + key + '":', error)
       }
-
-      // 标记需要移除的一次性监听器
       if (listener.once) {
         removeIndexes[i] = 1
         hasOnceListeners = true
       }
     }
 
-    // 只有在有一次性监听器时才执行批量移除
     if (hasOnceListeners) {
       this.batchRemoveIndexedListeners(key, listeners, removeIndexes)
     }
@@ -198,6 +330,7 @@ export class EventManagerImpl<TEventMap extends EventMap = EventMap>
   ): void {
     if (!this.events.has(event)) {
       this.events.set(event, [])
+      this.hasPriorityListeners.set(event, false)
     }
 
     const listeners = this.events.get(event)
@@ -206,9 +339,9 @@ export class EventManagerImpl<TEventMap extends EventMap = EventMap>
     // 检查监听器数量限制
     if (listeners.length >= this.maxListeners) {
       this.logger?.warn(
-        `MaxListenersExceededWarning: Possible EventManager memory leak detected. ` +
-        `${listeners.length + 1} "${event}" listeners added. ` +
-        `Use setMaxListeners() to increase limit.`
+        'MaxListenersExceededWarning: Possible EventManager memory leak detected. ' +
+        (listeners.length + 1) + ' "' + event + '" listeners added. ' +
+        'Use setMaxListeners() to increase limit.'
       )
     }
 
@@ -219,6 +352,31 @@ export class EventManagerImpl<TEventMap extends EventMap = EventMap>
     listener.priority = priority
 
     listeners.push(listener)
+
+    // 🚀 维护优先级桶
+    if (priority !== 0) {
+      // 标记该事件有优先级监听器
+      this.hasPriorityListeners.set(event, true)
+
+      // 获取或创建该事件的桶集合
+      if (!this.priorityBuckets.has(event)) {
+        this.priorityBuckets.set(event, new Map())
+      }
+      const buckets = this.priorityBuckets.get(event)!
+
+      // 获取或创建对应优先级的桶
+      if (!buckets.has(priority)) {
+        buckets.set(priority, [])
+      }
+      buckets.get(priority)!.push(listener)
+    } else {
+      // 检查是否所有监听器都是默认优先级
+      const allDefaultPriority = listeners.every(l => l.priority === 0)
+      if (allDefaultPriority) {
+        this.hasPriorityListeners.set(event, false)
+        this.priorityBuckets.delete(event)
+      }
+    }
 
     // 清除该事件的缓存
     this.sortedListenersCache.delete(event)
@@ -254,11 +412,30 @@ export class EventManagerImpl<TEventMap extends EventMap = EventMap>
   // 移除所有监听器
   removeAllListeners(event?: string): void {
     if (event) {
+      // 释放监听器到对象池
+      const listeners = this.events.get(event)
+      if (listeners) {
+        for (const listener of listeners) {
+          this.eventPool.release(listener)
+        }
+      }
+
       this.events.delete(event)
       this.sortedListenersCache.delete(event)
+      this.priorityBuckets.delete(event)
+      this.hasPriorityListeners.delete(event)
     } else {
+      // 释放所有监听器到对象池
+      for (const listeners of this.events.values()) {
+        for (const listener of listeners) {
+          this.eventPool.release(listener)
+        }
+      }
+
       this.events.clear()
       this.sortedListenersCache.clear()
+      this.priorityBuckets.clear()
+      this.hasPriorityListeners.clear()
     }
   }
 
@@ -413,11 +590,20 @@ export class EventManagerImpl<TEventMap extends EventMap = EventMap>
       this.cleanupTimer = null
     }
 
+    // 释放所有监听器到对象池
+    for (const listeners of this.events.values()) {
+      for (const listener of listeners) {
+        this.eventPool.release(listener)
+      }
+    }
+
     // 清理所有数据
     this.events.clear()
     this.sortedListenersCache.clear()
     this.eventStats.clear()
     this.eventPool.clear()
+    this.priorityBuckets.clear()
+    this.hasPriorityListeners.clear()
   }
 
   prependOnceListener(

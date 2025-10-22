@@ -94,6 +94,17 @@ export class WorkerPool<T = unknown, R = unknown> {
     currentQueueSize: 0
   }
 
+  // 🚀 新增：统一管理所有 Blob URLs，防止内存泄漏
+  private workerBlobUrls = new Set<string>()
+
+  // 🚀 新增：资源跟踪
+  private resourceTracker = {
+    createdWorkers: 0,
+    terminatedWorkers: 0,
+    activeBlobUrls: 0,
+    peakMemoryUsage: 0
+  }
+
   constructor(
     config: WorkerPoolConfig = {},
     private logger?: Logger
@@ -225,26 +236,26 @@ export class WorkerPool<T = unknown, R = unknown> {
 
     this.workers.set(workerId, state)
 
+    // 🚀 更新资源跟踪
+    this.resourceTracker.createdWorkers++
+
     // 更新峰值
     if (this.workers.size > this.metrics.peakWorkers) {
       this.metrics.peakWorkers = this.workers.size
     }
 
-    this.logger?.debug(`Worker ${workerId} created`)
+    this.logger?.debug(`Worker ${workerId} created`, {
+      totalCreated: this.resourceTracker.createdWorkers,
+      activeWorkers: this.workers.size
+    })
 
     return state
   }
 
   /**
-   * 创建默认 Worker 脚本
+   * 创建默认 Worker 脚本 - 🚀 优化版：统一管理 Blob URLs
    */
   private createDefaultWorker(): Worker {
-    // 清理之前的 blob URL
-    if ((this as any).__workerBlobUrl) {
-      URL.revokeObjectURL((this as any).__workerBlobUrl)
-      delete (this as any).__workerBlobUrl
-    }
-
     const workerScript = `
       self.onmessage = async function(e) {
         const { id, type, data } = e.data;
@@ -307,8 +318,9 @@ export class WorkerPool<T = unknown, R = unknown> {
     const blob = new Blob([workerScript], { type: 'application/javascript' })
     const url = URL.createObjectURL(blob)
 
-      // 存储 URL 以便后续清理
-      ; (this as any).__workerBlobUrl = url
+    // 🚀 将URL添加到集中管理的Set中
+    this.workerBlobUrls.add(url)
+    this.resourceTracker.activeBlobUrls = this.workerBlobUrls.size
 
     return new Worker(url)
   }
@@ -696,7 +708,7 @@ export class WorkerPool<T = unknown, R = unknown> {
   }
 
   /**
-   * 终止指定 Worker
+   * 终止指定 Worker - 🚀 优化版：清理资源
    */
   private terminateWorker(workerId: string): void {
     const worker = this.workers.get(workerId)
@@ -718,7 +730,13 @@ export class WorkerPool<T = unknown, R = unknown> {
     worker.worker.terminate()
     this.workers.delete(workerId)
 
-    this.logger?.debug(`Worker ${workerId} terminated`)
+    // 🚀 更新资源跟踪
+    this.resourceTracker.terminatedWorkers++
+
+    this.logger?.debug(`Worker ${workerId} terminated`, {
+      totalTerminated: this.resourceTracker.terminatedWorkers,
+      activeWorkers: this.workers.size
+    })
   }
 
   /**
@@ -808,6 +826,50 @@ export class WorkerPool<T = unknown, R = unknown> {
   }
 
   /**
+   * 🚀 新增：收缩 Worker 池 - 响应内存压力
+   * @param targetSize 目标 Worker 数量（默认为最小值）
+   */
+  shrink(targetSize?: number): number {
+    const target = targetSize ?? this.config.minWorkers
+    if (this.workers.size <= target) {
+      return 0
+    }
+
+    let terminated = 0
+    const toTerminate: string[] = []
+
+    // 按使用情况排序，优先终止最少使用的
+    const workerList = Array.from(this.workers.entries())
+      .filter(([_, worker]) => !worker.busy)
+      .sort(([_, a], [__, b]) => a.tasksCompleted - b.tasksCompleted)
+
+    for (const [id] of workerList) {
+      if (this.workers.size - terminated <= target) {
+        break
+      }
+      toTerminate.push(id)
+      terminated++
+    }
+
+    toTerminate.forEach(id => this.terminateWorker(id))
+
+    this.logger?.info(`Worker pool shrunk`, {
+      from: this.workers.size + terminated,
+      to: this.workers.size,
+      terminated
+    })
+
+    return terminated
+  }
+
+  /**
+   * 🚀 新增：获取资源使用统计
+   */
+  getResourceStats(): typeof WorkerPool.prototype.resourceTracker {
+    return { ...this.resourceTracker }
+  }
+
+  /**
    * 初始化统计数据
    */
   private initStats() {
@@ -822,7 +884,7 @@ export class WorkerPool<T = unknown, R = unknown> {
   }
 
   /**
-   * 终止所有 Workers 和清理资源
+   * 终止所有 Workers 和清理资源 - 🚀 优化版：彻底清理 Blob URLs
    */
   terminate(): void {
     this.isTerminated = true
@@ -860,16 +922,21 @@ export class WorkerPool<T = unknown, R = unknown> {
     this.pendingTasks.clear()
     this.taskQueue.length = 0 // 更高效的清空数组
 
-    // 清理 blob URLs（可能有多个）
-    if ((this as any).__workerBlobUrl) {
-      URL.revokeObjectURL((this as any).__workerBlobUrl)
-      delete (this as any).__workerBlobUrl
+    // 🚀 彻底清理所有 Blob URLs
+    for (const url of this.workerBlobUrls) {
+      URL.revokeObjectURL(url)
     }
+    this.workerBlobUrls.clear()
+    this.resourceTracker.activeBlobUrls = 0
 
     // 清理所有统计数据
     this.metrics = this.initStats()
 
-    this.logger?.info('Worker pool terminated')
+    this.logger?.info('Worker pool terminated', {
+      totalCreated: this.resourceTracker.createdWorkers,
+      totalTerminated: this.resourceTracker.terminatedWorkers,
+      blobUrlsReleased: this.resourceTracker.activeBlobUrls
+    })
   }
 
   /**

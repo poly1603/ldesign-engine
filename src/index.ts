@@ -153,6 +153,49 @@ export {
   type SmartCacheConfig
 } from './cache/smart-cache'
 
+// ==================== 事件高级功能（新增） ====================
+export {
+  EventMediator,
+  createEventMediator
+} from './events/event-mediator'
+
+export {
+  EventReplay,
+  createEventReplay,
+  type RecordedEvent,
+  type ReplayOptions
+} from './events/event-replay'
+
+export {
+  EventPersistence,
+  createEventPersistence,
+  type PersistenceConfig
+} from './events/event-persistence'
+
+export {
+  EventDebugger,
+  createEventDebugger,
+  type EventTrace,
+  type EventDebuggerConfig
+} from './events/event-debugger'
+
+// ==================== 状态时间旅行（新增） ====================
+export {
+  TimeTravelManager,
+  createTimeTravelManager,
+  type StateSnapshot,
+  type TimeTravelConfig
+} from './state/time-travel'
+
+// ==================== 性能预算管理（增强） ====================
+export {
+  PerformanceBudgetManager,
+  createPerformanceBudgetManager,
+  type PerformanceBudget,
+  type PerformanceMetric,
+  type DegradationConfig
+} from './performance/performance-budget'
+
 // ==================== 实用工具导出 ====================
 // Vue组合式 API
 export {

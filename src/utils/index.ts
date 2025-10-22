@@ -251,3 +251,56 @@ export { createResourceManager, ResourceManager } from './resource-manager';
 
 export { createLRUCache, LRUCache } from './lru-cache';
 export type { LRUCacheOptions } from './lru-cache';
+
+// ============ 并发控制工具（新增） ============
+
+export {
+  Semaphore,
+  createSemaphore,
+  ConcurrencyLimiter,
+  createConcurrencyLimiter,
+  RateLimiter,
+  createRateLimiter,
+  CircuitBreaker,
+  createCircuitBreaker,
+  Concurrent,
+  RateLimit,
+  WithCircuitBreaker
+} from './concurrency-control';
+export type {
+  ConcurrencyLimiterConfig,
+  RateLimiterConfig,
+  CircuitBreakerConfig,
+  CircuitState
+} from './concurrency-control';
+
+// ============ 请求批处理（新增） ============
+
+export {
+  DataLoader,
+  createDataLoader,
+  RequestMerger,
+  createRequestMerger,
+  BatchScheduler,
+  createBatchScheduler
+} from './request-batcher';
+export type {
+  BatcherConfig,
+  RequestMergerConfig,
+  BatchSchedulerConfig
+} from './request-batcher';
+
+// ============ 内存分析（新增） ============
+
+export {
+  MemoryProfiler,
+  createMemoryProfiler,
+  MemoryLeakDetector,
+  createMemoryLeakDetector
+} from './memory-profiler';
+export type {
+  MemorySnapshot,
+  LeakSuspect,
+  MemoryProfilerConfig,
+  LeakDetectorConfig
+} from './memory-profiler';

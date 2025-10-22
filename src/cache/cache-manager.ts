@@ -88,6 +88,26 @@ export class CacheManager<T = unknown> {
   private readonly SHARD_COUNT = 16 // 分片数量
   private useSharding = false // 是否启用分片
 
+  // 🚀 新增：类型大小预估表 - 快速估算常见类型大小
+  private static readonly TYPE_SIZE_TABLE = new Map<string, number>([
+    ['null', 0],
+    ['undefined', 0],
+    ['boolean', 4],
+    ['number', 8],
+    ['bigint', 16],
+    ['symbol', 32],
+    ['function', 64],
+    ['string-small', 48],      // < 100字符
+    ['string-medium', 256],    // 100-1000字符
+    ['string-large', 2048],    // > 1000字符
+    ['array-empty', 24],
+    ['object-empty', 32],
+    ['date', 24],
+    ['regexp', 48],
+    ['map-small', 72],
+    ['set-small', 56],
+  ])
+
   constructor(config: CacheConfig<T> = {}, logger?: Logger) {
     this.logger = logger
     this.config = this.normalizeConfig(config)
@@ -642,27 +662,35 @@ export class CacheManager<T = unknown> {
   }
 
   /**
-   * 估算对象大小 - 极致优化版
-   * 使用更精确的采样策略和缓存机制
+   * 估算对象大小 - 🚀 超级优化版
+   * 使用类型预估表 + 快速路径 + 严格深度限制
    */
   private estimateSize(obj: unknown, depth = 0, visited?: WeakSet<object>): number {
-    // 快速路径：基本类型
-    if (obj === null || obj === undefined) return 0
+    // 🚀 快速路径1：null/undefined
+    if (obj === null) return CacheManager.TYPE_SIZE_TABLE.get('null')!
+    if (obj === undefined) return CacheManager.TYPE_SIZE_TABLE.get('undefined')!
 
     const type = typeof obj
+
+    // 🚀 快速路径2：基本类型（使用预估表）
+    if (type === 'boolean') return CacheManager.TYPE_SIZE_TABLE.get('boolean')!
+    if (type === 'number') return CacheManager.TYPE_SIZE_TABLE.get('number')!
+    if (type === 'bigint') return CacheManager.TYPE_SIZE_TABLE.get('bigint')!
+    if (type === 'symbol') return CacheManager.TYPE_SIZE_TABLE.get('symbol')!
+    if (type === 'function') return CacheManager.TYPE_SIZE_TABLE.get('function')!
+
+    // 🚀 快速路径3：字符串（分级预估）
     if (type === 'string') {
-      // 更精确的字符串大小估算（UTF-16编码）
-      return Math.min((obj as string).length * 2 + 24, 10000)
+      const len = (obj as string).length
+      if (len < 100) return CacheManager.TYPE_SIZE_TABLE.get('string-small')!
+      if (len < 1000) return CacheManager.TYPE_SIZE_TABLE.get('string-medium')!
+      return Math.min(len * 2 + 24, CacheManager.TYPE_SIZE_TABLE.get('string-large')!)
     }
-    if (type === 'number') return 8
-    if (type === 'boolean') return 4
-    if (type === 'bigint') return 16
-    if (type === 'symbol') return 32
-    if (type === 'function') return 64
+
     if (type !== 'object') return 32
 
-    // 限制递归深度
-    if (depth > 5) return 100
+    // 🚀 严格深度限制 - 超过3层直接返回估算值
+    if (depth > 3) return 200
 
     // 只在必要时创建 visited 集合
     if (!visited) {
@@ -673,82 +701,72 @@ export class CacheManager<T = unknown> {
     if (visited.has(obj as object)) return 0
     visited.add(obj as object)
 
-    // 特殊对象类型
-    if (obj instanceof Date) return 24
-    if (obj instanceof RegExp) return 48
-    if (obj instanceof Map) return 24 + (obj as Map<unknown, unknown>).size * 48
-    if (obj instanceof Set) return 24 + (obj as Set<unknown>).size * 32
-
-    // 数组优化：智能采样
-    if (Array.isArray(obj)) {
-      const len = obj.length
-      if (len === 0) return 24
-
-      // 自适应采样：小数组全扫描，大数组采样
-      if (len <= 10) {
-        let total = 24
-        for (let i = 0; i < len; i++) {
-          total += this.estimateSize(obj[i], depth + 1, visited)
-        }
-        return total
-      } else {
-        // 采样前5个、中间3个、最后2个
-        const samples: number[] = []
-        for (let i = 0; i < 5 && i < len; i++) {
-          samples.push(this.estimateSize(obj[i], depth + 1, visited))
-        }
-        const mid = Math.floor(len / 2)
-        for (let i = mid - 1; i <= mid + 1 && i < len; i++) {
-          if (i >= 0) samples.push(this.estimateSize(obj[i], depth + 1, visited))
-        }
-        for (let i = len - 2; i < len; i++) {
-          if (i >= 0) samples.push(this.estimateSize(obj[i], depth + 1, visited))
-        }
-
-        const avgSize = samples.reduce((a, b) => a + b, 0) / samples.length
-        return 24 + avgSize * len
-      }
+    // 🚀 快速路径4：特殊对象类型（使用预估表）
+    if (obj instanceof Date) return CacheManager.TYPE_SIZE_TABLE.get('date')!
+    if (obj instanceof RegExp) return CacheManager.TYPE_SIZE_TABLE.get('regexp')!
+    if (obj instanceof Map) {
+      const size = (obj as Map<unknown, unknown>).size
+      return size < 10 ? CacheManager.TYPE_SIZE_TABLE.get('map-small')! : 24 + size * 48
+    }
+    if (obj instanceof Set) {
+      const size = (obj as Set<unknown>).size
+      return size < 10 ? CacheManager.TYPE_SIZE_TABLE.get('set-small')! : 24 + size * 32
     }
 
-    // 对象优化：智能估算
+    // 🚀 快速路径5：空数组/对象
+    if (Array.isArray(obj)) {
+      const len = obj.length
+      if (len === 0) return CacheManager.TYPE_SIZE_TABLE.get('array-empty')!
+
+      // 小数组：快速估算（前3个平均）
+      if (len <= 10) {
+        let total = 24
+        const sampleSize = Math.min(len, 3)
+        for (let i = 0; i < sampleSize; i++) {
+          total += this.estimateSize(obj[i], depth + 1, visited)
+        }
+        return 24 + (total / sampleSize) * len
+      }
+
+      // 大数组：采样3个元素
+      const samples = [
+        this.estimateSize(obj[0], depth + 1, visited),
+        this.estimateSize(obj[Math.floor(len / 2)], depth + 1, visited),
+        this.estimateSize(obj[len - 1], depth + 1, visited)
+      ]
+      const avgSize = samples.reduce((a, b) => a + b, 0) / 3
+      return Math.min(24 + avgSize * len, 50000) // 限制最大50KB
+    }
+
+    // 🚀 对象：快速估算
     try {
       const keys = Object.keys(obj)
       const keyCount = keys.length
-      if (keyCount === 0) return 32
+      if (keyCount === 0) return CacheManager.TYPE_SIZE_TABLE.get('object-empty')!
 
-      let size = 32 // 对象基础开销
-
-      // 小对象全扫描
+      // 小对象：快速采样前3个
       if (keyCount <= 10) {
-        for (const key of keys) {
-          size += key.length * 2 + 16 // 键的开销
+        let size = 32
+        const sampleSize = Math.min(keyCount, 3)
+        for (let i = 0; i < sampleSize; i++) {
+          const key = keys[i]
+          size += key.length * 2 + 16
           size += this.estimateSize((obj as any)[key], depth + 1, visited)
         }
-      } else {
-        // 大对象采样估算（前7个、中间3个、最后3个）
-        const sampleKeys: string[] = []
-        for (let i = 0; i < 7 && i < keyCount; i++) {
-          sampleKeys.push(keys[i])
-        }
-        const mid = Math.floor(keyCount / 2)
-        for (let i = mid - 1; i <= mid + 1 && i < keyCount; i++) {
-          if (i >= 0) sampleKeys.push(keys[i])
-        }
-        for (let i = keyCount - 3; i < keyCount; i++) {
-          if (i >= 0) sampleKeys.push(keys[i])
-        }
-
-        let sampleSize = 0
-        for (const key of sampleKeys) {
-          sampleSize += key.length * 2 + 16
-          sampleSize += this.estimateSize((obj as any)[key], depth + 1, visited)
-        }
-
-        const avgKeySize = sampleSize / sampleKeys.length
-        size += avgKeySize * keyCount
+        return 32 + (size / sampleSize) * keyCount
       }
 
-      return Math.min(size, 100000) // 限制最大估算大小
+      // 大对象：采样3个键
+      let sampleSize = 0
+      for (let i = 0; i < 3 && i < keyCount; i++) {
+        const idx = i === 1 ? Math.floor(keyCount / 2) : i === 2 ? keyCount - 1 : 0
+        const key = keys[idx]
+        sampleSize += key.length * 2 + 16
+        sampleSize += this.estimateSize((obj as any)[key], depth + 1, visited)
+      }
+
+      const avgKeySize = sampleSize / 3
+      return Math.min(32 + avgKeySize * keyCount, 100000) // 限制最大100KB
     } catch {
       return 512 // 默认512B
     }
