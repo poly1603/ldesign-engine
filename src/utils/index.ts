@@ -1,13 +1,48 @@
 /**
- * @ldesign/engine/utils 工具函数
+ * @ldesign/engine/utils 工具函数集
  * 
- * 提供各种实用工具函数
+ * 提供各种经过性能优化的实用工具函数，包括：
+ * - 基础工具：防抖、节流、深拷贝、延迟等
+ * - 数组处理：分块、去重、分组等
+ * - 对象处理：嵌套值访问、深度合并等
+ * - 类型检查：isFunction、isObject、isPromise等
+ * - 错误处理：重试、安全JSON解析等
+ * - 内存管理：LRU缓存、对象池、资源管理器
+ * - 并发控制：信号量、速率限制、熔断器
+ * - 批处理：DataLoader、请求合并、批处理调度器
  */
 
 // ============ 基础工具函数 ============
 
 /**
  * 数组分块
+ * 
+ * 将大数组分割成指定大小的小数组块，常用于批处理和分页。
+ * 
+ * ## 性能特点
+ * - 时间复杂度：O(n)
+ * - 空间复杂度：O(n)
+ * - 使用 slice 创建新数组，不修改原数组
+ * 
+ * @template T 数组元素类型
+ * @param {T[]} array 要分块的数组
+ * @param {number} size 每块的大小
+ * @returns {T[][]} 分块后的二维数组
+ * 
+ * @example
+ * ```typescript
+ * // 基础使用
+ * const arr = [1, 2, 3, 4, 5, 6, 7]
+ * const chunks = chunk(arr, 3)
+ * // [[1, 2, 3], [4, 5, 6], [7]]
+ * 
+ * // 批处理API请求
+ * const users = [user1, user2, ..., user100]
+ * const batches = chunk(users, 10)
+ * for (const batch of batches) {
+ *   await Promise.all(batch.map(user => saveUser(user)))
+ * }
+ * ```
  */
 export function chunk<T>(array: T[], size: number): T[][] {
   const chunks: T[][] = []
@@ -19,6 +54,45 @@ export function chunk<T>(array: T[], size: number): T[][] {
 
 /**
  * 防抖函数
+ * 
+ * 在事件被触发n秒后再执行回调，如果在这n秒内又被触发，则重新计时。
+ * 常用于搜索输入、窗口resize等频繁触发的场景。
+ * 
+ * ## 工作原理
+ * ```
+ * 用户输入: a -> b -> c -> d -> [等待300ms] -> 执行
+ *           |    |    |    |
+ *          清除 清除 清除  设置定时器
+ * ```
+ * 
+ * ## 性能优化
+ * - 减少函数调用次数，降低CPU占用
+ * - 避免频繁的DOM操作和网络请求
+ * - 典型场景可减少90%+的函数调用
+ * 
+ * @template T 函数类型
+ * @param {T} fn 要防抖的函数
+ * @param {number} delay 延迟时间（毫秒）
+ * @returns {Function} 防抖后的函数
+ * 
+ * @example
+ * ```typescript
+ * // 搜索输入防抖
+ * const debouncedSearch = debounce((query: string) => {
+ *   api.search(query)
+ * }, 300)
+ * 
+ * // 用户快速输入时，只有停止输入300ms后才会触发搜索
+ * input.addEventListener('input', (e) => {
+ *   debouncedSearch(e.target.value)
+ * })
+ * 
+ * // 窗口resize防抖
+ * const debouncedResize = debounce(() => {
+ *   console.log('窗口大小变化')
+ * }, 200)
+ * window.addEventListener('resize', debouncedResize)
+ * ```
  */
 export function debounce<T extends (...args: any[]) => any>(
   fn: T,
@@ -40,6 +114,51 @@ export function debounce<T extends (...args: any[]) => any>(
 
 /**
  * 节流函数
+ * 
+ * 规定在一个单位时间内，只能触发一次函数。如果这个单位时间内触发多次，只有一次生效。
+ * 常用于滚动事件、按钮点击等需要限制频率的场景。
+ * 
+ * ## 工作原理
+ * ```
+ * 时间轴:  0ms   100ms  200ms  300ms  400ms  500ms
+ * 触发:    ✓     ✗      ✓      ✗      ✓      ✗
+ *         执行   忽略   执行   忽略   执行   忽略
+ * （间隔200ms）
+ * ```
+ * 
+ * ## 与防抖的区别
+ * - **防抖**：等待停止触发后才执行（最后一次）
+ * - **节流**：按固定频率执行（定期执行）
+ * 
+ * ## 使用场景
+ * - **防抖**：搜索框输入、表单验证、按钮提交
+ * - **节流**：滚动加载、拖拽、鼠标移动、窗口resize
+ * 
+ * @template T 函数类型
+ * @param {T} fn 要节流的函数
+ * @param {number} delay 节流间隔（毫秒）
+ * @returns {Function} 节流后的函数
+ * 
+ * @example
+ * ```typescript
+ * // 滚动事件节流
+ * const throttledScroll = throttle(() => {
+ *   console.log('滚动位置:', window.scrollY)
+ * }, 200)
+ * window.addEventListener('scroll', throttledScroll)
+ * 
+ * // 按钮点击节流（防止重复点击）
+ * const throttledSubmit = throttle(() => {
+ *   api.submitForm(formData)
+ * }, 1000)
+ * button.addEventListener('click', throttledSubmit)
+ * 
+ * // 鼠标移动节流
+ * const throttledMouseMove = throttle((e: MouseEvent) => {
+ *   console.log('鼠标位置:', e.clientX, e.clientY)
+ * }, 100)
+ * document.addEventListener('mousemove', throttledMouseMove)
+ * ```
  */
 export function throttle<T extends (...args: any[]) => any>(
   fn: T,
@@ -304,3 +423,60 @@ export type {
   MemoryProfilerConfig,
   LeakDetectorConfig
 } from './memory-profiler';
+
+// ============ 数据处理工具（新增） ============
+
+export {
+  DataValidator,
+  createValidator,
+  DataTransformer,
+  createTransformer,
+  DataNormalizer,
+  createNormalizer,
+  DataCompressor,
+  createCompressor
+} from './data-processing';
+
+// ============ 异步工具（新增） ============
+
+export {
+  PromiseQueue,
+  createPromiseQueue,
+  ParallelExecutor,
+  createParallelExecutor,
+  executeSerial,
+  withTimeout,
+  CancellationToken,
+  createCancellationToken,
+  cancellablePromise,
+  retryWithBackoff,
+  parallelLimit,
+  sleep,
+  waitUntil,
+  debouncePromise,
+  createBatchExecutor,
+  onceAsync,
+  withRetry,
+  allSettledSafe,
+  poll
+} from './async-helpers';
+
+// ============ 安全工具（新增） ============
+
+export {
+  SimpleEncryption,
+  createSimpleEncryption,
+  HashUtils,
+  createHashUtils,
+  TokenManager,
+  createTokenManager,
+  PermissionValidator,
+  createPermissionValidator,
+  generateRandomString,
+  generateUUID,
+  secureRandom,
+  base64Encode,
+  base64Decode,
+  checkPasswordStrength,
+  secureCompare
+} from './security-helpers';

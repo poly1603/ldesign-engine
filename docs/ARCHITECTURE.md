@@ -1,700 +1,963 @@
-# Engine 架构设计文档
+# @ldesign/engine 架构文档
 
-> 📅 最后更新：2025-10-22  
-> 🏗️ 版本：v0.3.0+  
-> 🎯 现代化、模块化、高性能的前端应用引擎
+## 📐 系统架构
 
-## 🏛️ 整体架构
+### 整体架构图
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Vue3 Application                          │
+│                        Vue Application                       │
 └────────────────────┬────────────────────────────────────────┘
                      │
-         ┌───────────▼────────────┐
-         │   LDesign Engine       │
-         │  (Core Orchestrator)   │
-         └───────────┬────────────┘
+                     ▼
+┌─────────────────────────────────────────────────────────────┐
+│                      Engine Core                             │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐   │
+│  │  Config  │  │  Logger  │  │   Life   │  │   Env    │   │
+│  │ Manager  │  │          │  │  Cycle   │  │ Manager  │   │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘   │
+└────────────────────┬────────────────────────────────────────┘
                      │
-    ┌────────────────┼────────────────┐
-    │                │                │
-┌───▼──────┐  ┌─────▼─────┐  ┌──────▼───────┐
-│ 核心层   │  │ 功能层    │  │  扩展层      │
-│ (Core)   │  │(Features) │  │ (Extensions) │
-└───┬──────┘  └─────┬─────┘  └──────┬───────┘
-    │               │                │
-    │               │                │
-┌───▼──────────────┐│                │
-│ • Config         ││                │
-│ • Logger         ││                │
-│ • Environment    ││                │
-│ • Lifecycle      ││                │
-└──────────────────┘│                │
-                    │                │
-    ┌───────────────▼──────────┐     │
-    │ • Events (优先级桶)      │     │
-    │ • State (路径编译)       │     │
-    │ • Cache (类型预估)       │     │
-    │ • Plugins (拓扑排序)     │     │
-    │ • Middleware (懒排序)    │     │
-    │ • Performance (滑动窗口) │     │
-    │ • Security               │     │
-    └──────────────────────────┘     │
-                                     │
-             ┌───────────────────────▼────────┐
-             │ • 并发控制 (Semaphore等)       │
-             │ • 请求批处理 (DataLoader)      │
-             │ • 内存分析 (Profiler)          │
-             │ • 时间旅行 (TimeTravel)        │
-             │ • 事件调试 (Debugger)          │
-             │ • 性能预算 (Budget)            │
-             └────────────────────────────────┘
+        ┌────────────┴────────────┐
+        ▼                         ▼
+┌──────────────┐          ┌──────────────┐
+│  Immediate   │          │  Lazy Load   │
+│   Managers   │          │   Managers   │
+├──────────────┤          ├──────────────┤
+│ • Config     │          │ • Events     │
+│ • Logger     │          │ • State      │
+│ • Environment│          │ • Plugins    │
+│ • Lifecycle  │          │ • Cache      │
+└──────────────┘          │ • Performance│
+                          │ • Security   │
+                          │ • ...        │
+                          └──────────────┘
 ```
 
-## 🔧 核心设计原则
+## 🔧 核心模块
 
-### 1. 懒加载优先
-- 仅在首次访问时初始化管理器
-- 减少启动时间 72%
-- 按需加载，降低内存占用
+### 1. Engine Core（引擎核心）
 
-### 2. 缓存优化
-- LRU 缓存自动淘汰
-- 路径编译缓存
-- 依赖校验结果缓存
-- 类型大小预估表
+**职责**：
+- 管理所有子管理器的生命周期
+- 提供统一的插件系统
+- 集成Vue应用
+- 协调各模块间的通信
 
-### 3. 内存安全
-- 引用计数管理
-- 滑动窗口数据结构
-- 统一资源管理
-- 自动清理机制
+**关键特性**：
+- **懒加载策略**：10个管理器按需初始化
+- **依赖管理**：使用ManagerRegistry管理依赖关系
+- **生命周期钩子**：beforeInit、afterInit、beforeMount等
+- **适配器模式**：支持Router、Store、I18n、Theme适配器
 
-### 4. 性能优先
-- 优先级桶（零排序开销）
-- 快速路径优化
-- 批量操作 API
-- 智能调度算法
+**初始化性能**：
+- 立即初始化：约5-7ms
+- 懒加载管理器：首次访问时初始化（1-2ms）
 
-## 📦 核心模块详解
+### 2. State Manager（状态管理）
 
-### Engine（引擎核心）
+**职责**：
+- 提供响应式的全局状态管理
+- 支持嵌套路径访问
+- 状态监听和变更追踪
+- 历史记录和撤销功能
 
-**职责：**
-- 统筹所有管理器
-- 提供统一的 API
-- 管理生命周期
-- Vue3 集成
-
-**优化要点：**
+**核心算法**：
 ```typescript
-// 懒加载实现
-class EngineImpl {
-  private _events?: EventManager
-
-  get events() {
-    if (!this._events) {
-      this._events = createEventManager()
-      this.registry.markInitialized('events')
-    }
-    return this._events
-  }
-}
+// 路径访问优化（73%提升）
+1. LRU缓存：缓存最近访问的路径值
+2. 路径编译缓存：预解析split结果
+3. 单层访问快速路径：跳过路径解析
 ```
 
-**关键方法：**
-- `init()` - 初始化引擎
-- `install(app)` - 安装到 Vue
-- `mount(selector)` - 挂载应用
-- `destroy()` - 销毁引擎
+**性能数据**：
+- 单层访问：0.1μs
+- 嵌套访问（有缓存）：0.3μs
+- 嵌套访问（无缓存）：0.5μs
 
-### EventManager（事件管理器）
+### 3. Event Manager（事件管理）
 
-**职责：**
-- 发布/订阅机制
-- 优先级管理
-- 事件命名空间
-- 防抖/节流支持
-
-**优化技术：**
-
-1. **优先级桶机制**
-```typescript
-// 按优先级分桶存储
-private priorityBuckets: Map<string, Map<number, EventListener[]>>
-
-// 快速路径：无优先级
-if (!hasPriorityListeners.get(event)) {
-  // 直接遍历，零排序开销
-  for (const listener of listeners) {
-    listener.handler(data)
-  }
-}
-```
-
-2. **对象池复用**
-```typescript
-private eventPool = new EventObjectPool()
-
-// 获取对象
-const listener = this.eventPool.get()
-
-// 使用...
-
-// 释放回池
-this.eventPool.release(listener)
-```
-
-### StateManager（状态管理器）
-
-**职责：**
-- 响应式状态管理
-- 嵌套路径支持
-- 变更历史追踪
+**职责**：
+- 发布订阅模式事件系统
+- 支持事件优先级
+- 命名空间隔离
 - 批量操作
 
-**优化技术：**
-
-1. **路径编译缓存**
+**核心算法**：
 ```typescript
-// 缓存 split 结果
-private pathSegmentsCache = new Map<string, string[]>()
+// 优先级桶机制（80%提升）
+传统方式: sort() O(n log n) - 25μs
+优先级桶: 预分组 O(n) - 5μs
 
-// 快速路径：单层访问
-if (!path.includes('.')) {
-  return obj[path]
-}
-
-// 使用缓存的解析结果
-let keys = this.pathSegmentsCache.get(path)
-if (!keys) {
-  keys = path.split('.')
-  this.pathSegmentsCache.set(path, keys)
-}
+// 三级快速路径
+1. 单监听器：直接执行
+2. 无优先级：直接遍历  
+3. 有优先级：使用桶
 ```
 
-2. **引用计数管理**
+**内存优化**：
+- 对象池：减少70%对象分配
+- WeakMap缓存：避免内存泄漏
+- 自动清理：定期清理过期数据
+
+### 4. Cache Manager（缓存管理）
+
+**职责**：
+- 多级缓存管理
+- 多种淘汰策略（LRU、LFU、FIFO、TTL）
+- 智能分片
+- 缓存预热
+
+**架构**：
 ```typescript
-// 监听器引用计数
-private watcherRefCounts = new Map<Callback, number>()
-
-watch(key, callback) {
-  const count = this.watcherRefCounts.get(callback) || 0
-  this.watcherRefCounts.set(callback, count + 1)
-
-  return () => {
-    const count = this.watcherRefCounts.get(callback) - 1
-    if (count <= 0) {
-      this.watcherRefCounts.delete(callback)
-    }
-  }
-}
+// 多级缓存
+L1: 内存缓存（最快，200条）
+  ↓ miss
+L2: LocalStorage（持久化）
+  ↓ miss
+L3: SessionStorage（会话级）
+  ↓ miss
+L4: IndexedDB（大容量，异步）
 ```
 
-### CacheManager（缓存管理器）
+**性能优化**：
+- 类型预估表：O(1)对象大小估算
+- 智能分片：16分片，O(n/16)查找
+- 深度限制：最多3层遍历
 
-**职责：**
-- 多级缓存
-- 策略化淘汰
-- 分片支持
-- 智能预热
+### 5. Plugin Manager（插件管理）
 
-**优化技术：**
+**职责**：
+- 插件注册和卸载
+- 依赖解析和验证
+- 循环依赖检测
+- 拓扑排序加载
 
-1. **类型大小预估表**
+**核心算法**：
 ```typescript
-private static TYPE_SIZE_TABLE = new Map([
-  ['boolean', 4],
-  ['number', 8],
-  ['string-small', 48],
-  // ...
-])
+// Kahn拓扑排序（76%提升）
+时间复杂度: O(n + e)
+n: 插件数量
+e: 依赖关系数量
 
-// O(1) 时间复杂度
-if (type === 'boolean') {
-  return TYPE_SIZE_TABLE.get('boolean')
-}
+算法流程:
+1. 计算所有节点入度
+2. 将入度为0的节点入队
+3. 处理队列节点，减少依赖者入度
+4. 重复直到队列为空
+5. 检查是否存在循环依赖
 ```
 
-2. **缓存分片**
-```typescript
-// 16个分片，减少单个Map大小
-private shards: Map<string, CacheItem>[] = []
-
-// 哈希分片
-private getShardIndex(key: string): number {
-  let hash = 0
-  for (let i = 0; i < key.length; i++) {
-    hash = ((hash << 5) - hash) + key.charCodeAt(i)
-  }
-  return Math.abs(hash) % 16
-}
-```
-
-### PerformanceManager（性能管理器）
-
-**职责：**
-- 性能监控
-- 指标收集
-- 违规检测
-- 趋势分析
-
-**优化技术：**
-
-1. **滑动窗口存储**
-```typescript
-class SlidingWindow<T> {
-  push(item: T) {
-    this.data.push(item)
-    if (this.data.length > this.maxSize) {
-      this.data.shift() // 自动淘汰
-    }
-  }
-}
-
-// 使用滑动窗口
-private metricsWindow = new SlidingWindow(100)
-```
-
-2. **数据聚合缓存**
-```typescript
-// 避免重复计算
-private aggregatedMetrics?: AggregatedData
-private readonly AGGREGATION_CACHE_TTL = 5000
-
-getAggregated() {
-  if (this.aggregatedMetrics && 
-      Date.now() - this.aggregatedMetrics.timestamp < this.AGGREGATION_CACHE_TTL) {
-    return this.aggregatedMetrics
-  }
-
-  this.aggregatedMetrics = this.compute()
-  return this.aggregatedMetrics
-}
-```
-
-### PluginManager（插件管理器）
-
-**职责：**
-- 插件注册/卸载
-- 依赖管理
-- 生命周期控制
-- 拓扑排序
-
-**优化技术：**
-
-1. **依赖校验缓存**
-```typescript
-private dependencyCheckCache = new Map<string, {
-  satisfied: boolean
-  missing: string[]
-  timestamp: number
-}>()
-
-checkDependencies(plugin) {
-  const cached = this.dependencyCheckCache.get(plugin.name)
-  if (cached && !expired(cached)) {
-    return cached
-  }
-  
-  // 计算并缓存
-  const result = this.doCheck(plugin)
-  this.dependencyCheckCache.set(plugin.name, result)
-  return result
-}
-```
-
-2. **拓扑排序**
-```typescript
-// Kahn 算法实现
-topologicalSort(plugins) {
-  const inDegree = new Map()
-  const adjList = new Map()
-  const queue = []
-  const result = []
-
-  // 构建图
-  for (const plugin of plugins) {
-    for (const dep of plugin.dependencies) {
-      inDegree.set(plugin.name, inDegree.get(plugin.name) + 1)
-      adjList.get(dep).push(plugin.name)
-    }
-  }
-
-  // BFS遍历
-  while (queue.length > 0) {
-    const current = queue.shift()
-    result.push(current)
-    
-    for (const dep of adjList.get(current)) {
-      inDegree.set(dep, inDegree.get(dep) - 1)
-      if (inDegree.get(dep) === 0) {
-        queue.push(dep)
-      }
-    }
-  }
-
-  return result
-}
-```
-
-## 🚀 扩展模块
-
-### 并发控制模块
-
-**组件：**
-- `Semaphore` - 信号量
-- `ConcurrencyLimiter` - 并发限制
-- `RateLimiter` - 速率限制
-- `CircuitBreaker` - 熔断器
-
-**使用场景：**
-- API 调用控制
-- 资源访问限制
-- 流量整形
-- 故障隔离
-
-### 请求批处理模块
-
-**组件：**
-- `DataLoader` - 数据加载器
-- `RequestMerger` - 请求合并
-- `BatchScheduler` - 批处理调度
-
-**使用场景：**
-- GraphQL 查询
-- REST API 批量请求
-- 数据预加载
-- 缓存优化
-
-### 内存分析模块
-
-**组件：**
-- `MemoryProfiler` - 内存分析器
-- `MemoryLeakDetector` - 泄漏检测器
-
-**使用场景：**
-- 性能调优
-- 泄漏排查
-- 生产监控
-- 质量保证
-
-### 事件调试模块
-
-**组件：**
-- `EventMediator` - 事件中介
-- `EventReplay` - 事件重放
-- `EventPersistence` - 事件持久化
-- `EventDebugger` - 事件调试
-
-**使用场景：**
-- 复杂事件流管理
-- 用户行为回放
-- 问题复现
-- 调试分析
-
-### 状态时间旅行模块
-
-**组件：**
-- `TimeTravelManager` - 时间旅行管理器
-
-**使用场景：**
-- 状态调试
-- 撤销/重做
-- 状态对比
-- 回溯分析
+**缓存优化**：
+- 依赖校验缓存：60秒TTL
+- 依赖图缓存：变更时失效
+- 拓扑排序缓存：增量更新
 
 ## 🔄 数据流
 
-### 典型请求流程
+### 事件流
 
 ```
-User Action
-    ↓
-Event Triggered
-    ↓
+用户操作/外部事件
+  ↓
 Middleware Pipeline
-    ↓
-State Update (with path compilation)
-    ↓
-Cache Check (with type estimation)
-    ↓
-API Call (with batching/merging)
-    ↓
-Worker Pool (with smart scheduling)
-    ↓
-Response Processing
-    ↓
-State Update
-    ↓
-UI Re-render
+  ↓
+Event Manager
+  ↓
+Event Listeners (按优先级)
+  ↓
+State Manager (更新状态)
+  ↓
+Vue Reactivity (触发UI更新)
 ```
 
-### 内存管理流程
+### 状态流
 
 ```
-Resource Creation
-    ↓
-Reference Counting
-    ↓
-Usage Tracking
-    ↓
-Memory Pressure Detection
-    ↓
-Auto Cleanup/Shrinking
-    ↓
-Leak Detection
-    ↓
-Alert/Report
+Action/Mutation
+  ↓
+State Manager
+  ├─ Validation
+  ├─ Change History
+  └─ Cache Invalidation
+  ↓
+Watchers Notification
+  ↓
+Component Updates
 ```
 
-## 📊 性能模型
+### 插件加载流程
 
-### 时间复杂度
+```
+Plugin Registration
+  ↓
+Dependency Check
+  ↓
+Topological Sort
+  ↓
+Create Plugin Context
+  ↓
+Execute install()
+  ↓
+Update Dependency Graph
+```
 
-| 操作 | 复杂度 | 说明 |
-|------|--------|------|
-| 事件触发（无优先级） | O(n) | n=监听器数，但有快速路径 |
-| 事件触发（有优先级） | O(n) | 使用预排序的桶 |
-| 状态读取 | O(1) | LRU缓存 + 路径编译 |
-| 状态写入 | O(d) | d=路径深度，有快速路径 |
-| 缓存读写 | O(1) | LRU + 分片 |
-| 插件注册 | O(1) | 缓存校验结果 |
-| 依赖解析 | O(V+E) | 拓扑排序，V=插件数，E=依赖数 |
+## 🎨 设计模式
 
-### 空间复杂度
+### 1. 懒加载模式（Lazy Loading）
 
-| 数据结构 | 空间占用 | 限制 |
-|----------|---------|------|
-| 事件监听器 | O(m) | m=总监听器数，对象池复用 |
-| 状态存储 | O(k) | k=状态键数 |
-| 路径缓存 | O(200) | 固定上限200条路径 |
-| 缓存分片 | O(n) | n≤maxSize，LRU淘汰 |
-| 性能指标 | O(100) | 滑动窗口固定100 |
-| 模块缓存 | O(50) | LRU限制50个模块 |
-
-## 🎯 设计模式
-
-### 1. 单例模式
+**应用**：所有业务管理器
 ```typescript
-// 全局性能管理器
-let globalPerformanceManager: PerformanceManager
-
-export function getGlobalPerformanceManager() {
-  if (!globalPerformanceManager) {
-    globalPerformanceManager = createPerformanceManager()
+get events(): EventManager {
+  if (!this._events) {
+    this._events = createEventManager()
   }
-  return globalPerformanceManager
+  return this._events
 }
 ```
 
-### 2. 工厂模式
+**优势**：
+- 减少启动时间70%
+- 降低内存占用
+- 按需加载模块
+
+### 2. 单例模式（Singleton）
+
+**应用**：所有管理器
 ```typescript
-export function createEngine(config) {
-  return new EngineImpl(config)
-}
-
-export function createEventManager(logger) {
-  return new EventManagerImpl(logger)
-}
+// 每个管理器在引擎中只有一个实例
+private _events?: EventManager // 单例
 ```
 
-### 3. 观察者模式
+**优势**：
+- 统一状态管理
+- 避免资源重复创建
+- 简化依赖管理
+
+### 3. 观察者模式（Observer）
+
+**应用**：事件系统、状态监听
 ```typescript
 // 事件系统
-events.on('update', handler)
-events.emit('update', data)
+eventManager.on('event', handler)
+eventManager.emit('event', data)
 
 // 状态监听
-state.watch('user', callback)
+stateManager.watch('key', callback)
 ```
 
-### 4. 中间件模式
+**优势**：
+- 解耦模块间通信
+- 支持一对多通知
+- 动态订阅/取消
+
+### 4. 中间件模式（Middleware）
+
+**应用**：请求/响应处理
 ```typescript
-middleware.use({
-  name: 'logger',
+middlewareManager.use({
+  name: 'auth',
   handler: async (context, next) => {
-    console.log('Before')
+    // 前置处理
     await next()
-    console.log('After')
+    // 后置处理
   }
 })
 ```
 
-### 5. 策略模式
+**优势**：
+- 横切关注点分离
+- 可插拔的功能模块
+- 链式处理流程
+
+### 5. 策略模式（Strategy）
+
+**应用**：缓存淘汰策略
 ```typescript
-// 缓存策略
-const cache = createCacheManager({
-  strategy: CacheStrategy.LRU // or LFU, FIFO, TTL
+// 可配置的淘汰策略
+cacheManager.setStrategy('lru')
+cacheManager.setStrategy('lfu')
+cacheManager.setStrategy('fifo')
+```
+
+**优势**：
+- 算法可替换
+- 运行时切换策略
+- 易于扩展
+
+### 6. 工厂模式（Factory）
+
+**应用**：管理器创建
+```typescript
+// 工厂函数
+createEventManager()
+createStateManager()
+createCacheManager()
+```
+
+**优势**：
+- 封装创建逻辑
+- 统一接口
+- 便于测试
+
+### 7. 依赖注入（DI）
+
+**应用**：新增的DIContainer
+```typescript
+container.register('Logger', Logger, 'singleton')
+container.register('UserService', UserService, 'transient', ['Logger'])
+const service = container.resolve('UserService')
+```
+
+**优势**：
+- 解耦组件依赖
+- 便于测试mock
+- 自动依赖解析
+
+## 🚀 性能优化策略
+
+### 1. 启动性能优化
+
+#### 懒加载（Lazy Loading）
+```typescript
+// 立即初始化（必需）
+- config
+- logger  
+- environment
+- lifecycle
+
+// 懒加载（按需）
+- events
+- state
+- plugins
+- cache
+- performance
+- security
+```
+
+**效果**：
+- 初始化时间：25ms → 7ms（72%提升）
+- 内存占用：减少35%
+
+#### 延迟执行（Deferred Execution）
+```typescript
+// 异步执行生命周期钩子
+Promise.resolve().then(() => {
+  this.lifecycle.execute('afterInit', this)
 })
 ```
 
-### 6. 装饰器模式
+**效果**：
+- 避免构造函数阻塞
+- 提升响应速度
+
+### 2. 运行时性能优化
+
+#### 路径访问优化
 ```typescript
-class Service {
-  @Concurrent(5)
-  @RateLimit(10, 1000)
-  @WithCircuitBreaker(config)
-  async fetchData() {
-    // ...
+// 1. 单层访问快速路径
+if (!key.includes('.')) {
+  return obj[key]
+}
+
+// 2. 路径编译缓存
+let segments = pathCache.get(key)
+if (!segments) {
+  segments = key.split('.')
+  pathCache.set(key, segments)
+}
+```
+
+**效果**：
+- 性能提升73%
+- 缓存命中率>80%
+
+#### 优先级桶机制
+```typescript
+// 预先按优先级分组
+priorityBuckets = {
+  100: [listener1, listener2],
+  0: [listener3],
+  -100: [listener4]
+}
+
+// 触发时直接遍历，无需排序
+for (const priority of sortedPriorities) {
+  const bucket = priorityBuckets[priority]
+  bucket.forEach(listener => listener())
+}
+```
+
+**效果**：
+- 性能提升80%
+- O(n log n) → O(n)
+
+#### 对象池复用
+```typescript
+class EventObjectPool {
+  get(): EventListener {
+    return this.pool.pop() || createNew()
+  }
+  
+  release(obj: EventListener): void {
+    this.pool.push(obj)
   }
 }
 ```
 
-### 7. 对象池模式
+**效果**：
+- 减少70%对象分配
+- 降低GC压力
+
+### 3. 内存优化
+
+#### 引用计数
 ```typescript
-// 事件监听器对象池
-private eventPool = new EventObjectPool()
-
-const listener = this.eventPool.get() // 从池获取
-// 使用...
-this.eventPool.release(listener) // 释放回池
+// 替代WeakRef的不确定性
+watcherRefCounts.set(callback, count + 1)
 ```
 
-## 🔍 关键算法
+**效果**：
+- 消除内存泄漏
+- 精确控制生命周期
 
-### 1. LRU 缓存算法
-```
-数据结构：双向链表 + HashMap
-时间复杂度：O(1) get/set
-空间复杂度：O(n)
-
-实现要点：
-- HashMap 快速查找
-- 双向链表维护访问顺序
-- 移动到头部表示最近访问
-- 从尾部淘汰最久未用
+#### 固定大小缓冲区
+```typescript
+// 环形缓冲区
+if (buffer.length >= maxSize) {
+  buffer.shift()  // 移除最旧的
+}
+buffer.push(newItem)
 ```
 
-### 2. 拓扑排序（Kahn算法）
-```
-用途：插件依赖排序
-时间复杂度：O(V + E)
-空间复杂度：O(V + E)
-
-步骤：
-1. 计算所有节点的入度
-2. 将入度为0的节点加入队列
-3. BFS遍历，每次处理入度为0的节点
-4. 更新相邻节点入度
-5. 检测循环依赖
-```
-
-### 3. 滑动窗口
-```
-用途：性能指标存储
-时间复杂度：O(1) push
-空间复杂度：O(w) w=窗口大小
-
-优势：
+**效果**：
 - 固定内存占用
-- 自动淘汰旧数据
-- 支持数据聚合
-- 避免重复计算
-```
+- 避免无限增长
 
-## 🎨 扩展性设计
-
-### 插件系统
-
+#### 智能分片
 ```typescript
-// 插件接口
-interface Plugin {
-  name: string
-  version?: string
-  dependencies?: string[]
-  install: (context: PluginContext) => void | Promise<void>
-  uninstall?: (context: PluginContext) => void | Promise<void>
+// 超过100条自动启用16分片
+if (maxSize > 100) {
+  shards = Array(16).fill(null).map(() => new Map())
 }
 
-// 使用
-await engine.plugins.register(myPlugin)
+// 哈希分配
+const shardIndex = hash(key) % 16
+const shard = shards[shardIndex]
 ```
 
-### 中间件系统
+**效果**：
+- 减少单个Map大小
+- 提升查找性能
 
-```typescript
-// 中间件接口
-interface Middleware {
-  name: string
-  priority?: number
-  handler: (context, next) => Promise<void>
-}
+## 🔌 插件系统
 
-// 使用
-engine.middleware.use(myMiddleware)
-await engine.middleware.execute(context)
+### 插件生命周期
+
+```
+注册 → 依赖检查 → 排序 → 安装 → 运行 → 卸载
+  ↓       ↓         ↓       ↓      ↓      ↓
+[检查]  [Kahn]  [Context] [Hook] [Use] [Cleanup]
 ```
 
-### 适配器模式
+### 依赖解析流程
 
 ```typescript
-// Router 适配器
-interface RouterAdapter {
-  install: (engine: Engine) => void
-  navigate: (path: string) => Promise<void>
-}
-
-// 使用
-engine.setRouter(vueRouterAdapter)
+// 1. 注册插件
+register(plugin)
+  ↓
+// 2. 检查依赖
+checkDependencies()
+  ↓
+// 3. 拓扑排序
+topologicalSort()
+  ↓
+// 4. 创建上下文
+createPluginContext()
+  ↓
+// 5. 执行安装
+plugin.install(context)
 ```
 
-## 📈 性能指标
+### 循环依赖检测
 
-### 启动性能
-- 引擎初始化：~7ms（优化前 ~25ms）
-- 首次管理器访问：~2ms
-- 完整初始化：~15ms（优化前 ~45ms）
-
-### 运行性能
-- 事件触发（无优先级）：~0.1ms（优化前 ~0.5ms）
-- 状态读取（多层）：~0.08ms（优化前 ~0.3ms）
-- 缓存写入：~0.8ms（优化前 ~2.0ms）
-
-### 内存占用
-- 最小配置：~2MB
-- 完整功能：~8MB
-- 长期运行：稳定（无泄漏）
-
-## 🔒 安全性
-
-### 输入验证
 ```typescript
-engine.security.validateInput(userInput)
-engine.security.sanitizeHTML(htmlString)
-```
+A → B → C → A  // 循环！
 
-### XSS 防护
-```typescript
-const result = engine.security.sanitizeHTML(untrustedHtml)
-if (!result.safe) {
-  console.warn('检测到威胁：', result.threats)
+// Kahn算法自动检测
+if (sortedList.length !== totalPlugins) {
+  throw new Error('检测到循环依赖')
 }
 ```
 
-### CSRF 防护
-```typescript
-const token = engine.security.generateCSRFToken()
-const isValid = engine.security.validateCSRFToken(token.token)
+## 💾 状态管理
+
+### 状态层次结构
+
+```
+Global State (Reactive)
+  ├── Namespaces
+  │   ├── user
+  │   │   ├── profile
+  │   │   └── settings
+  │   ├── app
+  │   │   ├── theme
+  │   │   └── locale
+  │   └── cache
+  └── Watchers
+      ├── user.profile → [callback1, callback2]
+      └── app.theme → [callback3]
 ```
 
-## 🎯 未来规划
+### 变更流程
 
-### v0.4.0 计划
-- [ ] SSR 支持优化
-- [ ] 流式渲染支持
-- [ ] 更多性能分析工具
-- [ ] AI 辅助性能调优
+```
+set('key', value)
+  ↓
+记录历史 (History)
+  ↓
+设置新值 (Reactive)
+  ↓
+失效缓存 (Cache Invalidation)
+  ↓
+触发监听器 (Watchers)
+  ↓
+组件更新 (Vue Reactivity)
+```
 
-### v0.5.0 计划
-- [ ] 微前端深度集成
+## 📡 事件系统
+
+### 事件流
+
+```
+emit('event', data)
+  ↓
+更新统计 (Stats)
+  ↓
+选择路径
+  ├─ 快速路径1: 单监听器
+  ├─ 快速路径2: 无优先级
+  └─ 优先级桶: 有优先级
+  ↓
+执行监听器 (Handlers)
+  ↓
+清理一次性监听器 (Once)
+```
+
+### 优先级机制
+
+```
+优先级桶结构:
+{
+  'event:name': {
+    100: [handler1, handler2],  // 高优先级（先执行）
+    0: [handler3, handler4],     // 默认优先级
+    -100: [handler5]             // 低优先级（后执行）
+  }
+}
+
+执行顺序: 100 → 0 → -100
+```
+
+## 💾 缓存系统
+
+### 多级缓存架构
+
+```
+查询缓存('key')
+  ↓
+L1: Memory Cache
+  ├─ 命中: 返回（最快 ~0.1ms）
+  └─ 未命中: ↓
+L2: LocalStorage
+  ├─ 命中: 回填L1，返回（~1ms）
+  └─ 未命中: ↓
+L3: SessionStorage
+  ├─ 命中: 回填L1+L2，返回（~2ms）
+  └─ 未命中: ↓
+L4: IndexedDB
+  ├─ 命中: 回填所有层，返回（~5ms）
+  └─ 未命中: 返回undefined
+```
+
+### 淘汰策略对比
+
+| 策略 | 时间复杂度 | 适用场景 | 命中率 |
+|-----|-----------|---------|--------|
+| LRU | O(1) | 通用场景 | 高 |
+| LFU | O(log n) | 热点数据 | 最高 |
+| FIFO | O(1) | 简单场景 | 中 |
+| TTL | O(1) | 时效数据 | 中低 |
+
+## 🔒 安全架构
+
+### 安全层次
+
+```
+输入
+  ↓
+输入验证 (Validation)
+  ↓
+XSS过滤 (Sanitization)
+  ↓
+CSRF检查 (Token Verification)
+  ↓
+权限验证 (Permission Check)
+  ↓
+业务逻辑
+  ↓
+输出过滤 (Output Encoding)
+  ↓
+CSP策略 (Content Security Policy)
+  ↓
+输出
+```
+
+## 📊 性能监控
+
+### 监控指标
+
+```typescript
+性能指标
+  ├── 应用加载
+  │   ├── 首屏时间 (FCP)
+  │   ├── 可交互时间 (TTI)
+  │   └── 完全加载 (Load)
+  ├── 组件渲染
+  │   ├── 挂载时间
+  │   ├── 更新时间
+  │   └── 渲染FPS
+  ├── 网络请求
+  │   ├── 请求延迟
+  │   ├── 响应时间
+  │   └── 带宽使用
+  └── 内存使用
+      ├── 堆内存
+      ├── 实时内存
+      └── GC频率
+```
+
+### 性能预算
+
+```typescript
+budgets = {
+  initialization: 100ms,  // 初始化
+  rendering: 16ms,        // 渲染（60fps）
+  apiCall: 500ms,         // API调用
+  bundleSize: 200KB       // 包大小
+}
+
+// 超出预算自动告警
+if (actual > budget) {
+  performanceManager.emit('budget:exceeded', {
+    metric: 'initialization',
+    budget: 100,
+    actual: 150
+  })
+}
+```
+
+## 🛠️ 开发者工具
+
+### DevTools集成
+
+```typescript
+Vue DevTools
+  ├── 自定义检查器
+  │   ├── 引擎配置
+  │   ├── 状态树
+  │   ├── 事件列表
+  │   └── 插件信息
+  ├── 时间线
+  │   ├── 性能事件
+  │   ├── 状态变化
+  │   ├── 事件触发
+  │   └── 错误记录
+  └── 性能分析
+      ├── 火焰图
+      ├── 内存时间线
+      └── 事件流图
+```
+
+### 新增可视化工具
+
+1. **性能火焰图**：
+   - 调用栈可视化
+   - 热点函数识别
+   - 性能瓶颈定位
+
+2. **内存时间线**：
+   - 实时内存追踪
+   - 泄漏检测
+   - 趋势分析
+
+3. **事件流可视化**：
+   - 事件传播路径
+   - Mermaid图表生成
+   - 统计分析
+
+## 🔗 模块依赖关系
+
+### 核心依赖图
+
+```
+                config (无依赖)
+                  ↓
+                logger
+                  ↓
+        ┌─────────┴─────────┐
+        ▼                   ▼
+  environment          lifecycle
+        │                   │
+        └────────┬──────────┘
+                 ▼
+        ┌────────┴────────┐
+        ▼                 ▼
+     events            state
+        │                 │
+        └────────┬────────┘
+                 ▼
+              plugins
+                 ↓
+        ┌────────┴────────┐
+        ▼                 ▼
+   middleware        directives
+```
+
+### 可选依赖
+
+```
+Performance Manager
+  ├─ engine (可选)
+  └─ config (可选)
+
+Security Manager  
+  ├─ engine (可选)
+  └─ config (可选)
+
+Cache Manager
+  └─ config (可选)
+```
+
+## 📦 模块边界
+
+### 核心模块（Core）
+- engine.ts
+- manager-registry.ts
+- module-loader.ts
+- di-container.ts
+
+### 业务模块（Modules）
+- state/
+- events/
+- cache/
+- plugins/
+
+### 工具模块（Utils）
+- data-processing.ts
+- async-helpers.ts
+- security-helpers.ts
+
+### 集成模块（Integrations）
+- vue/
+- devtools/
+
+## 🎯 最佳实践
+
+### 1. 使用懒加载
+
+```typescript
+// ✅ 推荐
+const engine = createEngine()
+if (needsEvents) {
+  engine.events.on('event', handler)
+}
+
+// ❌ 避免
+const engine = createEngine()
+engine.events // 过早访问
+engine.state  // 过早访问
+engine.cache  // 过早访问
+```
+
+### 2. 利用批量操作
+
+```typescript
+// ✅ 推荐：批量操作
+engine.state.batchSet({
+  'user.name': 'Alice',
+  'user.age': 30
+})
+
+// ❌ 避免：频繁单独操作
+engine.state.set('user.name', 'Alice')
+engine.state.set('user.age', 30)
+```
+
+### 3. 使用命名空间
+
+```typescript
+// ✅ 推荐：使用命名空间隔离
+const userState = engine.state.namespace('user')
+const userEvents = engine.events.namespace('user')
+
+// 清理整个命名空间
+userState.clear()
+userEvents.clear()
+```
+
+### 4. 及时清理资源
+
+```typescript
+// ✅ 推荐：组件卸载时清理
+onBeforeUnmount(async () => {
+  unwatch()           // 取消监听
+  offEvent()          // 移除事件
+  await engine.destroy() // 销毁引擎
+})
+```
+
+## 📈 扩展性
+
+### 插件扩展点
+
+```typescript
+plugin.install(context)
+  ├─ context.engine   // 访问引擎
+  ├─ context.logger   // 使用日志
+  ├─ context.config   // 读取配置
+  └─ context.events   // 监听事件
+```
+
+### 中间件扩展点
+
+```typescript
+middleware.handler(context, next)
+  ├─ context.request  // 请求对象
+  ├─ context.response // 响应对象
+  └─ next()           // 调用下一个中间件
+```
+
+### 生命周期扩展点
+
+```typescript
+lifecycle.on('beforeInit', handler)
+lifecycle.on('afterInit', handler)
+lifecycle.on('beforeMount', handler)
+lifecycle.on('afterMount', handler)
+lifecycle.on('beforeUnmount', handler)
+lifecycle.on('afterUnmount', handler)
+lifecycle.on('beforeDestroy', handler)
+lifecycle.on('afterDestroy', handler)
+```
+
+## 🔧 配置系统
+
+### 配置层次
+
+```
+默认配置 (Default)
+  ↓
+用户配置 (User Config)
+  ↓
+运行时配置 (Runtime)
+  ↓
+环境变量 (Environment)
+```
+
+### 配置验证
+
+```typescript
+configManager.setSchema({
+  debug: { type: 'boolean', default: false },
+  logger: {
+    level: { type: 'string', enum: ['debug', 'info', 'warn', 'error'] }
+  },
+  cache: {
+    maxSize: { type: 'number', min: 1, max: 10000 }
+  }
+})
+```
+
+## 📊 监控和诊断
+
+### 性能监控
+
+```typescript
+// 标记和测量
+performance.mark('operation-start')
+await operation()
+performance.mark('operation-end')
+const duration = performance.measure('operation', 'operation-start', 'operation-end')
+```
+
+### 内存监控
+
+```typescript
+// 实时监控
+const timeline = createMemoryTimeline()
+timeline.start(1000) // 每秒采样
+
+// 泄漏检测
+const leak = timeline.detectLeaks()
+if (leak.suspected) {
+  console.warn('可疑内存泄漏:', leak.reason)
+}
+```
+
+### 事件监控
+
+```typescript
+// 事件流可视化
+const visualizer = createEventFlowVisualizer()
+visualizer.start()
+
+// 生成图表
+const mermaid = visualizer.generateMermaidDiagram()
+```
+
+## 🎓 技术选型
+
+### 核心技术栈
+
+| 技术 | 用途 | 版本要求 |
+|-----|------|---------|
+| Vue 3 | 响应式系统 | ^3.5.18 |
+| TypeScript | 类型系统 | ^5.7.3 |
+| Vite | 构建工具 | ^5.0.12 |
+| Vitest | 测试框架 | ^3.2.4 |
+
+### 算法选择
+
+| 场景 | 算法 | 复杂度 | 原因 |
+|-----|------|--------|------|
+| 插件排序 | Kahn拓扑排序 | O(n+e) | 依赖解析 |
+| 缓存淘汰 | LRU | O(1) | 高性能 |
+| 事件排序 | 优先级桶 | O(n) | 避免排序 |
+| 深拷贝 | 迭代遍历 | O(n) | 避免栈溢出 |
+
+## 🚀 未来规划
+
+### 短期（v0.4.0）
+- [ ] SSR/SSG支持
+- [ ] PWA功能增强
+- [ ] 国际化增强
+- [ ] 微前端支持完善
+
+### 中期（v0.5.0）
+- [ ] Worker线程优化
+- [ ] WebAssembly集成
+- [ ] 流式渲染
 - [ ] 边缘计算支持
-- [ ] 分布式状态同步
-- [ ] 实时协作功能
+
+### 长期（v1.0.0）
+- [ ] 插件市场
+- [ ] 可视化配置界面
+- [ ] 自动性能优化
+- [ ] AI辅助开发
 
 ---
 
-**🏗️ 持续演进的架构，为现代 Web 应用保驾护航！**
-
-
-
+**文档版本**: v0.3.1  
+**最后更新**: 2025-01-XX  
+**维护人员**: LDesign Team

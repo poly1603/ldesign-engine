@@ -210,5 +210,119 @@ export {
   usePlugins
 } from './vue/composables'
 
+// ==================== 依赖注入容器（新增） ====================
+export {
+  DIContainer,
+  createDIContainer,
+  getGlobalContainer,
+  setGlobalContainer,
+  Injectable,
+  Inject,
+  type ServiceLifetime
+} from './core/di-container'
+
+// ==================== 增强日志系统（新增） ====================
+export {
+  AdvancedLogger,
+  createAdvancedLogger,
+  ConsoleTransport,
+  RemoteTransport,
+  JSONFormatter,
+  PrettyFormatter,
+  CompactFormatter,
+  type LogEntry as AdvancedLogEntry,
+  type LogFormatter,
+  type LogTransport
+} from './logger/advanced-logger'
+
+// ==================== 错误边界（新增） ====================
+export {
+  createErrorBoundary,
+  ErrorRecoveryManager,
+  createErrorRecoveryManager,
+  DegradationHandler,
+  createDegradationHandler,
+  type ErrorInfo,
+  type RecoveryStrategy,
+  type ErrorBoundaryConfig
+} from './errors/error-boundary'
+
+// ==================== 数据处理工具（新增） ====================
+export {
+  DataValidator,
+  createValidator,
+  DataTransformer,
+  createTransformer,
+  DataNormalizer,
+  createNormalizer,
+  DataCompressor,
+  createCompressor
+} from './utils/data-processing'
+
+// ==================== 异步工具（新增） ====================
+export {
+  PromiseQueue,
+  createPromiseQueue,
+  ParallelExecutor,
+  createParallelExecutor,
+  executeSerial,
+  withTimeout,
+  CancellationToken,
+  createCancellationToken,
+  cancellablePromise,
+  retryWithBackoff,
+  parallelLimit,
+  waitUntil,
+  debouncePromise,
+  createBatchExecutor,
+  onceAsync,
+  withRetry,
+  allSettledSafe,
+  poll
+} from './utils/async-helpers'
+
+// ==================== 安全工具（新增） ====================
+export {
+  SimpleEncryption,
+  createSimpleEncryption,
+  HashUtils,
+  createHashUtils,
+  TokenManager,
+  createTokenManager,
+  PermissionValidator,
+  createPermissionValidator,
+  generateRandomString,
+  generateUUID,
+  secureRandom,
+  base64Encode,
+  base64Decode,
+  checkPasswordStrength,
+  secureCompare
+} from './utils/security-helpers'
+
+// ==================== 增强开发者工具（新增） ====================
+export {
+  PerformanceFlamegraph,
+  createFlamegraph,
+  FlamegraphProfile,
+  type StackFrame,
+  type FlamegraphData
+} from './devtools/performance-flamegraph'
+
+export {
+  MemoryTimeline,
+  createMemoryTimeline,
+  type MemorySnapshot,
+  type MemoryTrend
+} from './devtools/memory-timeline'
+
+export {
+  EventFlowVisualizer,
+  createEventFlowVisualizer,
+  type EventFlowNode,
+  type EventFlowEdge,
+  type EventFlowGraph
+} from './devtools/event-flow-visualizer'
+
 // ==================== 版本信息 ====================
 export const version = '1.0.0'

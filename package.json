@@ -200,6 +200,11 @@
       "types": "./es/workers/*.d.ts",
       "import": "./es/workers/*.js",
       "require": "./lib/workers/*.cjs"
+    },
+    "./di": {
+      "types": "./es/core/di-container.d.ts",
+      "import": "./es/core/di-container.js",
+      "require": "./lib/core/di-container.cjs"
     }
   },
   "main": "./lib/index.cjs",
