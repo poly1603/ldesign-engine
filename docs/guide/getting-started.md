@@ -1,424 +1,331 @@
-# 🏁 快速开始
+# 快速开始
 
-欢迎使用 LDesign Engine！这个指南将帮助你在5分钟内快速上手，体验引擎的强大功能。
+本指南将带你在 5 分钟内快速体验 LDesign Engine 的核心功能。
 
-## 📦 安装
+## Vue 3 快速开始
 
-### 环境要求
-
-- **Node.js** >= 16.0.0
-- **pnpm** >= 7.0.0 (推荐) 或 **npm** >= 8.0.0
-- **Vue** >= 3.3.0
-- **TypeScript** >= 4.9.0 (可选，但强烈推荐)
-
-### 安装引擎
+### 1. 安装
 
 ```bash
-# 使用 pnpm (推荐)
-pnpm add @ldesign/engine
-
-# 使用 npm
-npm install @ldesign/engine
-
-# 使用 yarn
-yarn add @ldesign/engine
+pnpm add @ldesign/engine vue
 ```
 
-## 🚀 第一个应用
+### 2. 创建引擎应用
 
-### 方式一：基础使用（推荐）
-
-```typescript
-import { createEngine } from '@ldesign/engine'
-import { createApp } from 'vue'
-import App from './App.vue'
-
-// 创建引擎实例
-const engine = createEngine({
-  config: {
-    debug: true,
-    app: {
-      name: 'My First App',
-      version: '1.0.0'
-    }
-  }
-})
-
-// 创建 Vue 应用并安装引擎
-const app = createApp(App)
-engine.install(app)
-app.mount('#app')
-
-console.log('应用已创建并挂载！', engine.config.get('app.name'))
-```
-
-### 方式二：带插件和中间件
+创建 `main.ts`：
 
 ```typescript
-import { createEngine } from '@ldesign/engine'
-import { createApp } from 'vue'
+import { createEngineApp } from '@ldesign/engine/vue'
 import App from './App.vue'
 
-// 创建引擎实例，包含插件和中间件
-const engine = createEngine({
+const engine = await createEngineApp({
+  rootComponent: App,
+  mountElement: '#app',
   config: {
-    debug: true,
-    app: {
-      name: 'My Advanced App',
-      version: '1.0.0'
-    }
-  },
-  plugins: [
-    // 插件列表
-  ],
-  middleware: [
-    // 中间件列表
-  ]
-})
-
-// 创建 Vue 应用并安装引擎
-const app = createApp(App)
-engine.install(app)
-app.mount('#app')
-
-console.log('引擎创建成功！', engine.config.get('app.name'))
-```
-
-### 方式三：使用 Vue Composition API
-
-```typescript
-// composables/useEngine.ts
-import { createEngine } from '@ldesign/engine'
-
-// main.ts
-import { createApp } from 'vue'
-import App from './App.vue'
-import { useEngine } from './composables/useEngine'
-
-const engine = createEngine({
-  config: {
-    debug: true,
-    app: {
-      name: 'My Composable App',
-      version: '1.0.0'
-    }
-  }
-})
-
-export function useEngine() {
-  return engine
-}
-
-const engine = useEngine()
-const app = createApp(App)
-
-engine.install(app)
-app.mount('#app')
-```
-
-### 🎯 使用场景对比
-
-| 方式 | 使用场景 | 优势 | 适用项目 |
-|-----|---------|------|---------|
-| 基础使用 | 简单应用、快速原型 | 代码简洁 | 小型项目 |
-| 带插件中间件 | 复杂应用、企业级项目 | 功能完整 | 中大型项目 |
-| Composition API | 需要在多处使用引擎 | 复用性强 | 模块化项目 |
-
-### 传统 API（完全控制）
-
-如果你需要更多控制，也可以使用传统方式：
-
-```typescript
-import { createEngine } from '@ldesign/engine'
-import { createApp } from 'vue'
-import App from './App.vue'
-
-// 创建引擎实例
-const engine = createEngine({
-  config: {
-    debug: true,
-    appName: 'My First Engine App',
+    name: 'My Vue App',
     version: '1.0.0',
+    debug: true,
+  },
+  features: {
+    enableCaching: true,
+    enablePerformanceMonitoring: true,
   },
 })
 
-// 创建 Vue 应用
-const app = createApp(App)
-
-// 安装引擎
-engine.install(app)
-
-// 挂载应用
-app.mount('#app')
-
-// 导出引擎实例供其他模块使用
-export { engine }
+console.log('✅ Engine initialized:', engine.getStatus())
 ```
 
-### 预设配置
+### 3. 在组件中使用
 
-Vue3 Engine 提供了几种预设配置，方便快速开始：
-
-```typescript
-import { createApp, createEngine, presets } from '@ldesign/engine'
-import App from './App.vue'
-
-// 使用简化API + 开发环境预设
-const engine = createApp(App, {
-  ...presets.development(),
-  config: {
-    appName: 'My App',
-  },
-})
-
-// 使用简化API + 生产环境预设
-const engine = createApp(App, {
-  ...presets.production(),
-  config: {
-    appName: 'My App',
-  },
-})
-
-// 传统API方式
-const engine = createEngine(presets.development())
-const engine = createEngine(presets.production())
-const engine = createEngine(presets.minimal())
-```
-
-### 3. 在组件中使用引擎
+创建 `App.vue`：
 
 ```vue
-<!-- App.vue -->
-<script setup lang="ts">
-import { computed, onMounted } from 'vue'
-import { engine } from './main'
-
-// 获取应用配置
-const appName = computed(() => engine.config.get('appName'))
-
-// 获取用户状态
-const user = computed(() => engine.state.get('user'))
-
-// 显示通知
-function showNotification() {
-  engine.notifications.show({
-    type: 'success',
-    title: '操作成功',
-    message: '这是一个成功通知！',
-  })
-}
-
-// 记录日志
-function logMessage() {
-  engine.logger.info('用户点击了日志按钮', {
-    timestamp: new Date().toISOString(),
-    userAgent: navigator.userAgent,
-  })
-}
-
-// 更新状态
-function updateState() {
-  engine.state.set('user', {
-    name: 'John Doe',
-    email: 'john@example.com',
-    loginTime: new Date().toISOString(),
-  })
-}
-
-// 监听事件
-onMounted(() => {
-  // 监听用户登录事件
-  engine.events.on('user:login', (userData) => {
-    engine.logger.info('用户登录', userData)
-    engine.notifications.show({
-      type: 'info',
-      title: '欢迎回来',
-      message: `欢迎 ${userData.name}！`,
-    })
-  })
-
-  // 监听状态变化
-  engine.state.watch('user', (newUser, oldUser) => {
-    if (newUser && !oldUser) {
-      engine.events.emit('user:login', newUser)
-    }
-  })
-})
-</script>
-
 <template>
   <div class="app">
     <h1>{{ appName }}</h1>
-    <button @click="showNotification">
-      显示通知
-    </button>
-    <button @click="logMessage">
-      记录日志
-    </button>
-    <button @click="updateState">
-      更新状态
-    </button>
-    <p>当前用户: {{ user?.name || '未登录' }}</p>
+    <p>Count: {{ count }}</p>
+    <button @click="increment">增加</button>
   </div>
 </template>
 
-<style scoped>
-.app {
-  max-width: 600px;
-  margin: 0 auto;
-  padding: 20px;
-  font-family: Arial, sans-serif;
+<script setup lang="ts">
+import { ref } from 'vue'
+import { useEngine } from '@ldesign/engine/vue'
+
+const engine = useEngine()
+
+// 从配置中获取应用名称
+const appName = engine.config.get('name')
+
+// 使用状态管理
+const count = ref(0)
+
+function increment() {
+  count.value++
+  
+  // 保存到状态
+  engine.state.set('count', count.value)
+  
+  // 触发事件
+  engine.events.emit('count:changed', count.value)
+  
+  // 缓存结果
+  engine.cache.set('last-count', count.value, 60000)
 }
 
-button {
-  margin: 10px;
-  padding: 10px 20px;
-  background: #007bff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-button:hover {
-  background: #0056b3;
-}
-</style>
+// 监听状态变化
+engine.state.watch('count', (newValue) => {
+  console.log('Count changed:', newValue)
+})
+</script>
 ```
 
-## 核心概念
+### 4. 运行
+
+```bash
+pnpm dev
+```
+
+## React 快速开始
+
+### 1. 安装
+
+```bash
+pnpm add @ldesign/engine react react-dom
+```
+
+### 2. 创建引擎应用
+
+创建 `main.tsx`：
+
+```typescript
+import { createEngineApp } from '@ldesign/engine/react'
+import App from './App'
+
+const engine = await createEngineApp({
+  rootComponent: App,
+  mountElement: '#app',
+  config: {
+    name: 'My React App',
+    debug: true,
+  },
+})
+
+console.log('✅ Engine initialized')
+```
+
+### 3. 在组件中使用
+
+创建 `App.tsx`：
+
+```tsx
+import { useState } from 'react'
+import { useEngine } from '@ldesign/engine/react'
+
+function App() {
+  const engine = useEngine()
+  const [count, setCount] = useState(0)
+  
+  const increment = () => {
+    const newCount = count + 1
+    setCount(newCount)
+    
+    // 保存到引擎状态
+    engine.state.set('count', newCount)
+    
+    // 触发事件
+    engine.events.emit('count:changed', newCount)
+  }
+  
+  return (
+    <div>
+      <h1>{engine.config.get('name')}</h1>
+      <p>Count: {count}</p>
+      <button onClick={increment}>增加</button>
+    </div>
+  )
+}
+
+export default App
+```
+
+## 核心功能（无框架）快速开始
+
+如果你只想使用核心功能，不依赖任何框架：
+
+### 1. 安装
+
+```bash
+pnpm add @ldesign/engine
+```
+
+### 2. 创建引擎
+
+```typescript
+import { createCoreEngine } from '@ldesign/engine/core'
+
+const engine = createCoreEngine({
+  name: 'My App',
+  debug: true,
+  cache: {
+    maxSize: 500,
+    strategy: 'lru',
+  },
+  events: {
+    maxListenersPerEvent: 100,
+  },
+})
+
+await engine.init()
+```
+
+### 3. 使用核心功能
+
+```typescript
+// 缓存管理
+engine.cache.set('user', { id: 1, name: 'Alice' }, 3600000)
+const user = engine.cache.get('user')
+
+// 事件系统
+engine.events.on('data:update', (data) => {
+  console.log('Data updated:', data)
+}, { priority: 10 })
+
+await engine.events.emit('data:update', { value: 100 })
+
+// 状态管理
+engine.state.set('app.theme', 'dark')
+engine.state.watch('app.theme', (theme) => {
+  console.log('Theme changed:', theme)
+})
+
+// 查看统计
+console.log('缓存统计:', engine.cache.getStats())
+console.log('事件统计:', engine.events.getStats?.())
+console.log('引擎状态:', engine.getStatus())
+```
+
+## 核心概念速览
 
 ### 引擎实例
 
-引擎实例是整个应用的核心，它管理着所有的功能模块：
+引擎实例是所有功能的入口，包含以下管理器：
+
+- `engine.config` - 配置管理
+- `engine.cache` - 缓存管理
+- `engine.events` - 事件管理
+- `engine.state` - 状态管理
+- `engine.plugins` - 插件管理
+- `engine.middleware` - 中间件管理
+- `engine.lifecycle` - 生命周期管理
+- `engine.logger` - 日志管理
+- `engine.di` - 依赖注入
+
+### 生命周期
+
+引擎提供完整的生命周期钩子：
 
 ```typescript
-const engine = createEngine({
-  config: {
-    debug: true,
-    appName: 'My App',
-  },
-  plugins: [
-    /* 插件列表 */
-  ],
-  middleware: [
-    /* 中间件列表 */
-  ],
+engine.lifecycle.on('beforeInit', (engine) => {
+  console.log('引擎即将初始化')
 })
 
-// 访问各个管理器
-engine.config // 配置管理器
-engine.plugins // 插件管理器
-engine.middleware // 中间件管理器
-engine.events // 事件管理器
-engine.state // 状态管理器
-engine.cache // 缓存管理器
-engine.directives // 指令管理器
-engine.errors // 错误管理器
-engine.logger // 日志系统
-engine.notifications // 通知管理器
-engine.security // 安全管理器
-engine.performance // 性能管理器
-engine.environment // 环境管理器
-engine.lifecycle // 生命周期管理器
-```
+engine.lifecycle.on('afterInit', (engine) => {
+  console.log('引擎初始化完成')
+})
 
-### 配置系统
-
-引擎支持响应式配置，配置变化会自动更新相关功能：
-
-```typescript
-// 设置配置
-engine.config.set('theme', 'dark')
-engine.config.set('language', 'zh-CN')
-
-// 获取配置
-const theme = engine.config.get('theme')
-
-// 监听配置变化
-engine.config.watch('theme', (newTheme) => {
-  document.body.className = `theme-${newTheme}`
+engine.lifecycle.on('beforeDestroy', (engine) => {
+  console.log('引擎即将销毁')
 })
 ```
 
-### 状态管理
+### 依赖注入
 
-内置的状态管理系统基于 Vue3 的响应式系统：
+使用依赖注入容器管理服务：
 
 ```typescript
-// 设置状态
-engine.state.set('user', { name: 'John', age: 30 })
-engine.state.set('settings', { theme: 'dark', lang: 'en' })
+// 注册服务
+engine.di.register('userService', UserService, 'singleton')
 
-// 获取状态
-const user = engine.state.get('user')
-
-// 监听状态变化
-engine.state.watch('user', (newUser, oldUser) => {
-  console.log('用户状态变化:', newUser)
-})
-
-// 在组件中使用
-const user = computed(() => engine.state.get('user'))
+// 解析服务
+const userService = engine.di.resolve('userService')
 ```
 
-### 事件系统
+## 常见使用场景
 
-全局事件系统支持发布订阅模式，并提供命名空间、防抖节流等高级功能：
+### 场景 1：API 请求缓存
 
 ```typescript
-// 基础事件监听
-engine.events.on('data:loaded', (data) => {
-  console.log('数据加载完成:', data)
+async function fetchUsers() {
+  // 先检查缓存
+  const cached = engine.cache.get('api:users')
+  if (cached) {
+    return cached
+  }
+  
+  // 请求数据
+  const users = await fetch('/api/users').then(r => r.json())
+  
+  // 缓存 5 分钟
+  engine.cache.set('api:users', users, 300000)
+  
+  return users
+}
+```
+
+### 场景 2：全局状态管理
+
+```typescript
+// 设置用户信息
+engine.state.set('user.profile', {
+  id: 123,
+  name: 'Alice',
+  role: 'admin'
 })
 
-// 发布事件
-engine.events.emit('data:loaded', { items: [], total: 0 })
-
-// 一次性监听
-engine.events.once('app:ready', () => {
-  console.log('应用准备就绪')
+// 在任何地方监听变化
+engine.state.watch('user.profile', (profile) => {
+  console.log('用户信息更新:', profile)
 })
 
-// 命名空间
-const userEvents = engine.events.namespace('user')
-userEvents.on('login', (user) => console.log('用户登录:', user))
-userEvents.emit('login', { id: 1, name: 'John' })
-
-// 防抖处理
-const searchDebouncer = engine.events.debounce('search', 300)
-searchDebouncer.emit('query text')
-
-// 条件监听
-engine.events.onWhen('order:paid', (data) => data.amount > 0, (data) => {
-  console.log('有效付款:', data)
+// 批量更新
+engine.state.batch(() => {
+  engine.state.set('user.name', 'Bob')
+  engine.state.set('user.role', 'user')
 })
+```
+
+### 场景 3：事件通信
+
+```typescript
+// 组件 A：监听事件
+engine.events.on('notification:show', (message) => {
+  showNotification(message)
+}, { namespace: 'app' })
+
+// 组件 B：触发事件
+async function saveData() {
+  await save()
+  await engine.events.emit('notification:show', {
+    type: 'success',
+    text: '保存成功'
+  })
+}
 ```
 
 ## 下一步
 
-现在您已经创建了第一个 Vue3 Engine 应用！接下来可以：
+现在你已经完成了快速开始，接下来可以：
 
-- 📖 阅读 [基础概念](/guide/concepts) 了解更多核心概念
-- 🔌 学习 [插件系统](/guide/plugins) 扩展应用功能
-- ⚡ 探索 [中间件](/guide/middleware) 处理请求和响应
-- 🎯 查看 [完整示例](/examples/full-app) 了解最佳实践
+- [深入了解核心概念](./core-concepts) - 理解引擎架构
+- [查看完整示例](/examples/) - 浏览更多示例代码
+- [阅读 API 参考](/api/) - 查看完整 API 文档
 
-## 常见问题
+## 获取帮助
 
-### Q: 如何在现有 Vue3 项目中集成 Engine？
+遇到问题？
 
-A: 只需要安装 `@ldesign/engine` 包，然后在 `main.ts` 中创建引擎实例并安装到 Vue 应用即可。Engine 不
-会影响现有代码。
-
-### Q: Engine 会增加多少包体积？
-
-A: Engine 采用模块化设计，只有使用的功能才会被打包。基础功能约 20KB gzipped。
-
-### Q: 是否支持 TypeScript？
-
-A: 完全支持！Engine 使用 TypeScript 开发，提供完整的类型定义。
-
-### Q: 如何调试 Engine 应用？
-
-A: 开启 `debug: true` 配置，Engine 会输出详细的调试信息到控制台。
+- 查看 [FAQ](./faq)
+- 查看 [故障排查](./troubleshooting)
+- 在 [GitHub Discussions](https://github.com/ldesign/engine/discussions) 提问
+- 报告 [Bug](https://github.com/ldesign/engine/issues)

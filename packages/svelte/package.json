@@ -1,0 +1,75 @@
+{
+  "name": "@ldesign/engine-svelte",
+  "version": "0.2.0",
+  "description": "Svelte adapter for @ldesign/engine-core",
+  "keywords": [
+    "svelte",
+    "engine",
+    "plugin",
+    "middleware",
+    "typescript",
+    "reactive",
+    "stores"
+  ],
+  "author": "ldesign",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./es/index.d.ts",
+      "import": "./es/index.js",
+      "require": "./lib/index.cjs"
+    },
+    "./stores": {
+      "types": "./es/stores/index.d.ts",
+      "import": "./es/stores/index.js",
+      "require": "./lib/stores/index.cjs"
+    },
+    "./stores/*": {
+      "types": "./es/stores/*.d.ts",
+      "import": "./es/stores/*.js",
+      "require": "./lib/stores/*.cjs"
+    },
+    "./adapter": {
+      "types": "./es/adapter/index.d.ts",
+      "import": "./es/adapter/index.js",
+      "require": "./lib/adapter/index.cjs"
+    }
+  },
+  "main": "./lib/index.cjs",
+  "module": "./es/index.js",
+  "types": "./es/index.d.ts",
+  "svelte": "./es/index.js",
+  "files": [
+    "README.md",
+    "LICENSE",
+    "package.json",
+    "es",
+    "lib"
+  ],
+  "scripts": {
+    "build": "ldesign-builder build -f esm,cjs,dts",
+    "dev": "ldesign-builder build -f esm,cjs,dts --watch",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "lint": "eslint . --fix",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ldesign/engine-core": "workspace:*"
+  },
+  "peerDependencies": {
+    "svelte": "^4.0.0 || ^5.0.0",
+    "@ldesign/engine-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@ldesign/builder": "workspace:*",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.3",
+    "vitest": "^3.2.4",
+    "svelte": "^4.2.0",
+    "eslint": "^9.18.0"
+  }
+}
+

@@ -1,0 +1,43 @@
+{
+  "name": "@ldesign/engine-nuxtjs",
+  "version": "0.1.0",
+  "description": "Nuxt.js adapter for LDesign Engine",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./server": {
+      "types": "./dist/server/index.d.ts",
+      "import": "./dist/server/index.js",
+      "require": "./dist/server/index.cjs"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "pnpm run clean && tsup",
+    "clean": "rimraf dist",
+    "dev": "tsup --watch"
+  },
+  "keywords": ["ldesign", "engine", "nuxtjs", "adapter", "ssr"],
+  "license": "MIT",
+  "peerDependencies": {
+    "nuxt": "^3.0.0",
+    "vue": "^3.0.0",
+    "@ldesign/engine-core": "workspace:*"
+  },
+  "devDependencies": {
+    "nuxt": "^3.15.1",
+    "vue": "^3.5.13",
+    "@ldesign/engine-core": "workspace:*",
+    "rimraf": "^5.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0"
+  }
+}
+

@@ -1,0 +1,36 @@
+{
+  "name": "@ldesign/engine-alpinejs",
+  "version": "0.1.0",
+  "description": "Alpine.js adapter for LDesign Engine",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "pnpm run clean && tsup",
+    "clean": "rimraf dist",
+    "dev": "tsup --watch"
+  },
+  "keywords": ["ldesign", "engine", "alpinejs", "adapter"],
+  "license": "MIT",
+  "peerDependencies": {
+    "alpinejs": "^3.0.0",
+    "@ldesign/engine-core": "workspace:*"
+  },
+  "devDependencies": {
+    "alpinejs": "^3.14.3",
+    "@ldesign/engine-core": "workspace:*",
+    "rimraf": "^5.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0"
+  }
+}
+

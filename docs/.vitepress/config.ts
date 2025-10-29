@@ -1,233 +1,159 @@
+/**
+ * VitePress 配置文件
+ */
+
 import { defineConfig } from 'vitepress'
 
 export default defineConfig({
   title: 'LDesign Engine',
-  description: '强大的Vue3应用引擎，提供插件化架构和完整的开发工具链',
+  description: '现代化、模块化的前端应用引擎',
+  lang: 'zh-CN',
 
-  // 忽略死链接检查
-  ignoreDeadLinks: true,
+  lastUpdated: true,
+  cleanUrls: true,
 
   head: [
-    ['link', { rel: 'icon', href: '/favicon.ico' }],
-    ['meta', { name: 'theme-color', content: '#3c82f6' }],
-    ['meta', { property: 'og:type', content: 'website' }],
-    ['meta', { property: 'og:locale', content: 'zh-CN' }],
-    [
-      'meta',
-      { property: 'og:title', content: 'LDesign Engine | Vue3应用引擎' },
-    ],
-    ['meta', { property: 'og:site_name', content: 'LDesign Engine' }],
-    ['meta', { property: 'og:image', content: '/og-image.png' }],
-    [
-      'meta',
-      { property: 'og:url', content: 'https://ldesign.github.io/engine/' },
-    ],
+    ['meta', { name: 'theme-color', content: '#42b983' }],
+    ['meta', { name: 'og:type', content: 'website' }],
+    ['meta', { name: 'og:title', content: 'LDesign Engine' }],
+    ['meta', { name: 'og:description', content: '现代化、模块化的前端应用引擎' }],
   ],
 
   themeConfig: {
     logo: '/logo.svg',
 
     nav: [
-      { text: '首页', link: '/' },
+      { text: '指南', link: '/guide/', activeMatch: '/guide/' },
+      { text: 'API', link: '/api/', activeMatch: '/api/' },
+      { text: '示例', link: '/examples/', activeMatch: '/examples/' },
       {
-        text: '指南',
+        text: '框架',
         items: [
-          { text: '快速开始', link: '/guide/quick-start' },
-          { text: '入门指南', link: '/guide/getting-started' },
-          { text: '最佳实践', link: '/guide/best-practices' },
+          { text: 'Vue', link: '/guide/vue' },
+          { text: 'React', link: '/guide/react' },
+          { text: 'Angular', link: '/guide/angular' },
+          { text: 'Solid', link: '/guide/solid' },
+          { text: 'Svelte', link: '/guide/svelte' },
         ],
       },
-      {
-        text: 'API参考',
-        items: [
-          { text: '核心API', link: '/api/core' },
-          { text: 'Engine', link: '/api/engine' },
-          { text: '类型定义', link: '/api/types' },
-        ],
-      },
-      {
-        text: '示例',
-        items: [
-          { text: '基础示例', link: '/examples/basic' },
-          { text: '高级示例', link: '/examples/advanced' },
-          { text: '集成示例', link: '/examples/integration' },
-        ],
-      },
-      {
-        text: '生态系统',
-        items: [
-          { text: 'Vue Router集成', link: '/ecosystem/vue-router' },
-          { text: 'Pinia集成', link: '/ecosystem/pinia' },
-          { text: 'Element Plus集成', link: '/ecosystem/element-plus' },
-        ],
-      },
+      { text: '生态系统', link: '/ecosystem/', activeMatch: '/ecosystem/' },
     ],
 
     sidebar: {
       '/guide/': [
         {
-          text: '开始使用',
-          collapsed: false,
+          text: '开始',
           items: [
-            { text: '快速开始', link: '/guide/quick-start' },
-            { text: '入门指南', link: '/guide/getting-started' },
-            { text: '配置选项', link: '/guide/configuration' },
-            { text: '迁移指南', link: '/guide/migration' },
+            { text: '简介', link: '/guide/index' },
+            { text: '安装', link: '/guide/installation' },
+            { text: '快速开始', link: '/guide/getting-started' },
           ],
         },
         {
-          text: '核心功能',
-          collapsed: false,
+          text: '核心概念',
           items: [
+            { text: '引擎架构', link: '/guide/core-concepts' },
             { text: '插件系统', link: '/guide/plugins' },
             { text: '中间件系统', link: '/guide/middleware' },
-            { text: '事件系统', link: '/guide/events' },
             { text: '状态管理', link: '/guide/state' },
-            { text: '日志系统', link: '/guide/logger' },
-            { text: '通知系统', link: '/guide/notifications' },
+            { text: '事件系统', link: '/guide/events' },
+            { text: '缓存管理', link: '/guide/cache' },
+          ],
+        },
+        {
+          text: '框架集成',
+          items: [
+            { text: 'Vue 3', link: '/guide/vue-integration' },
+            { text: 'React', link: '/guide/react' },
+            { text: 'Angular', link: '/guide/angular' },
+            { text: 'Solid', link: '/guide/solid' },
+            { text: 'Svelte', link: '/guide/svelte' },
           ],
         },
         {
           text: '高级功能',
-          collapsed: false,
           items: [
+            { text: '性能优化', link: '/guide/performance-optimization' },
             { text: '安全管理', link: '/guide/security' },
-            { text: '性能管理', link: '/guide/performance' },
-            { text: '缓存管理', link: '/guide/cache' },
-            { text: '指令系统', link: '/guide/directives' },
+            { text: '日志系统', link: '/guide/logger' },
             { text: '错误处理', link: '/guide/error-handling' },
           ],
         },
         {
-          text: '开发与部署',
-          collapsed: false,
+          text: '最佳实践',
           items: [
-            { text: '开发工具', link: '/guide/development' },
+            { text: '开发指南', link: '/guide/development' },
             { text: '测试指南', link: '/guide/testing' },
             { text: '部署指南', link: '/guide/deployment' },
-            { text: '最佳实践', link: '/guide/best-practices' },
-          ],
-        },
-        {
-          text: '故障排除',
-          collapsed: true,
-          items: [
-            { text: '常见问题', link: '/guide/faq' },
-            { text: '故障排除', link: '/guide/troubleshooting' },
-            { text: '性能优化', link: '/guide/performance-optimization' },
           ],
         },
       ],
+
       '/api/': [
         {
-          text: '核心API',
-          collapsed: false,
+          text: '核心 API',
           items: [
-            { text: 'API概览', link: '/api/' },
-            { text: '核心引擎', link: '/api/core' },
-            { text: 'Engine类', link: '/api/engine' },
-            { text: '工厂函数', link: '/api/factory' },
+            { text: 'CoreEngine', link: '/api/core' },
+            { text: 'CacheManager', link: '/api/cache-manager' },
+            { text: 'EventManager', link: '/api/event-manager' },
+            { text: 'StateManager', link: '/api/state-manager' },
+            { text: 'PluginManager', link: '/api/plugin-manager' },
+            { text: 'MiddlewareManager', link: '/api/middleware-manager' },
+            { text: 'LifecycleManager', link: '/api/lifecycle-manager' },
+            { text: 'ConfigManager', link: '/api/config-manager' },
+            { text: 'Logger', link: '/api/logger' },
           ],
         },
         {
-          text: '管理器API',
-          collapsed: false,
+          text: 'Vue API',
           items: [
-            { text: '插件管理器', link: '/api/plugin-manager' },
-            { text: '中间件管理器', link: '/api/middleware-manager' },
-            { text: '事件管理器', link: '/api/event-manager' },
-            { text: '状态管理器', link: '/api/state-manager' },
-            { text: '日志管理器', link: '/api/logger' },
-            { text: '通知管理器', link: '/api/notification-manager' },
-            { text: '安全管理器', link: '/api/security-manager' },
-            { text: '性能管理器', link: '/api/performance-manager' },
-            { text: '缓存管理器', link: '/api/cache-manager' },
-            { text: '指令管理器', link: '/api/directive-manager' },
-            { text: '错误管理器', link: '/api/error-manager' },
-            { text: '环境管理器', link: '/api/environment-manager' },
-            { text: '生命周期管理器', link: '/api/lifecycle-manager' },
+            { text: 'createEngineApp', link: '/api/vue/create-engine-app' },
+            { text: 'useEngine', link: '/api/vue/use-engine' },
+            { text: '组合式 API', link: '/api/vue/composables' },
+            { text: '指令', link: '/api/vue/directives' },
+          ],
+        },
+        {
+          text: 'React API',
+          items: [
+            { text: 'createEngineApp', link: '/api/react/create-engine-app' },
+            { text: 'useEngine', link: '/api/react/use-engine' },
+            { text: 'Hooks', link: '/api/react/hooks' },
           ],
         },
         {
           text: '类型定义',
-          collapsed: true,
           items: [
-            { text: '核心类型', link: '/api/types/core' },
-            { text: '插件类型', link: '/api/types/plugin' },
-            { text: '中间件类型', link: '/api/types/middleware' },
-            { text: '事件类型', link: '/api/types/event' },
-            { text: '状态类型', link: '/api/types/state' },
-            { text: '配置类型', link: '/api/types/config' },
+            { text: 'Engine Types', link: '/api/types/engine' },
+            { text: 'Plugin Types', link: '/api/types/plugin' },
+            { text: 'State Types', link: '/api/types/state' },
           ],
         },
       ],
+
       '/examples/': [
         {
           text: '基础示例',
-          collapsed: false,
           items: [
             { text: '快速开始', link: '/examples/basic' },
-            { text: '插件开发', link: '/examples/plugin-development' },
-            { text: '中间件开发', link: '/examples/middleware-development' },
             { text: '状态管理', link: '/examples/state-management' },
+            { text: '事件系统', link: '/examples/advanced' },
           ],
         },
         {
           text: '高级示例',
-          collapsed: false,
           items: [
-            { text: '复杂应用', link: '/examples/advanced' },
+            { text: '插件开发', link: '/examples/plugin-development' },
+            { text: '中间件开发', link: '/examples/middleware-development' },
             { text: '微前端集成', link: '/examples/micro-frontend' },
-            { text: 'SSR应用', link: '/examples/ssr' },
-            { text: '移动端应用', link: '/examples/mobile' },
           ],
         },
         {
-          text: '集成示例',
-          collapsed: false,
+          text: '完整项目',
           items: [
-            { text: '第三方库集成', link: '/examples/integration' },
-            { text: 'UI框架集成', link: '/examples/ui-frameworks' },
-            { text: '状态库集成', link: '/examples/state-libraries' },
-            { text: '工具链集成', link: '/examples/toolchain' },
-          ],
-        },
-        {
-          text: '实战项目',
-          collapsed: true,
-          items: [
-            { text: '博客系统', link: '/examples/projects/blog' },
-            { text: '电商平台', link: '/examples/projects/ecommerce' },
-            { text: '管理后台', link: '/examples/projects/admin' },
-            { text: '数据可视化', link: '/examples/projects/dashboard' },
-          ],
-        },
-      ],
-      '/ecosystem/': [
-        {
-          text: '官方集成',
-          items: [
-            { text: 'Vue Router', link: '/ecosystem/vue-router' },
-            { text: 'Pinia', link: '/ecosystem/pinia' },
-            { text: 'Vue I18n', link: '/ecosystem/vue-i18n' },
-          ],
-        },
-        {
-          text: 'UI框架',
-          items: [
-            { text: 'Element Plus', link: '/ecosystem/element-plus' },
-            { text: 'Ant Design Vue', link: '/ecosystem/ant-design-vue' },
-            { text: 'Naive UI', link: '/ecosystem/naive-ui' },
-            { text: 'Quasar', link: '/ecosystem/quasar' },
-          ],
-        },
-        {
-          text: '工具链',
-          items: [
-            { text: 'Vite', link: '/ecosystem/vite' },
-            { text: 'Webpack', link: '/ecosystem/webpack' },
-            { text: 'TypeScript', link: '/ecosystem/typescript' },
-            { text: 'ESLint', link: '/ecosystem/eslint' },
+            { text: '待办事项应用', link: '/examples/projects/todo-app' },
+            { text: '移动应用', link: '/examples/mobile' },
+            { text: 'SSR 应用', link: '/examples/ssr' },
           ],
         },
       ],
@@ -237,63 +163,18 @@ export default defineConfig({
       { icon: 'github', link: 'https://github.com/ldesign/engine' },
     ],
 
-    footer: {
-      message: '基于 MIT 许可发布',
-      copyright: 'Copyright © 2024 LDesign Team',
+    search: {
+      provider: 'local',
     },
 
     editLink: {
-      pattern:
-        'https://github.com/ldesign/engine/edit/main/packages/engine/docs/:path',
-      text: '在 GitHub 上编辑此页面',
+      pattern: 'https://github.com/ldesign/engine/edit/main/packages/engine/docs/:path',
+      text: '在 GitHub 上编辑此页',
     },
 
-    lastUpdated: {
-      text: '最后更新于',
-      formatOptions: {
-        dateStyle: 'short',
-        timeStyle: 'medium',
-      },
-    },
-
-    docFooter: {
-      prev: '上一页',
-      next: '下一页',
-    },
-
-    outline: {
-      label: '页面导航',
-    },
-
-    returnToTopLabel: '回到顶部',
-    sidebarMenuLabel: '菜单',
-    darkModeSwitchLabel: '主题',
-    lightModeSwitchTitle: '切换到浅色模式',
-    darkModeSwitchTitle: '切换到深色模式',
-
-    search: {
-      provider: 'local',
-      options: {
-        locales: {
-          root: {
-            translations: {
-              button: {
-                buttonText: '搜索文档',
-                buttonAriaLabel: '搜索文档',
-              },
-              modal: {
-                noResultsText: '无法找到相关结果',
-                resetButtonTitle: '清除查询条件',
-                footer: {
-                  selectText: '选择',
-                  navigateText: '切换',
-                  closeText: '关闭',
-                },
-              },
-            },
-          },
-        },
-      },
+    footer: {
+      message: 'Released under the MIT License.',
+      copyright: 'Copyright © 2024-present LDesign Team',
     },
   },
 
@@ -303,14 +184,5 @@ export default defineConfig({
       dark: 'github-dark',
     },
     lineNumbers: true,
-    config: (md) => {
-      // 添加自定义markdown插件
-    },
-  },
-
-  vite: {
-    define: {
-      __VUE_OPTIONS_API__: false,
-    },
   },
 })

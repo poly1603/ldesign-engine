@@ -1,0 +1,22 @@
+{
+  "name": "@ldesign/engine-solid-vite-demo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "launcher dev",
+    "build": "tsc && launcher build",
+    "preview": "launcher preview"
+  },
+  "dependencies": {
+    "@ldesign/engine-core": "workspace:*",
+    "@ldesign/engine-solid": "workspace:*",
+    "solid-js": "^1.8.0"
+  },
+  "devDependencies": {
+    "@ldesign/launcher": "workspace:*",
+    "typescript": "^5.3.3",
+    "vite-plugin-solid": "^2.8.0"
+  }
+}
+

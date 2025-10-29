@@ -1,0 +1,75 @@
+{
+  "name": "@ldesign/engine-solid",
+  "version": "0.2.0",
+  "description": "Solid.js adapter for @ldesign/engine-core",
+  "keywords": [
+    "solid",
+    "solidjs",
+    "engine",
+    "plugin",
+    "middleware",
+    "typescript",
+    "reactive",
+    "signals"
+  ],
+  "author": "ldesign",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./es/index.d.ts",
+      "import": "./es/index.js",
+      "require": "./lib/index.cjs"
+    },
+    "./hooks": {
+      "types": "./es/hooks/index.d.ts",
+      "import": "./es/hooks/index.js",
+      "require": "./lib/hooks/index.cjs"
+    },
+    "./hooks/*": {
+      "types": "./es/hooks/*.d.ts",
+      "import": "./es/hooks/*.js",
+      "require": "./lib/hooks/*.cjs"
+    },
+    "./adapter": {
+      "types": "./es/adapter/index.d.ts",
+      "import": "./es/adapter/index.js",
+      "require": "./lib/adapter/index.cjs"
+    }
+  },
+  "main": "./lib/index.cjs",
+  "module": "./es/index.js",
+  "types": "./es/index.d.ts",
+  "files": [
+    "README.md",
+    "LICENSE",
+    "package.json",
+    "es",
+    "lib"
+  ],
+  "scripts": {
+    "build": "ldesign-builder build -f esm,cjs,dts",
+    "dev": "ldesign-builder build -f esm,cjs,dts --watch",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "lint": "eslint . --fix",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ldesign/engine-core": "workspace:*"
+  },
+  "peerDependencies": {
+    "solid-js": "^1.8.0",
+    "@ldesign/engine-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@ldesign/builder": "workspace:*",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.3",
+    "vitest": "^3.2.4",
+    "solid-js": "^1.8.0",
+    "eslint": "^9.18.0"
+  }
+}
+

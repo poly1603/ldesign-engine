@@ -1,0 +1,51 @@
+{
+  "name": "@ldesign/engine-angular",
+  "version": "0.2.0",
+  "description": "Angular adapter for @ldesign/engine-core",
+  "keywords": [
+    "angular",
+    "engine",
+    "plugin",
+    "middleware",
+    "state-management"
+  ],
+  "author": "ldesign",
+  "license": "MIT",
+  "type": "module",
+  "main": "./lib/index.cjs",
+  "module": "./es/index.js",
+  "types": "./es/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./es/index.d.ts",
+      "import": "./es/index.js",
+      "require": "./lib/index.cjs"
+    }
+  },
+  "files": [
+    "es",
+    "lib",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "ldesign-builder build -f esm,cjs,dts",
+    "dev": "ldesign-builder build -f esm,cjs,dts --watch",
+    "clean": "rimraf es lib dist"
+  },
+  "peerDependencies": {
+    "@angular/core": "^17.0.0 || ^18.0.0",
+    "@ldesign/engine-core": "workspace:*",
+    "rxjs": "^7.8.0",
+    "zone.js": "~0.14.0"
+  },
+  "devDependencies": {
+    "@angular/core": "^18.0.0",
+    "@ldesign/builder": "workspace:*",
+    "@ldesign/engine-core": "workspace:*",
+    "rxjs": "^7.8.1",
+    "typescript": "^5.3.3",
+    "zone.js": "~0.14.0"
+  }
+}
+
+

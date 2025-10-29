@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>React Engine - Full Featured Example</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+
+    .app {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .header {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .header h1 {
+      color: #61dafb;
+      margin-bottom: 10px;
+    }
+
+    .badge {
+      background: #61dafb;
+      color: #282c34;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      margin: 0 5px;
+      font-weight: bold;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .card h3 {
+      color: #61dafb;
+      margin-bottom: 15px;
+      border-bottom: 2px solid #61dafb;
+      padding-bottom: 10px;
+    }
+
+    .btn {
+      background: #61dafb;
+      color: #282c34;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 5px 5px 5px 0;
+      font-weight: bold;
+      transition: all 0.3s;
+    }
+
+    .btn:hover {
+      background: #4fa8c5;
+      transform: translateY(-2px);
+    }
+
+    .btn.secondary {
+      background: #6b7280;
+      color: white;
+    }
+
+    .btn.danger {
+      background: #ef4444;
+      color: white;
+    }
+
+    .input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      margin: 5px 0;
+    }
+
+    .list-item {
+      background: #f9fafb;
+      padding: 10px;
+      margin: 5px 0;
+      border-radius: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .metric {
+      text-align: center;
+      padding: 10px;
+    }
+
+    .metric-value {
+      font-size: 32px;
+      font-weight: bold;
+      color: #61dafb;
+    }
+
+    .metric-label {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app"></div>
+
+  <script type="module">
+    import React, { useState, useEffect } from 'react'
+    import { createRoot } from 'react-dom/client'
+    import { createEngineApp } from '@ldesign/engine-react'
+    import { useEngine, useEvents, useEngineState } from '@ldesign/engine-react/hooks'
+
+    function App() {
+      const engine = useEngine()
+      const events = useEvents()
+
+      const [user, setUser] = useEngineState('user', { name: 'Guest', score: 0 })
+      const [tasks, setTasks] = useEngineState('tasks', [])
+      const [newTaskTitle, setNewTaskTitle] = useState('')
+
+      const stats = {
+        total: tasks?.length || 0,
+        completed: tasks?.filter(t => t.completed).length || 0,
+        pending: tasks?.filter(t => !t.completed).length || 0
+      }
+
+      const pluginStats = engine.plugins.getStats()
+      const cacheStats = engine.cache.getStats()
+
+      useEffect(() => {
+        const unsubscribe1 = events.on('task:created', (task) => {
+          engine.logger.info('任务已创建:', task.title)
+        })
+
+        const unsubscribe2 = events.on('custom:event', (data) => {
+          engine.logger.info('收到自定义事件:', data)
+        })
+
+        return () => {
+          unsubscribe1()
+          unsubscribe2()
+        }
+      }, [])
+
+      const addTask = () => {
+        if (!newTaskTitle.trim()) return
+
+        const task = {
+          id: Date.now(),
+          title: newTaskTitle,
+          completed: false
+        }
+
+        setTasks([...(tasks || []), task])
+        setNewTaskTitle('')
+        events.emit('task:created', task)
+        setUser({ ...user, score: user.score + 10 })
+      }
+
+      const toggleTask = (taskId) => {
+        setTasks(tasks.map(t =>
+          t.id === taskId ? { ...t, completed: !t.completed } : t
+        ))
+      }
+
+      const deleteTask = (taskId) => {
+        setTasks(tasks.filter(t => t.id !== taskId))
+      }
+
+      const testCache = () => {
+        const key = 'test-' + Date.now()
+        engine.cache.set(key, { data: 'cached value' }, 5000)
+        engine.logger.info(`缓存已设置: ${key}`)
+
+        setTimeout(() => {
+          const value = engine.cache.get(key)
+          engine.logger.info('缓存读取:', value)
+        }, 100)
+      }
+
+      return (
+        <div className="app">
+          <div className="header">
+            <h1>⚛️ React Engine - 完整功能示例</h1>
+            <p style={{ margin: '10px 0' }}>
+              <span className="badge">{pluginStats.installed} 个插件</span>
+              <span className="badge">{stats.total} 个任务</span>
+            </p>
+            <p style={{ color: '#6b7280', fontSize: '14px' }}>
+              用户: <strong>{user?.name}</strong> | 积分: <strong>{user?.score}</strong>
+            </p>
+          </div>
+
+          <div className="grid">
+            <div className="card">
+              <div style={{ display: 'flex', justifyContent: 'space-around' }}>
+                <div className="metric">
+                  <div className="metric-value">{stats.total}</div>
+                  <div className="metric-label">总任务</div>
+                </div>
+                <div className="metric">
+                  <div className="metric-value">{stats.completed}</div>
+                  <div className="metric-label">已完成</div>
+                </div>
+                <div className="metric">
+                  <div className="metric-value">{stats.pending}</div>
+                  <div className="metric-label">待处理</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="card">
+              <div style={{ display: 'flex', justifyContent: 'space-around' }}>
+                <div className="metric">
+                  <div className="metric-value">{cacheStats.size}</div>
+                  <div className="metric-label">缓存项</div>
+                </div>
+                <div className="metric">
+                  <div className="metric-value">{cacheStats.hits}</div>
+                  <div className="metric-label">命中次数</div>
+                </div>
+                <div className="metric">
+                  <div className="metric-value">{Math.round(cacheStats.hitRate * 100)}%</div>
+                  <div className="metric-label">命中率</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid">
+            <div className="card">
+              <h3>📝 任务管理</h3>
+              <div>
+                <input
+                  value={newTaskTitle}
+                  onChange={(e) => setNewTaskTitle(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && addTask()}
+                  className="input"
+                  placeholder="输入新任务..."
+                />
+                <button onClick={addTask} className="btn">添加任务</button>
+              </div>
+              <div style={{ marginTop: '15px', maxHeight: '300px', overflowY: 'auto' }}>
+                {tasks?.map(task => (
+                  <div key={task.id} className="list-item">
+                    <div>
+                      <input
+                        type="checkbox"
+                        checked={task.completed}
+                        onChange={() => toggleTask(task.id)}
+                        style={{ marginRight: '10px' }}
+                      />
+                      <span style={{ textDecoration: task.completed ? 'line-through' : 'none' }}>
+                        {task.title}
+                      </span>
+                    </div>
+                    <button onClick={() => deleteTask(task.id)} className="btn danger">删除</button>
+                  </div>
+                ))}
+                {(!tasks || tasks.length === 0) && (
+                  <div style={{ textAlign: 'center', padding: '20px', color: '#6b7280' }}>
+                    暂无任务
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="card">
+              <h3>⚙️ 引擎功能</h3>
+              <div>
+                <h4 style={{ margin: '10px 0', color: '#6b7280' }}>缓存系统</h4>
+                <button onClick={testCache} className="btn">测试缓存</button>
+                <button onClick={() => engine.cache.clear()} className="btn secondary">清空缓存</button>
+
+                <h4 style={{ margin: '15px 0 10px', color: '#6b7280' }}>事件系统</h4>
+                <button
+                  onClick={() => events.emit('custom:event', { message: '测试事件', timestamp: Date.now() })}
+                  className="btn"
+                >
+                  触发事件
+                </button>
+
+                <h4 style={{ margin: '15px 0 10px', color: '#6b7280' }}>插件信息</h4>
+                {pluginStats.loaded.map(name => (
+                  <div key={name} className="list-item">{name}</div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    const engine = await createEngineApp({
+      rootComponent: App,
+      mountElement: '#app',
+      config: {
+        name: 'React Full Featured Demo',
+        debug: true
+      },
+      cache: {
+        maxSize: 100,
+        defaultTTL: 300000
+      }
+    })
+
+    window.engine = engine
+    console.log('💡 提示: 使用 window.engine 访问引擎')
+  </script>
+</body>
+
+</html>

@@ -1,7 +1,8 @@
 {
   "name": "@ldesign/engine",
   "version": "0.3.0",
-  "description": "A powerful Vue3 application engine with plugin system, middleware support, and global management - Optimized for performance and memory efficiency. v0.3.0: 60-80% performance boost, 35% memory reduction, zero memory leaks, 14 new powerful tools",
+  "private": true,
+  "description": "A powerful multi-framework application engine with plugin system, middleware support, and global management - Supports Vue3, React, and more",
   "keywords": [
     "vue3",
     "engine",
@@ -25,6 +26,36 @@
       "types": "./es/index.d.ts",
       "import": "./es/index.js",
       "require": "./lib/index.cjs"
+    },
+    "./core": {
+      "types": "./es/core.d.ts",
+      "import": "./es/core.js",
+      "require": "./lib/core.cjs"
+    },
+    "./vue": {
+      "types": "./es/vue.d.ts",
+      "import": "./es/vue.js",
+      "require": "./lib/vue.cjs"
+    },
+    "./react": {
+      "types": "./es/react.d.ts",
+      "import": "./es/react.js",
+      "require": "./lib/react.cjs"
+    },
+    "./angular": {
+      "types": "./es/angular.d.ts",
+      "import": "./es/angular.js",
+      "require": "./lib/angular.cjs"
+    },
+    "./solid": {
+      "types": "./es/solid.d.ts",
+      "import": "./es/solid.js",
+      "require": "./lib/solid.cjs"
+    },
+    "./svelte": {
+      "types": "./es/svelte.d.ts",
+      "import": "./es/svelte.js",
+      "require": "./lib/svelte.cjs"
     },
     "./ai/*": {
       "types": "./es/ai/*.d.ts",
@@ -221,13 +252,10 @@
     "dist"
   ],
   "scripts": {
-    "build": "ldesign-builder build -f esm,cjs,dts",
-    "build:clean": "node scripts/build.js --clean",
-    "build:types": "node scripts/build.js --types",
-    "build:analyze": "node scripts/analyze-bundle.js",
-    "build:watch": "rollup -c -w",
-    "build:check": "pnpm run build && pnpm run build:analyze",
-    "dev": "rollup -c -w",
+    "build": "pnpm -r --filter './packages/*' build",
+    "build:watch": "pnpm -r --filter './packages/*' build --watch",
+    "dev": "pnpm -r --filter './packages/*' build --watch",
+    "build:clean": "pnpm -r --filter './packages/*' run clean && pnpm build",
     "type-check": "vue-tsc --noEmit",
     "lint": "eslint . --fix",
     "lint:check": "eslint .",
@@ -266,6 +294,14 @@
     "quality:check": "pnpm run lint:check && pnpm run format:check && pnpm run type-check && pnpm run test:unit",
     "quality:fix": "pnpm run lint && pnpm run format && pnpm run test:unit",
     "lint:fix": "eslint . --fix"
+  },
+  "dependencies": {
+    "@ldesign/engine-core": "workspace:*",
+    "@ldesign/engine-vue": "workspace:*",
+    "@ldesign/engine-react": "workspace:*",
+    "@ldesign/engine-angular": "workspace:*",
+    "@ldesign/engine-solid": "workspace:*",
+    "@ldesign/engine-svelte": "workspace:*"
   },
   "peerDependencies": {
     "vue": "^3.5.18"

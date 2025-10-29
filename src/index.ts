@@ -1,328 +1,46 @@
 /**
- * @ldesign/engine - Vue3应用引擎
- *
- * 🚀 一个强大而简洁的Vue3应用引擎，通过统一的API配置所有功能
- *
+ * @ldesign/engine - 现代化前端应用引擎
+ * 
+ * 这是主包的统一导出入口，聚合了所有子包的功能。
+ * 
+ * @packageDocumentation
+ * 
  * @example
  * ```typescript
+ * // 导入核心引擎
+ * import { createCoreEngine } from '@ldesign/engine'
+ * 
+ * // 导入 Vue 集成
  * import { createEngineApp } from '@ldesign/engine'
- *
+ * 
+ * // 创建 Vue 应用
  * const engine = await createEngineApp({
  *   rootComponent: App,
  *   mountElement: '#app',
  *   config: {
  *     name: 'My App',
- *     version: '1.0.0',
  *     debug: true
- *   },
- *   features: {
- *     enableCaching: true,
- *     enablePerformanceMonitoring: true
- *   },
- *   plugins: [routerPlugin, storePlugin]
+ *   }
  * })
  * ```
  */
 
-// 插件状态管理
-export {
-  createSharedState,
-  useDark,
-  useLocale,
-  usePluginState,
-  usePluginStates,
-  useSize,
-  useTheme
-} from './composables/use-plugin-state'
+// ==================== 核心包导出 ====================
+// 重新导出所有核心功能
+export * from '@ldesign/engine-core'
 
-// ==================== 核心导出 ====================
-// 统一的应用创建函数
-export {
-  createAndMountEngineApp,
-  createEngineApp,
-  type EngineAppOptions
-} from './core/create-engine-app'
+// ==================== Vue 包导出 ====================
+// 重新导出所有 Vue 集成功能
+export * from '@ldesign/engine-vue'
 
-// 模块加载器（新增 - 支持动态导入和Tree-Shaking）
-export {
-  createModuleLoader,
-  ModuleLoader,
-  type ModuleLoaderConfig,
-  type ModuleMetadata,
-  type ModuleLoadOptions,
-  getGlobalModuleLoader,
-  setGlobalModuleLoader,
-  LazyModule
-} from './core/module-loader'
+// ==================== React 包导出（可选） ====================
+// 如果需要 React 集成，取消注释以下行
+// export * from '@ldesign/engine-react'
 
-// 对象池管理（新增 - 减少GC压力）
-export {
-  createObjectPoolManager,
-  ObjectPoolManager,
-  ObjectPool,
-  TaskPool,
-  NotificationPool,
-  RequestPool,
-  getGlobalObjectPoolManager,
-  setGlobalObjectPoolManager,
-  Pooled
-} from './core/object-pools'
-
-// ==================== Locale 模块导出 ====================
-export {
-  createLocaleAwarePlugin,
-  type CreateLocaleAwarePluginOptions,
-  createLocaleManager,
-  createSimpleLocaleAwarePlugin,
-  type LocaleAwarePlugin,
-  LocaleManager,
-  type LocaleManagerOptions
-} from './locale'
-
-// 性能监控模块
-export * from './performance/performance-monitor'
-
-// 性能分析器（新增 - 函数和组件性能追踪）
-export {
-  createProfiler,
-  Profiler,
-  type ProfilerConfig,
-  type FunctionCallRecord,
-  type ComponentRenderRecord,
-  type PerformanceProfileReport,
-  Profile,
-  getGlobalProfiler,
-  setGlobalProfiler
-} from './performance/profiler'
-
-// ==================== 插件导出 ====================
-export { createI18nEnginePlugin } from './plugins/i18n'
-
-export type { I18nEnginePluginOptions } from './plugins/i18n'
-
-// 配置类型
-export type {
-  ConfigManager,
-  EngineConfig
-} from './types/config'
-
-// ==================== 类型导出 ====================
-// 引擎核心类型
-export type { Engine } from './types/engine'
-
-// 日志类型
-export type {
-  LogEntry,
-  Logger,
-  LogLevel
-} from './types/logger'
-
-// 中间件类型
-export type {
-  Middleware,
-  MiddlewareContext,
-  MiddlewareNext,
-  MiddlewareRequest,
-  MiddlewareResponse
-} from './types/middleware'
-// 插件系统类型
-export type {
-  Plugin,
-  PluginContext,
-  PluginInfo,
-  PluginMetadata,
-  PluginStatus
-} from './types/plugin'
-
-// 常用工具函数
-export {
-  debounce,
-  deepClone,
-  generateId,
-  throttle,
-  // 新增 - LRU缓存
-  createLRUCache,
-  LRUCache,
-  type LRUCacheOptions
-} from './utils/index'
-
-// 智能缓存策略（新增）
-export {
-  SmartCacheStrategy,
-  createSmartCacheStrategy,
-  type SmartCacheConfig
-} from './cache/smart-cache'
-
-// ==================== 事件高级功能（新增） ====================
-export {
-  EventMediator,
-  createEventMediator
-} from './events/event-mediator'
-
-export {
-  EventReplay,
-  createEventReplay,
-  type RecordedEvent,
-  type ReplayOptions
-} from './events/event-replay'
-
-export {
-  EventPersistence,
-  createEventPersistence,
-  type PersistenceConfig
-} from './events/event-persistence'
-
-export {
-  EventDebugger,
-  createEventDebugger,
-  type EventTrace,
-  type EventDebuggerConfig
-} from './events/event-debugger'
-
-// ==================== 状态时间旅行（新增） ====================
-export {
-  TimeTravelManager,
-  createTimeTravelManager,
-  type StateSnapshot,
-  type TimeTravelConfig
-} from './state/time-travel'
-
-// ==================== 性能预算管理（增强） ====================
-export {
-  PerformanceBudgetManager,
-  createPerformanceBudgetManager,
-  type PerformanceBudget,
-  type PerformanceMetric,
-  type DegradationConfig
-} from './performance/performance-budget'
-
-// ==================== 实用工具导出 ====================
-// Vue组合式 API
-export {
-  useCache,
-  useConfig,
-  useEngine,
-  useErrorHandler,
-  useEvents,
-  useLogger,
-  useNotification,
-  usePerformance,
-  usePlugins
-} from './vue/composables'
-
-// ==================== 依赖注入容器（新增） ====================
-export {
-  DIContainer,
-  createDIContainer,
-  getGlobalContainer,
-  setGlobalContainer,
-  Injectable,
-  Inject,
-  type ServiceLifetime
-} from './core/di-container'
-
-// ==================== 增强日志系统（新增） ====================
-export {
-  AdvancedLogger,
-  createAdvancedLogger,
-  ConsoleTransport,
-  RemoteTransport,
-  JSONFormatter,
-  PrettyFormatter,
-  CompactFormatter,
-  type LogEntry as AdvancedLogEntry,
-  type LogFormatter,
-  type LogTransport
-} from './logger/advanced-logger'
-
-// ==================== 错误边界（新增） ====================
-export {
-  createErrorBoundary,
-  ErrorRecoveryManager,
-  createErrorRecoveryManager,
-  DegradationHandler,
-  createDegradationHandler,
-  type ErrorInfo,
-  type RecoveryStrategy,
-  type ErrorBoundaryConfig
-} from './errors/error-boundary'
-
-// ==================== 数据处理工具（新增） ====================
-export {
-  DataValidator,
-  createValidator,
-  DataTransformer,
-  createTransformer,
-  DataNormalizer,
-  createNormalizer,
-  DataCompressor,
-  createCompressor
-} from './utils/data-processing'
-
-// ==================== 异步工具（新增） ====================
-export {
-  PromiseQueue,
-  createPromiseQueue,
-  ParallelExecutor,
-  createParallelExecutor,
-  executeSerial,
-  withTimeout,
-  CancellationToken,
-  createCancellationToken,
-  cancellablePromise,
-  retryWithBackoff,
-  parallelLimit,
-  waitUntil,
-  debouncePromise,
-  createBatchExecutor,
-  onceAsync,
-  withRetry,
-  allSettledSafe,
-  poll
-} from './utils/async-helpers'
-
-// ==================== 安全工具（新增） ====================
-export {
-  SimpleEncryption,
-  createSimpleEncryption,
-  HashUtils,
-  createHashUtils,
-  TokenManager,
-  createTokenManager,
-  PermissionValidator,
-  createPermissionValidator,
-  generateRandomString,
-  generateUUID,
-  secureRandom,
-  base64Encode,
-  base64Decode,
-  checkPasswordStrength,
-  secureCompare
-} from './utils/security-helpers'
-
-// ==================== 增强开发者工具（新增） ====================
-export {
-  PerformanceFlamegraph,
-  createFlamegraph,
-  FlamegraphProfile,
-  type StackFrame,
-  type FlamegraphData
-} from './devtools/performance-flamegraph'
-
-export {
-  MemoryTimeline,
-  createMemoryTimeline,
-  type MemorySnapshot,
-  type MemoryTrend
-} from './devtools/memory-timeline'
-
-export {
-  EventFlowVisualizer,
-  createEventFlowVisualizer,
-  type EventFlowNode,
-  type EventFlowEdge,
-  type EventFlowGraph
-} from './devtools/event-flow-visualizer'
+// ==================== Angular 包导出（可选） ====================
+// 如果需要 Angular 集成，取消注释以下行
+// export * from '@ldesign/engine-angular'
 
 // ==================== 版本信息 ====================
-export const version = '1.0.0'
+export const version = '0.3.0'
+

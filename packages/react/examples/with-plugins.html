@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>React Engine - With Plugins Example</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .plugin-card {
+      background: #f9f9f9;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 4px;
+      border-left: 4px solid #61dafb;
+    }
+
+    button {
+      background: #61dafb;
+      color: #282c34;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 10px;
+      font-weight: bold;
+    }
+
+    button:hover {
+      background: #4fa8c5;
+    }
+
+    .log {
+      background: #282c34;
+      color: #ffffff;
+      padding: 15px;
+      border-radius: 4px;
+      max-height: 300px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app"></div>
+
+  <script type="module">
+    import React, { useState, useEffect } from 'react'
+    import { createRoot } from 'react-dom/client'
+    import { createEngineApp } from '@ldesign/engine-react'
+    import { useEngine, useEvents } from '@ldesign/engine-react/hooks'
+
+    // 日志插件
+    const loggerPlugin = {
+      name: 'logger-plugin',
+      version: '1.0.0',
+      install({ logger, events }) {
+        logger.info('[LoggerPlugin] 插件已安装')
+
+        // 拦截所有事件
+        const originalEmit = events.emit.bind(events)
+        events.emit = async function (eventName, data) {
+          logger.debug(`[Event] ${eventName}`, data)
+          return originalEmit(eventName, data)
+        }
+      }
+    }
+
+    // 分析插件
+    const analyticsPlugin = {
+      name: 'analytics-plugin',
+      version: '1.0.0',
+      dependencies: ['logger-plugin'],
+      install({ engine, logger, events }) {
+        logger.info('[AnalyticsPlugin] 插件已安装')
+
+        const analytics = {
+          actions: [],
+          trackAction(action) {
+            this.actions.push({ action, timestamp: Date.now() })
+            logger.info(`[Analytics] 记录操作:`, action)
+          },
+          getStats() {
+            return {
+              totalActions: this.actions.length,
+              recent: this.actions.slice(-5)
+            }
+          }
+        }
+
+        engine.analytics = analytics
+        events.on('user:action', (data) => analytics.trackAction(data))
+      }
+    }
+
+    // 应用组件
+    function App() {
+      const engine = useEngine()
+      const events = useEvents()
+
+      const [logs, setLogs] = useState([])
+      const [pluginStats, setPluginStats] = useState(engine.plugins.getStats())
+
+      const addLog = (message, level = 'info') => {
+        setLogs(prev => [...prev, {
+          time: new Date().toLocaleTimeString(),
+          message,
+          level
+        }])
+      }
+
+      useEffect(() => {
+        addLog('应用已启动', 'success')
+        addLog(`已加载 ${pluginStats.installed} 个插件`, 'info')
+
+        // 监听用户操作事件
+        const unsubscribe = events.on('user:action', (data) => {
+          addLog(`用户操作: ${data.name}`, 'info')
+        })
+
+        return () => unsubscribe()
+      }, [])
+
+      const trackAction = (actionName) => {
+        events.emit('user:action', { name: actionName })
+        addLog(`触发操作: ${actionName}`, 'success')
+      }
+
+      const viewAnalytics = () => {
+        if (engine.analytics) {
+          const stats = engine.analytics.getStats()
+          addLog(`分析数据: ${JSON.stringify(stats)}`, 'info')
+        }
+      }
+
+      return (
+        <div className="container">
+          <h1>⚛️ React Engine - 插件系统示例</h1>
+
+          <div className="plugin-card">
+            <h3>已安装插件</h3>
+            <ul>
+              {pluginStats.loaded.map(name => (
+                <li key={name}>✅ {name}</li>
+              ))}
+            </ul>
+            <p>总计: {pluginStats.total} 个插件</p>
+          </div>
+
+          <h3>操作面板</h3>
+          <div style={{ margin: '20px 0' }}>
+            <button onClick={() => trackAction('点击按钮')}>记录操作</button>
+            <button onClick={viewAnalytics}>查看统计</button>
+          </div>
+
+          <h3>日志</h3>
+          <div className="log">
+            {logs.map((log, index) => (
+              <div key={index}>
+                <span style={{ color: '#61dafb' }}>[{log.time}]</span>
+                <span style={{
+                  color: log.level === 'success' ? '#10b981' :
+                    log.level === 'error' ? '#ef4444' : '#ffffff'
+                }}>
+                  {' '}{log.message}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )
+    }
+
+    // 创建应用
+    const engine = await createEngineApp({
+      rootComponent: App,
+      mountElement: '#app',
+      config: {
+        name: 'React Plugin Demo',
+        debug: true
+      },
+      plugins: [
+        loggerPlugin,
+        analyticsPlugin
+      ],
+      onReady: (engine) => {
+        console.log('✅ Engine ready!', engine.getStatus())
+      }
+    })
+
+    window.engine = engine
+    console.log('💡 提示: 使用 window.engine 访问引擎')
+  </script>
+</body>
+
+</html>

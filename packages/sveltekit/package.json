@@ -1,0 +1,38 @@
+{
+  "name": "@ldesign/engine-sveltekit",
+  "version": "0.1.0",
+  "description": "SvelteKit adapter for LDesign Engine",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "pnpm run clean && tsup",
+    "clean": "rimraf dist",
+    "dev": "tsup --watch"
+  },
+  "keywords": ["ldesign", "engine", "sveltekit", "adapter"],
+  "license": "MIT",
+  "peerDependencies": {
+    "@sveltejs/kit": "^2.0.0",
+    "svelte": "^4.0.0 || ^5.0.0",
+    "@ldesign/engine-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@sveltejs/kit": "^2.9.1",
+    "svelte": "^5.2.9",
+    "@ldesign/engine-core": "workspace:*",
+    "rimraf": "^5.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0"
+  }
+}
+

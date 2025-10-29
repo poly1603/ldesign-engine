@@ -1,0 +1,38 @@
+{
+  "name": "@ldesign/engine-remix",
+  "version": "0.1.0",
+  "description": "Remix adapter for LDesign Engine",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "pnpm run clean && tsup",
+    "clean": "rimraf dist",
+    "dev": "tsup --watch"
+  },
+  "keywords": ["ldesign", "engine", "remix", "adapter"],
+  "license": "MIT",
+  "peerDependencies": {
+    "@remix-run/react": "^2.0.0",
+    "react": "^18.0.0",
+    "@ldesign/engine-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@remix-run/react": "^2.15.2",
+    "react": "^18.3.1",
+    "@ldesign/engine-core": "workspace:*",
+    "rimraf": "^5.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0"
+  }
+}
+
