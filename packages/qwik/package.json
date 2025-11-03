@@ -1,6 +1,6 @@
 {
   "name": "@ldesign/engine-qwik",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Qwik adapter for LDesign Engine",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -25,12 +25,13 @@
   },
   "files": [
     "dist",
+    "es",
+    "lib",
     "README.md"
   ],
   "scripts": {
-    "build": "pnpm run clean && pnpm run build:lib",
-    "build:lib": "tsup",
-    "clean": "rimraf dist",
+    "build": "tsup",
+    "clean": "rimraf dist es lib",
     "dev": "tsup --watch",
     "type-check": "tsc --noEmit",
     "test": "vitest"

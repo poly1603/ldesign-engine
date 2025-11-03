@@ -1,36 +1,69 @@
 {
   "name": "@ldesign/engine-astro",
   "version": "0.1.0",
-  "description": "Astro adapter for LDesign Engine",
+  "description": "Astro adapter for @ldesign/engine-core",
+  "keywords": [
+    "astro",
+    "engine",
+    "plugin",
+    "middleware",
+    "typescript"
+  ],
+  "author": "ldesign",
+  "license": "MIT",
   "type": "module",
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "sideEffects": false,
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "types": "./es/index.d.ts",
+      "import": "./es/index.js",
+      "require": "./lib/index.cjs"
+    },
+    "./adapter": {
+      "types": "./es/adapter/index.d.ts",
+      "import": "./es/adapter/index.js",
+      "require": "./lib/adapter/index.cjs"
+    },
+    "./adapter/*": {
+      "types": "./es/adapter/*.d.ts",
+      "import": "./es/adapter/*.js",
+      "require": "./lib/adapter/*.cjs"
     }
   },
-  "files": ["dist"],
+  "main": "./lib/index.cjs",
+  "module": "./es/index.js",
+  "types": "./es/index.d.ts",
+  "unpkg": "./dist/index.min.js",
+  "jsdelivr": "./dist/index.min.js",
+  "files": [
+    "README.md",
+    "LICENSE",
+    "package.json",
+    "es",
+    "lib",
+    "dist"
+  ],
   "scripts": {
-    "build": "pnpm run clean && tsup",
-    "clean": "rimraf dist",
-    "dev": "tsup --watch"
+    "build": "ldesign-builder build -f esm,cjs,umd,dts",
+    "dev": "ldesign-builder build -f esm,cjs,umd,dts --watch",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "lint": "eslint . --fix",
+    "type-check": "tsc --noEmit"
   },
-  "keywords": ["ldesign", "engine", "astro", "adapter"],
-  "license": "MIT",
+  "dependencies": {
+    "@ldesign/engine-core": "workspace:*"
+  },
   "peerDependencies": {
-    "astro": "^4.0.0",
+    "astro": "^4.0.0 || ^5.0.0",
     "@ldesign/engine-core": "workspace:*"
   },
   "devDependencies": {
-    "astro": "^5.0.5",
-    "@ldesign/engine-core": "workspace:*",
-    "rimraf": "^5.0.0",
-    "tsup": "^8.0.0",
-    "typescript": "^5.0.0"
+    "@ldesign/builder": "workspace:*",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.3",
+    "vitest": "^3.2.4",
+    "astro": "^5.0.0",
+    "eslint": "^9.18.0"
   }
 }
-

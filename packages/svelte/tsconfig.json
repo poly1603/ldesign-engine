@@ -16,7 +16,6 @@
     "sourceMap": true,
     "outDir": "./es",
     "rootDir": "./src",
-    "composite": true,
     "incremental": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,

@@ -1,30 +1,7 @@
 {
   "name": "@ldesign/engine-lit",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Lit adapter for LDesign Engine",
-  "type": "module",
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
-    }
-  },
-  "files": [
-    "dist",
-    "README.md"
-  ],
-  "scripts": {
-    "build": "pnpm run clean && pnpm run build:lib",
-    "build:lib": "tsup",
-    "clean": "rimraf dist",
-    "dev": "tsup --watch",
-    "type-check": "tsc --noEmit",
-    "test": "vitest"
-  },
   "keywords": [
     "ldesign",
     "engine",
@@ -34,6 +11,58 @@
   ],
   "author": "LDesign Team",
   "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./es/index.d.ts",
+      "import": "./es/index.js",
+      "require": "./lib/index.cjs"
+    },
+    "./adapter/*": {
+      "types": "./es/adapter/*.d.ts",
+      "import": "./es/adapter/*.js",
+      "require": "./lib/adapter/*.cjs"
+    },
+    "./decorators/*": {
+      "types": "./es/decorators/*.d.ts",
+      "import": "./es/decorators/*.js",
+      "require": "./lib/decorators/*.cjs"
+    },
+    "./types": {
+      "types": "./es/types/index.d.ts",
+      "import": "./es/types/index.js",
+      "require": "./lib/types/index.cjs"
+    },
+    "./types/*": {
+      "types": "./es/types/*.d.ts",
+      "import": "./es/types/*.js",
+      "require": "./lib/types/*.cjs"
+    },
+    "./__tests__/*": {
+      "types": "./es/__tests__/*.d.ts",
+      "import": "./es/__tests__/*.js",
+      "require": "./lib/__tests__/*.cjs"
+    }
+  },
+  "main": "./lib/index.cjs",
+  "module": "./es/index.js",
+  "types": "./es/index.d.ts",
+  "unpkg": "./dist/index.min.js",
+  "jsdelivr": "./dist/index.min.js",
+  "files": [
+    "README.md",
+    "LICENSE",
+    "package.json",
+    "es",
+    "lib"
+  ],
+  "scripts": {
+    "build": "ldesign-builder build -f esm,cjs,umd,dts",
+    "clean": "rimraf dist es lib",
+    "dev": "ldesign-builder build -f esm,cjs,umd,dts --watch",
+    "type-check": "tsc --noEmit",
+    "test": "vitest"
+  },
   "peerDependencies": {
     "lit": "^3.0.0",
     "@ldesign/engine-core": "workspace:*"
@@ -48,4 +77,3 @@
     "vitest": "^3.0.0"
   }
 }
-

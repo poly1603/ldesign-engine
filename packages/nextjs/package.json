@@ -1,49 +1,62 @@
 {
   "name": "@ldesign/engine-nextjs",
   "version": "0.1.0",
-  "description": "Next.js adapter for LDesign Engine",
+  "description": "Next.js adapter for @ldesign/engine-core",
+  "keywords": [
+    "nextjs",
+    "next",
+    "react",
+    "engine",
+    "plugin",
+    "middleware",
+    "typescript"
+  ],
+  "author": "ldesign",
+  "license": "MIT",
   "type": "module",
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "sideEffects": false,
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
-    },
-    "./server": {
-      "types": "./dist/server/index.d.ts",
-      "import": "./dist/server/index.js",
-      "require": "./dist/server/index.cjs"
+      "types": "./es/index.d.ts",
+      "import": "./es/index.js",
+      "require": "./lib/index.cjs"
     }
   },
-  "files": ["dist"],
+  "main": "./lib/index.cjs",
+  "module": "./es/index.js",
+  "types": "./es/index.d.ts",
+  "files": [
+    "README.md",
+    "LICENSE",
+    "package.json",
+    "es",
+    "lib",
+    "dist"
+  ],
   "scripts": {
-    "build": "pnpm run clean && tsup",
-    "clean": "rimraf dist",
-    "dev": "tsup --watch",
+    "build": "ldesign-builder build -f esm,cjs,umd,dts",
+    "dev": "ldesign-builder build -f esm,cjs,umd,dts --watch",
     "test": "vitest",
-    "test:run": "vitest run"
+    "lint": "eslint . --fix",
+    "type-check": "tsc --noEmit"
   },
-  "keywords": ["ldesign", "engine", "nextjs", "adapter", "ssr"],
-  "license": "MIT",
+  "dependencies": {
+    "@ldesign/engine-core": "workspace:*",
+    "@ldesign/engine-react": "workspace:*"
+  },
   "peerDependencies": {
     "next": "^14.0.0 || ^15.0.0",
-    "react": "^18.0.0 || ^19.0.0",
+    "react": "^18.0.0",
     "@ldesign/engine-core": "workspace:*"
   },
   "devDependencies": {
-    "next": "^15.1.4",
-    "react": "^19.0.0",
-    "@ldesign/engine-core": "workspace:*",
-    "@types/node": "^20.0.0",
-    "@types/react": "^19.0.0",
-    "rimraf": "^5.0.0",
-    "tsup": "^8.0.0",
-    "typescript": "^5.0.0",
-    "vitest": "^3.0.0",
-    "jsdom": "^25.0.0"
+    "@ldesign/builder": "workspace:*",
+    "@types/node": "^22.0.0",
+    "@types/react": "^18.2.0",
+    "typescript": "^5.7.3",
+    "vitest": "^3.2.4",
+    "next": "^15.0.0",
+    "react": "^18.2.0",
+    "eslint": "^9.18.0"
   }
 }
-

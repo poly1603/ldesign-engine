@@ -22,6 +22,26 @@
       "import": "./es/index.js",
       "require": "./lib/index.cjs"
     },
+    "./adapter": {
+      "types": "./es/adapter/index.d.ts",
+      "import": "./es/adapter/index.js",
+      "require": "./lib/adapter/index.cjs"
+    },
+    "./adapter/*": {
+      "types": "./es/adapter/*.d.ts",
+      "import": "./es/adapter/*.js",
+      "require": "./lib/adapter/*.cjs"
+    },
+    "./components": {
+      "types": "./es/components/index.d.ts",
+      "import": "./es/components/index.js",
+      "require": "./lib/components/index.cjs"
+    },
+    "./components/*": {
+      "types": "./es/components/*.d.ts",
+      "import": "./es/components/*.js",
+      "require": "./lib/components/*.cjs"
+    },
     "./hooks": {
       "types": "./es/hooks/index.d.ts",
       "import": "./es/hooks/index.js",
@@ -32,15 +52,22 @@
       "import": "./es/hooks/*.js",
       "require": "./lib/hooks/*.cjs"
     },
-    "./adapter": {
-      "types": "./es/adapter/index.d.ts",
-      "import": "./es/adapter/index.js",
-      "require": "./lib/adapter/index.cjs"
+    "./types": {
+      "types": "./es/types/index.d.ts",
+      "import": "./es/types/index.js",
+      "require": "./lib/types/index.cjs"
+    },
+    "./types/*": {
+      "types": "./es/types/*.d.ts",
+      "import": "./es/types/*.js",
+      "require": "./lib/types/*.cjs"
     }
   },
   "main": "./lib/index.cjs",
   "module": "./es/index.js",
   "types": "./es/index.d.ts",
+  "unpkg": "./dist/index.min.js",
+  "jsdelivr": "./dist/index.min.js",
   "files": [
     "README.md",
     "LICENSE",
@@ -49,14 +76,15 @@
     "lib"
   ],
   "scripts": {
-    "build": "ldesign-builder build -f esm,cjs,dts",
-    "dev": "ldesign-builder build -f esm,cjs,dts --watch",
+    "build": "ldesign-builder build -f esm,cjs,umd,dts",
+    "dev": "ldesign-builder build -f esm,cjs,umd,dts --watch",
     "test": "vitest",
     "test:run": "vitest run",
     "lint": "eslint . --fix",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@ldesign/core": "workspace:*",
     "@ldesign/engine-core": "workspace:*"
   },
   "peerDependencies": {
@@ -72,4 +100,3 @@
     "eslint": "^9.18.0"
   }
 }
-

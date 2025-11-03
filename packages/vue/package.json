@@ -19,6 +19,16 @@
       "import": "./es/index.js",
       "require": "./lib/index.cjs"
     },
+    "./adapter": {
+      "types": "./es/adapter/index.d.ts",
+      "import": "./es/adapter/index.js",
+      "require": "./lib/adapter/index.cjs"
+    },
+    "./adapter/*": {
+      "types": "./es/adapter/*.d.ts",
+      "import": "./es/adapter/*.js",
+      "require": "./lib/adapter/*.cjs"
+    },
     "./composables": {
       "types": "./es/composables/index.d.ts",
       "import": "./es/composables/index.js",
@@ -50,18 +60,18 @@
     "LICENSE",
     "package.json",
     "es",
-    "lib",
-    "dist"
+    "lib"
   ],
   "scripts": {
-    "build": "ldesign-builder build -f esm,cjs,dts",
-    "dev": "ldesign-builder build -f esm,cjs,dts --watch",
+    "build": "ldesign-builder build -f esm,cjs,umd,dts",
+    "dev": "ldesign-builder build -f esm,cjs,umd,dts --watch",
     "test": "vitest",
     "test:run": "vitest run",
     "lint": "eslint . --fix",
     "type-check": "vue-tsc --noEmit"
   },
   "dependencies": {
+    "@ldesign/core": "workspace:*",
     "@ldesign/engine-core": "workspace:*"
   },
   "peerDependencies": {

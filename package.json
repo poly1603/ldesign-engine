@@ -32,11 +32,6 @@
       "import": "./es/core.js",
       "require": "./lib/core.cjs"
     },
-    "./vue": {
-      "types": "./es/vue.d.ts",
-      "import": "./es/vue.js",
-      "require": "./lib/vue.cjs"
-    },
     "./react": {
       "types": "./es/react.d.ts",
       "import": "./es/react.js",
@@ -252,9 +247,9 @@
     "dist"
   ],
   "scripts": {
-    "build": "pnpm -r --filter './packages/*' build",
+    "build": "ldesign-builder build -f esm,cjs,dts",
     "build:watch": "pnpm -r --filter './packages/*' build --watch",
-    "dev": "pnpm -r --filter './packages/*' build --watch",
+    "dev": "ldesign-builder build -f esm,cjs,dts --watch",
     "build:clean": "pnpm -r --filter './packages/*' run clean && pnpm build",
     "type-check": "vue-tsc --noEmit",
     "lint": "eslint . --fix",
@@ -301,7 +296,10 @@
     "@ldesign/engine-react": "workspace:*",
     "@ldesign/engine-angular": "workspace:*",
     "@ldesign/engine-solid": "workspace:*",
-    "@ldesign/engine-svelte": "workspace:*"
+    "@ldesign/engine-svelte": "workspace:*",
+    "@ldesign/engine-lit": "workspace:*",
+    "@ldesign/engine-preact": "workspace:*",
+    "@ldesign/engine-qwik": "workspace:*"
   },
   "peerDependencies": {
     "vue": "^3.5.18"

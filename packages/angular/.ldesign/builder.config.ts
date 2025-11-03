@@ -4,7 +4,7 @@ export default defineConfig({
   input: 'src/index.ts',
 
   output: {
-    format: ['esm', 'cjs'],
+    format: ['esm', 'cjs', 'umd'],
     esm: {
       dir: 'es',
       preserveStructure: true,
@@ -12,6 +12,12 @@ export default defineConfig({
     cjs: {
       dir: 'lib',
       preserveStructure: true,
+    },
+    umd: {
+      dir: 'dist',
+      name: 'LDesignEngineAngular',
+      fileName: 'index.js',
+      input: 'src/index.ts',
     },
   },
 
@@ -21,6 +27,12 @@ export default defineConfig({
   clean: true,
 
   external: ['@angular/core', '@ldesign/engine-core', 'rxjs', 'rxjs/operators', 'zone.js'],
+  globals: {
+    '@angular/core': 'ngCore',
+    '@ldesign/engine-core': 'LDesignEngineCore',
+    'rxjs': 'rxjs',
+    'zone.js': 'Zone'
+  },
 })
 
 

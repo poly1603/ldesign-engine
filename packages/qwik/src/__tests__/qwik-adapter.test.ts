@@ -75,9 +75,11 @@ describe('QwikAdapter', () => {
   })
 
   describe('SSR 支持', () => {
-    it('应该检测服务端环境', () => {
-      const isServer = typeof window === 'undefined'
-      expect(isServer).toBe(true) // 在 Node.js 测试环境中
+    it('应该提供环境检测方法', () => {
+      // 在 jsdom 环境中，window 存在
+      // 所以 isServer() 返回 false
+      expect(adapter.isServer()).toBe(false)
+      expect(adapter.isClient()).toBe(true)
     })
 
     it('应该支持状态序列化', async () => {

@@ -140,9 +140,6 @@ export class CoreEngineImpl implements CoreEngine {
     await this.lifecycle.execute('beforeDestroy', this)
 
     try {
-      // 销毁所有管理器
-      await this.destroyManagers()
-
       // 标记为已销毁
       this.destroyed = true
       this.initialized = false
@@ -152,6 +149,9 @@ export class CoreEngineImpl implements CoreEngine {
 
       // 执行 afterDestroy 生命周期
       await this.lifecycle.execute('afterDestroy', this)
+
+      // 销毁所有管理器（在所有生命周期钩子执行后）
+      await this.destroyManagers()
 
       this.logger.info('Engine destroyed successfully')
     } catch (error) {

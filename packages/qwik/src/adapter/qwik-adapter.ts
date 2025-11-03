@@ -128,6 +128,13 @@ export class QwikAdapter implements FrameworkAdapter {
   }
 
   /**
+   * 获取引擎实例
+   */
+  getEngine(): Engine | undefined {
+    return this.engine
+  }
+
+  /**
    * 获取状态管理器
    */
   getStateManager(): StateManager | undefined {

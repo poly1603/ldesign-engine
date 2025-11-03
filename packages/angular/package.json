@@ -12,25 +12,63 @@
   "author": "ldesign",
   "license": "MIT",
   "type": "module",
-  "main": "./lib/index.cjs",
-  "module": "./es/index.js",
-  "types": "./es/index.d.ts",
   "exports": {
     ".": {
       "types": "./es/index.d.ts",
       "import": "./es/index.js",
       "require": "./lib/index.cjs"
+    },
+    "./adapters": {
+      "types": "./es/adapters/index.d.ts",
+      "import": "./es/adapters/index.js",
+      "require": "./lib/adapters/index.cjs"
+    },
+    "./adapters/*": {
+      "types": "./es/adapters/*.d.ts",
+      "import": "./es/adapters/*.js",
+      "require": "./lib/adapters/*.cjs"
+    },
+    "./module": {
+      "types": "./es/module/index.d.ts",
+      "import": "./es/module/index.js",
+      "require": "./lib/module/index.cjs"
+    },
+    "./module/*": {
+      "types": "./es/module/*.d.ts",
+      "import": "./es/module/*.js",
+      "require": "./lib/module/*.cjs"
+    },
+    "./services": {
+      "types": "./es/services/index.d.ts",
+      "import": "./es/services/index.js",
+      "require": "./lib/services/index.cjs"
+    },
+    "./services/*": {
+      "types": "./es/services/*.d.ts",
+      "import": "./es/services/*.js",
+      "require": "./lib/services/*.cjs"
     }
   },
+  "main": "./lib/index.cjs",
+  "module": "./es/index.js",
+  "types": "./es/index.d.ts",
+  "unpkg": "./dist/index.min.js",
+  "jsdelivr": "./dist/index.min.js",
   "files": [
+    "README.md",
+    "LICENSE",
+    "package.json",
     "es",
-    "lib",
-    "README.md"
+    "lib"
   ],
   "scripts": {
-    "build": "ldesign-builder build -f esm,cjs,dts",
-    "dev": "ldesign-builder build -f esm,cjs,dts --watch",
+    "build": "ldesign-builder build -f esm,cjs,umd,dts",
+    "dev": "ldesign-builder build -f esm,cjs,umd,dts --watch",
     "clean": "rimraf es lib dist"
+  },
+  "dependencies": {
+    "@ldesign/core": "workspace:*",
+    "@ldesign/engine-core": "workspace:*"
   },
   "peerDependencies": {
     "@angular/core": "^17.0.0 || ^18.0.0",
@@ -41,11 +79,8 @@
   "devDependencies": {
     "@angular/core": "^18.0.0",
     "@ldesign/builder": "workspace:*",
-    "@ldesign/engine-core": "workspace:*",
     "rxjs": "^7.8.1",
     "typescript": "^5.3.3",
     "zone.js": "~0.14.0"
   }
 }
-
-

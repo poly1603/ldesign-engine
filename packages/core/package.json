@@ -1,6 +1,6 @@
 {
   "name": "@ldesign/engine-core",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Framework-agnostic core engine with plugin system, middleware, lifecycle, and more",
   "keywords": [
     "engine",
@@ -20,6 +20,16 @@
       "types": "./es/index.d.ts",
       "import": "./es/index.js",
       "require": "./lib/index.cjs"
+    },
+    "./adapters": {
+      "types": "./es/adapters/index.d.ts",
+      "import": "./es/adapters/index.js",
+      "require": "./lib/adapters/index.cjs"
+    },
+    "./adapters/*": {
+      "types": "./es/adapters/*.d.ts",
+      "import": "./es/adapters/*.js",
+      "require": "./lib/adapters/*.cjs"
     },
     "./cache": {
       "types": "./es/cache/index.d.ts",
@@ -50,6 +60,16 @@
       "types": "./es/di/*.d.ts",
       "import": "./es/di/*.js",
       "require": "./lib/di/*.cjs"
+    },
+    "./errors": {
+      "types": "./es/errors/index.d.ts",
+      "import": "./es/errors/index.js",
+      "require": "./lib/errors/index.cjs"
+    },
+    "./errors/*": {
+      "types": "./es/errors/*.d.ts",
+      "import": "./es/errors/*.js",
+      "require": "./lib/errors/*.cjs"
     },
     "./events": {
       "types": "./es/events/index.d.ts",
@@ -130,6 +150,11 @@
       "types": "./es/utils/*.d.ts",
       "import": "./es/utils/*.js",
       "require": "./lib/utils/*.cjs"
+    },
+    "./__tests__/*": {
+      "types": "./es/__tests__/*.d.ts",
+      "import": "./es/__tests__/*.js",
+      "require": "./lib/__tests__/*.cjs"
     }
   },
   "main": "./lib/index.cjs",
@@ -146,14 +171,17 @@
     "dist"
   ],
   "scripts": {
-    "build": "ldesign-builder build -f esm,cjs,dts",
-    "dev": "ldesign-builder build -f esm,cjs,dts --watch",
+    "build": "ldesign-builder build -f esm,cjs,umd,dts",
+    "dev": "ldesign-builder build -f esm,cjs,umd,dts --watch",
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
     "lint": "eslint . --fix",
     "lint:check": "eslint .",
     "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ldesign/core": "workspace:*"
   },
   "devDependencies": {
     "@ldesign/builder": "workspace:*",

@@ -10,7 +10,7 @@
 
 - **🎯 框架无关**: 核心功能完全框架无关,可在任何 JavaScript 环境运行
 - **🔌 统一插件系统**: 一次编写,所有框架通用的插件系统
-- **⚡️ 多框架支持**: 开箱即用支持 Vue 3, React, Angular, Svelte, Solid 等 15+ 框架
+- **⚡️ 多框架支持**: 开箱即用支持 React, Vue, Svelte, Angular, Solid.js 等 5+ 框架
 - **🎨 内置功能插件**: i18n、主题切换、全局尺寸控制等开箱即用
 - **📦 模块化设计**: 按需引入,Tree-shaking 友好
 - **🔒 类型安全**: 完整的 TypeScript 类型定义
@@ -83,23 +83,45 @@ const engine = await createEngineApp({
 
 ## 📚 文档
 
-完整文档请访问: [Documentation](./docs/index.md)
+### 快速开始
+- 🚀 [5分钟快速上手](./QUICK_START.md) - 所有框架快速入门
+- 🏛️ [架构设计](./ARCHITECTURE.md) - 系统架构详解
+- 🔄 [迁移指南](./MIGRATION.md) - 版本升级指南
 
-- [快速开始](./docs/guide/getting-started.md)
+### 框架指南
+- ⚖️ [框架对比](./FRAMEWORK_COMPARISON.md) - 所有框架详细对比
+- ⚛️ [React 示例](../../examples/react)
+- 🟢 [Vue 示例](../../examples/vue)
+- 🔴 [Svelte 示例](../../examples/svelte)
+- 🟠 [Solid.js 示例](../../examples/solid)
+
+### 进阶文档
 - [核心概念](./docs/guide/core-concepts.md)
 - [插件开发](./docs/guide/plugin-development.md)
 - [API 参考](./docs/api/README.md)
-- [架构设计](./ARCHITECTURE.md)
+- [项目进度](./PROGRESS.md)
 
 ## 🌐 支持的框架
 
-| 框架 | 包名 | 状态 |
-|------|------|------|
-| Vue 3 | `@ldesign/engine-vue` | ✅ |
-| React | `@ldesign/engine-react` | ✅ |
-| Angular | `@ldesign/engine-angular` | 🚧 |
-| Svelte | `@ldesign/engine-svelte` | 🚧 |
-| Solid | `@ldesign/engine-solid` | 🚧 |
+| 框架 | 包名 | 状态 | 示例 |
+|------|------|------|------|
+| React | `@ldesign/engine-react` | ✅ 95% | [React 示例](../../examples/react) |
+| Vue 3 | `@ldesign/engine-vue` | ✅ 95% | [Vue 示例](../../examples/vue) |
+| Svelte | `@ldesign/engine-svelte` | ✅ 95% | [Svelte 示例](../../examples/svelte) |
+| Solid.js | `@ldesign/engine-solid` | ✅ 95% | [Solid.js 示例](../../examples/solid) |
+| Angular | `@ldesign/engine-angular` | 🚧 85% | 待创建 |
+| Preact | `@ldesign/engine-preact` | 📅 计划中 | - |
+| Qwik | `@ldesign/engine-qwik` | 📅 计划中 | - |
+
+### 响应式系统对比
+
+- **React**: Hooks + Context
+- **Vue**: Composition API + provide/inject
+- **Svelte**: Stores (writable/readable)
+- **Solid.js**: Signals (细粒度响应式)
+- **Angular**: RxJS Observables + DI
+
+更多对比信息请查看 [框架对比文档](./FRAMEWORK_COMPARISON.md)
 
 ## 📝 许可证
 

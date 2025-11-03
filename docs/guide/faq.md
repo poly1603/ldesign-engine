@@ -4,10 +4,13 @@
 
 ## 基础问题
 
-### Q: LDesign Engine 与其他 Vue 框架有什么区别？
+### Q: LDesign Engine 是什么？
 
-**A:** LDesign Engine 是一个专注于提供完整应用基础设施的引擎，而不仅仅是一个组件库或状态管理库。它提
-供：
+**A:** LDesign Engine 是一个现代化、跨框架的应用引擎，提供统一的插件系统、状态管理、事件系统等核心功能。它支持 **Vue 3、React、Angular、Svelte、Solid.js** 等主流框架，让你可以用相同的 API 在不同框架中构建应用。
+
+### Q: LDesign Engine 与其他框架有什么区别？
+
+**A:** LDesign Engine 不仅仅是一个组件库或状态管理库，而是一个完整的应用基础设施。它提供：
 
 - 🔌 **插件化架构** - 模块化扩展能力
 - ⚡ **中间件系统** - 请求/响应处理管道
@@ -35,13 +38,18 @@ const engine = createEngine({
 app.use(engine)
 ```
 
-### Q: 支持哪些 Vue 版本？
+### Q: 支持哪些框架和版本？
 
-**A:** LDesign Engine 支持：
+**A:** LDesign Engine 支持以下框架：
 
-- ✅ Vue 3.3+ (推荐)
-- ✅ Vue 3.2+ (部分功能)
-- ❌ Vue 2.x (不支持)
+| 框架 | 支持版本 | 适配器包 | 状态 |
+|------|----------|----------|------|
+| **Vue 3** | 3.3+ (推荐), 3.2+ | `@ldesign/engine-vue` | ✅ 完整支持 |
+| **React** | 18+ | `@ldesign/engine-react` | ✅ 完整支持 |
+| **Angular** | 18+ | `@ldesign/engine-angular` | ✅ 完整支持 |
+| **Svelte** | 4+ | `@ldesign/engine-svelte` | ✅ 完整支持 |
+| **Solid.js** | 1.8+ | `@ldesign/engine-solid` | ✅ 完整支持 |
+| Vue 2.x | - | - | ❌ 不支持 |
 
 ### Q: 是否支持 TypeScript？
 
@@ -532,5 +540,310 @@ pnpm test
 - 💬 [GitHub Discussions](https://github.com/ldesign/engine/discussions)
 - 🏷️ [Stack Overflow](https://stackoverflow.com/questions/tagged/ldesign-engine)
 - 📧 [邮件支持](mailto:support@ldesign.com)
+
+## 跨框架使用
+
+### Q: 如何在 Vue 项目中使用？
+
+**A:** 安装 Vue 适配器：
+
+```bash
+pnpm add @ldesign/engine-core @ldesign/engine-vue
+```
+
+```typescript
+// main.ts
+import { createApp } from 'vue'
+import { 
+  createCoreEngine,
+  createI18nPlugin,
+  createThemePlugin 
+} from '@ldesign/engine-core'
+import { VueEnginePlugin } from '@ldesign/engine-vue'
+import App from './App.vue'
+
+const engine = createCoreEngine({
+  name: 'my-app',
+  plugins: [
+    createI18nPlugin({ /* ... */ }),
+    createThemePlugin({ /* ... */ })
+  ]
+})
+
+await engine.initialize()
+
+const app = createApp(App)
+app.use(VueEnginePlugin, { engine })
+app.mount('#app')
+```
+
+在组件中使用 Composables：
+
+```vue
+<script setup>
+import { useEngine, useI18n, useTheme } from '@ldesign/engine-vue'
+
+const engine = useEngine()
+const { t, locale, setLocale } = useI18n()
+const { theme, setTheme } = useTheme()
+</script>
+```
+
+### Q: 如何在 React 项目中使用？
+
+**A:** 安装 React 适配器：
+
+```bash
+pnpm add @ldesign/engine-core @ldesign/engine-react
+```
+
+```tsx
+// main.tsx
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import { 
+  createCoreEngine,
+  createI18nPlugin,
+  createThemePlugin 
+} from '@ldesign/engine-core'
+import { EngineProvider } from '@ldesign/engine-react'
+import App from './App'
+
+const engine = createCoreEngine({
+  name: 'my-app',
+  plugins: [
+    createI18nPlugin({ /* ... */ }),
+    createThemePlugin({ /* ... */ })
+  ]
+})
+
+await engine.initialize()
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <EngineProvider engine={engine}>
+      <App />
+    </EngineProvider>
+  </React.StrictMode>
+)
+```
+
+在组件中使用 Hooks：
+
+```tsx
+import { useEngine, useI18n, useTheme } from '@ldesign/engine-react'
+
+function MyComponent() {
+  const engine = useEngine()
+  const { t, locale, setLocale } = useI18n()
+  const { theme, setTheme } = useTheme()
+  
+  return <div>{t('hello')}</div>
+}
+```
+
+### Q: 如何在 Angular 项目中使用？
+
+**A:** 安装 Angular 适配器：
+
+```bash
+pnpm add @ldesign/engine-core @ldesign/engine-angular
+```
+
+```typescript
+// app.config.ts
+import { ApplicationConfig } from '@angular/core'
+import { 
+  createCoreEngine,
+  createI18nPlugin,
+  createThemePlugin 
+} from '@ldesign/engine-core'
+import { provideEngine } from '@ldesign/engine-angular'
+
+const engine = createCoreEngine({
+  name: 'my-app',
+  plugins: [
+    createI18nPlugin({ /* ... */ }),
+    createThemePlugin({ /* ... */ })
+  ]
+})
+
+await engine.initialize()
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideEngine(engine)
+  ]
+}
+```
+
+在组件中注入服务：
+
+```typescript
+import { Component, inject } from '@angular/core'
+import { EngineService, I18nService, ThemeService } from '@ldesign/engine-angular'
+
+@Component({
+  selector: 'app-root',
+  template: `<h1>{{ t('hello') }}</h1>`
+})
+export class AppComponent {
+  private engine = inject(EngineService)
+  private i18n = inject(I18nService)
+  private theme = inject(ThemeService)
+  
+  t = this.i18n.translate.bind(this.i18n)
+}
+```
+
+### Q: 如何在多个框架之间共享配置？
+
+**A:** 将公共配置抽离到单独的文件：
+
+```typescript
+// shared/engine-config.ts
+import { createI18nPlugin, createThemePlugin, createSizePlugin } from '@ldesign/engine-core'
+
+export const sharedPlugins = [
+  createI18nPlugin({
+    locale: 'en-US',
+    fallbackLocale: 'en-US',
+    messages: {
+      'en-US': {
+        hello: 'Hello',
+        welcome: 'Welcome'
+      },
+      'zh-CN': {
+        hello: '你好',
+        welcome: '欢迎'
+      }
+    }
+  }),
+  
+  createThemePlugin({
+    defaultTheme: 'light',
+    themes: {
+      light: { colors: { primary: '#1890ff' } },
+      dark: { colors: { primary: '#177ddc' } }
+    }
+  }),
+  
+  createSizePlugin({
+    defaultSize: 'medium'
+  })
+]
+
+export const createSharedEngine = (name: string) => {
+  return createCoreEngine({
+    name,
+    plugins: sharedPlugins
+  })
+}
+```
+
+然后在不同框架中导入：
+
+```typescript
+// Vue
+import { createSharedEngine } from '@/shared/engine-config'
+const engine = createSharedEngine('vue-app')
+
+// React
+import { createSharedEngine } from '@/shared/engine-config'
+const engine = createSharedEngine('react-app')
+```
+
+### Q: 可以在同一个项目中混用多个框架吗？
+
+**A:** 可以！Engine 支持微前端架构，你可以在不同的微应用中使用不同的框架，但共享同一个 Engine 实例。查看 [Micro-Frontend Guide](./micro-frontend.md) 了解更多。
+
+### Q: 如何从某个框架迁移到另一个框架？
+
+**A:** Engine 的设计让框架迁移变得更简单：
+
+1. **业务逻辑保持不变** - 所有核心功能和插件都是框架无关的
+2. **只需更换适配器** - 将 `@ldesign/engine-vue` 换成 `@ldesign/engine-react`
+3. **API 一致性** - Composables/Hooks/Services 提供相同的 API
+
+示例：
+
+```typescript
+// Vue
+const { t } = useI18n()
+
+// React  
+const { t } = useI18n()
+
+// Angular
+const i18n = inject(I18nService)
+const t = i18n.translate.bind(i18n)
+```
+
+## 架构和设计
+
+### Q: Engine 的架构是怎样的？
+
+**A:** Engine 采用三层架构：
+
+```
+╔══════════════════════════════════╗
+║  框架层 (Framework Layer)      ║
+║  Vue | React | Angular | ...     ║
+╠══════════════════════════════════╣
+║  适配器层 (Adapter Layer)      ║
+║  响应式集成 | 生命周期管理    ║
+╠══════════════════════════════════╣
+║  核心层 (Core Layer)            ║
+║  引擎 | 插件 | 事件 | 状态      ║
+╚══════════════════════════════════╝
+```
+
+- **核心层**: 完全框架无关，包含所有业务逻辑
+- **适配器层**: 桥接核心和具体框架
+- **框架层**: 提供框架特定的 API
+
+### Q: 为什么需要同时安装 `engine-core` 和框架适配器？
+
+**A:** 这是模块化设计的优势：
+
+1. **按需安装** - 只安装需要的框架适配器
+2. **更小的 Bundle** - Tree-shaking 友好
+3. **独立版本** - 核心和适配器可以独立升级
+4. **更好的维护性** - 清晰的依赖关系
+
+### Q: 插件系统是如何工作的？
+
+**A:** 插件是扩展 Engine 功能的标准方式：
+
+```typescript
+// 创建插件
+const myPlugin = {
+  name: 'my-plugin',
+  version: '1.0.0',
+  dependencies: ['other-plugin'], // 可选
+  
+  install(engine) {
+    // 注册功能
+    engine.state.set('plugin-data', {})
+    
+    // 监听事件
+    engine.events.on('app:ready', () => {
+      console.log('App is ready')
+    })
+    
+    // 扩展 engine
+    engine.myFeature = () => {
+      // 自定义功能
+    }
+  },
+  
+  uninstall(engine) {
+    // 清理资源
+  }
+}
+
+// 使用插件
+engine.use(myPlugin)
+```
 
 如果你的问题没有在这里找到答案，请查看 [故障排除指南](./troubleshooting.md) 或在社区寻求帮助。

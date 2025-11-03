@@ -4,7 +4,7 @@ export default defineConfig({
   input: 'src/index.ts',
 
   output: {
-    format: ['esm', 'cjs'],
+    format: ['esm', 'cjs', 'umd'],
     esm: {
       dir: 'es',
       preserveStructure: true,
@@ -12,6 +12,12 @@ export default defineConfig({
     cjs: {
       dir: 'lib',
       preserveStructure: true,
+    },
+    umd: {
+      dir: 'dist',
+      name: 'LDesignEngineCore',
+      fileName: 'index.js',
+      input: 'src/index.ts',
     },
   },
 
@@ -21,6 +27,7 @@ export default defineConfig({
   clean: true,
 
   external: [],
+  globals: {},
 })
 
 
