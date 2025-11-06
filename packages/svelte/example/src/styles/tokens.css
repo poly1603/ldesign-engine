@@ -1,0 +1,21 @@
+/* @import '/themes/color.css'; */
+/* @import '/themes/size.css'; */
+
+:root {
+  --demo-app-max-width: min(100%, var(--size-container-xl));
+  --demo-app-padding-x: var(--size-spacing-3xl);
+  --demo-app-padding-y: var(--size-spacing-3xl);
+  --demo-section-gap: var(--size-spacing-3xl);
+  --demo-card-padding: var(--size-spacing-2xl);
+  --demo-card-radius: var(--size-radius-xl);
+  --demo-control-gap: var(--size-spacing-lg);
+  --demo-grid-gap: var(--size-spacing-2xl);
+  --demo-feature-gradient-start: color-mix(in srgb, var(--color-primary-default) 15%, transparent);
+  --demo-feature-gradient-end: color-mix(in srgb, var(--color-secondary-400) 15%, transparent);
+  --demo-highlight-gradient-start: color-mix(in srgb, var(--color-primary-default) 90%, var(--color-text-inverse) 10%);
+  --demo-highlight-gradient-end: color-mix(in srgb, var(--color-secondary-400) 90%, var(--color-text-inverse) 10%);
+}
+
+
+
+

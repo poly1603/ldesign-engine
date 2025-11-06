@@ -3,114 +3,42 @@
  */
 
 /**
- * 生命周期阶段
+ * 生命周期钩子名称
  */
-export type LifecyclePhase =
+export type LifecycleHook =
   | 'beforeInit'
   | 'init'
   | 'afterInit'
   | 'beforeMount'
-  | 'mount'
-  | 'afterMount'
+  | 'mounted'
+  | 'beforeUpdate'
+  | 'updated'
   | 'beforeUnmount'
-  | 'unmount'
-  | 'afterUnmount'
+  | 'unmounted'
   | 'beforeDestroy'
-  | 'destroy'
-  | 'afterDestroy'
-  | 'error'
-  | 'custom'
+  | 'destroyed'
+  | string
 
 /**
- * 生命周期上下文
+ * 生命周期钩子处理函数
  */
-export interface LifecycleContext<T = unknown> {
-  readonly phase: LifecyclePhase
-  readonly timestamp: number
-  readonly engine: T
-  readonly data?: unknown
-  readonly error?: Error
-}
-
-/**
- * 生命周期钩子函数
- */
-export type LifecycleHook<T = unknown> = (
-  context: LifecycleContext<T>
-) => void | Promise<void>
-
-/**
- * 钩子信息
- */
-export interface HookInfo<T = unknown> {
-  readonly id: string
-  readonly phase: LifecyclePhase
-  readonly hook: LifecycleHook<T>
-  readonly priority: number
-  readonly once: boolean
-  readonly name?: string
-  readonly registeredAt: number
-}
-
-/**
- * 生命周期事件
- */
-export interface LifecycleEvent {
-  readonly phase: LifecyclePhase
-  readonly timestamp: number
-  readonly duration?: number
-  readonly success: boolean
-  readonly error?: Error
-  readonly hooksExecuted: number
-  readonly data?: unknown
-}
+export type LifecycleHandler = (...args: any[]) => void | Promise<void>
 
 /**
  * 生命周期管理器接口
  */
-export interface LifecycleManager<T = unknown> {
-  /** 注册钩子 */
-  on: (
-    phase: LifecyclePhase,
-    hook: LifecycleHook<T>,
-    priority?: number
-  ) => string
-  /** 注册一次性钩子 */
-  once: (
-    phase: LifecyclePhase,
-    hook: LifecycleHook<T>,
-    priority?: number
-  ) => string
-  /** 移除钩子 */
-  off: (hookId: string) => boolean
-  /** 移除所有钩子 */
-  offAll: (phase?: LifecyclePhase) => number
-
-  /** 钩子查询 */
-  getHooks: (phase: LifecyclePhase) => HookInfo<T>[]
-  getAllHooks: () => HookInfo<T>[]
-  hasHooks: (phase: LifecyclePhase) => boolean
-  getHookCount: (phase?: LifecyclePhase) => number
-
-  /** 生命周期执行 */
-  execute: (
-    phase: LifecyclePhase,
-    engine: T,
-    data?: unknown
-  ) => Promise<LifecycleEvent>
-
-  /** 生命周期状态 */
-  getCurrentPhase: () => LifecyclePhase | undefined
-  getLastEvent: () => LifecycleEvent | undefined
-  getHistory: () => LifecycleEvent[]
-
-  /** 错误处理 */
-  onError: (
-    callback: (error: Error, context: LifecycleContext<T>) => void
-  ) => () => void
-
-  /** 初始化和销毁 */
-  init?(): Promise<void>
-  destroy?(): Promise<void>
+export interface LifecycleManager {
+  /** 注册生命周期钩子 */
+  on: (hook: LifecycleHook, handler: LifecycleHandler) => void
+  /** 移除生命周期钩子 */
+  off: (hook: LifecycleHook, handler?: LifecycleHandler) => void
+  /** 触发生命周期钩子 */
+  trigger: (hook: LifecycleHook, ...args: any[]) => Promise<void>
+  /** 一次性钩子 */
+  once: (hook: LifecycleHook, handler: LifecycleHandler) => void
+  /** 清空所有钩子 */
+  clear: () => void
+  /** 获取钩子处理函数列表 */
+  getHandlers: (hook: LifecycleHook) => LifecycleHandler[]
 }
 

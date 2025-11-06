@@ -1,15 +1,14 @@
 {
   "name": "@ldesign/engine-core",
-  "version": "0.2.0",
-  "description": "Framework-agnostic core engine with plugin system, middleware, lifecycle, and more",
+  "version": "0.3.0",
+  "description": "Framework-agnostic core engine - Plugin system, middleware, lifecycle, and more",
   "keywords": [
     "engine",
+    "core",
     "plugin",
     "middleware",
     "framework-agnostic",
-    "typescript",
-    "lifecycle",
-    "events"
+    "typescript"
   ],
   "author": "ldesign",
   "license": "MIT",
@@ -21,65 +20,25 @@
       "import": "./es/index.js",
       "require": "./lib/index.cjs"
     },
-    "./adapters": {
-      "types": "./es/adapters/index.d.ts",
-      "import": "./es/adapters/index.js",
-      "require": "./lib/adapters/index.cjs"
+    "./engine": {
+      "types": "./es/engine/index.d.ts",
+      "import": "./es/engine/index.js",
+      "require": "./lib/engine/index.cjs"
     },
-    "./adapters/*": {
-      "types": "./es/adapters/*.d.ts",
-      "import": "./es/adapters/*.js",
-      "require": "./lib/adapters/*.cjs"
+    "./engine/*": {
+      "types": "./es/engine/*.d.ts",
+      "import": "./es/engine/*.js",
+      "require": "./lib/engine/*.cjs"
     },
-    "./cache": {
-      "types": "./es/cache/index.d.ts",
-      "import": "./es/cache/index.js",
-      "require": "./lib/cache/index.cjs"
+    "./event": {
+      "types": "./es/event/index.d.ts",
+      "import": "./es/event/index.js",
+      "require": "./lib/event/index.cjs"
     },
-    "./cache/*": {
-      "types": "./es/cache/*.d.ts",
-      "import": "./es/cache/*.js",
-      "require": "./lib/cache/*.cjs"
-    },
-    "./config": {
-      "types": "./es/config/index.d.ts",
-      "import": "./es/config/index.js",
-      "require": "./lib/config/index.cjs"
-    },
-    "./config/*": {
-      "types": "./es/config/*.d.ts",
-      "import": "./es/config/*.js",
-      "require": "./lib/config/*.cjs"
-    },
-    "./di": {
-      "types": "./es/di/index.d.ts",
-      "import": "./es/di/index.js",
-      "require": "./lib/di/index.cjs"
-    },
-    "./di/*": {
-      "types": "./es/di/*.d.ts",
-      "import": "./es/di/*.js",
-      "require": "./lib/di/*.cjs"
-    },
-    "./errors": {
-      "types": "./es/errors/index.d.ts",
-      "import": "./es/errors/index.js",
-      "require": "./lib/errors/index.cjs"
-    },
-    "./errors/*": {
-      "types": "./es/errors/*.d.ts",
-      "import": "./es/errors/*.js",
-      "require": "./lib/errors/*.cjs"
-    },
-    "./events": {
-      "types": "./es/events/index.d.ts",
-      "import": "./es/events/index.js",
-      "require": "./lib/events/index.cjs"
-    },
-    "./events/*": {
-      "types": "./es/events/*.d.ts",
-      "import": "./es/events/*.js",
-      "require": "./lib/events/*.cjs"
+    "./event/*": {
+      "types": "./es/event/*.d.ts",
+      "import": "./es/event/*.js",
+      "require": "./lib/event/*.cjs"
     },
     "./lifecycle": {
       "types": "./es/lifecycle/index.d.ts",
@@ -90,16 +49,6 @@
       "types": "./es/lifecycle/*.d.ts",
       "import": "./es/lifecycle/*.js",
       "require": "./lib/lifecycle/*.cjs"
-    },
-    "./logger": {
-      "types": "./es/logger/index.d.ts",
-      "import": "./es/logger/index.js",
-      "require": "./lib/logger/index.cjs"
-    },
-    "./logger/*": {
-      "types": "./es/logger/*.d.ts",
-      "import": "./es/logger/*.js",
-      "require": "./lib/logger/*.cjs"
     },
     "./middleware": {
       "types": "./es/middleware/index.d.ts",
@@ -141,16 +90,6 @@
       "import": "./es/types/*.js",
       "require": "./lib/types/*.cjs"
     },
-    "./utils": {
-      "types": "./es/utils/index.d.ts",
-      "import": "./es/utils/index.js",
-      "require": "./lib/utils/index.cjs"
-    },
-    "./utils/*": {
-      "types": "./es/utils/*.d.ts",
-      "import": "./es/utils/*.js",
-      "require": "./lib/utils/*.cjs"
-    },
     "./__tests__/*": {
       "types": "./es/__tests__/*.d.ts",
       "import": "./es/__tests__/*.js",
@@ -171,23 +110,15 @@
     "dist"
   ],
   "scripts": {
-    "build": "ldesign-builder build -f esm,cjs,umd,dts",
-    "dev": "ldesign-builder build -f esm,cjs,umd,dts --watch",
+    "build": "ldesign-builder build",
+    "dev": "ldesign-builder build --watch",
     "test": "vitest",
-    "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage",
-    "lint": "eslint . --fix",
-    "lint:check": "eslint .",
-    "type-check": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@ldesign/core": "workspace:*"
+    "test:run": "vitest run"
   },
   "devDependencies": {
     "@ldesign/builder": "workspace:*",
     "@types/node": "^22.0.0",
     "typescript": "^5.7.3",
-    "vitest": "^3.2.4",
-    "eslint": "^9.18.0"
+    "vitest": "^3.2.4"
   }
 }

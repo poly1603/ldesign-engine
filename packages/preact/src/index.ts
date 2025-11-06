@@ -1,21 +1,12 @@
 /**
- * @ldesign/engine-preact
- *
- * Preact adapter for @ldesign/engine-core
+ * Preact 框架适配器导出
  */
 
-// 引擎应用导出
-export * from './engine-app'
+export { PreactAdapter, createPreactAdapter } from './adapter'
+export { createEngineApp, createPreactEngineApp, unmountPreactEngineApp } from './engine-app'
+export type { PreactEngineApp, PreactEngineAppOptions } from './engine-app'
+export { useEngine } from './helpers'
 
-// 适配器导出
-export * from './adapter/preact-adapter'
-
-// Hooks 导出
-export * from './hooks/use-engine'
-
-// 类型导出
-export * from './types'
-
-// 版本
-export const version = '0.2.0'
+// 重新导出核心功能
+export * from '@ldesign/engine-core'
 

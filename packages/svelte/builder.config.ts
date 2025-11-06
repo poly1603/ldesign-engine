@@ -1,25 +1,17 @@
 import { defineConfig } from '@ldesign/builder'
 
 export default defineConfig({
-  entry: 'src/index.ts',
   output: {
-    formats: ['esm', 'cjs', 'dts'],
-    dir: {
-      esm: 'es',
-      cjs: 'lib',
+    esm: true,
+    cjs: true,
+    // UMD 格式不支持动态 import，暂时禁用
+    // 因为 Engine 需要动态加载 Router 包
+    umd: {
+      enabled: false,
+      name: 'LDesignEngineSvelte',
+      input: 'src/index.ts',
+      minify: true,
     },
   },
-  external: [
-    '@ldesign/engine-core',
-    'svelte',
-    'svelte/internal',
-    'svelte/store',
-    /^svelte\//,
-  ],
-  dts: {
-    enabled: true,
-  },
-  sourcemap: true,
-  minify: false,
 })
 

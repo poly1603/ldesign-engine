@@ -1,16 +1,17 @@
 {
   "name": "@ldesign/engine-solid",
-  "version": "0.2.0",
-  "description": "Solid.js adapter for @ldesign/engine-core",
+  "version": "0.3.0",
+  "description": "Solid.js adapter for LDesign Engine - Provides Solid-specific integration for the universal application engine",
   "keywords": [
     "solid",
     "solidjs",
     "engine",
+    "adapter",
     "plugin",
     "middleware",
-    "typescript",
+    "signals",
     "reactive",
-    "signals"
+    "typescript"
   ],
   "author": "ldesign",
   "license": "MIT",
@@ -21,46 +22,6 @@
       "types": "./es/index.d.ts",
       "import": "./es/index.js",
       "require": "./lib/index.cjs"
-    },
-    "./adapter": {
-      "types": "./es/adapter/index.d.ts",
-      "import": "./es/adapter/index.js",
-      "require": "./lib/adapter/index.cjs"
-    },
-    "./adapter/*": {
-      "types": "./es/adapter/*.d.ts",
-      "import": "./es/adapter/*.js",
-      "require": "./lib/adapter/*.cjs"
-    },
-    "./components": {
-      "types": "./es/components/index.d.ts",
-      "import": "./es/components/index.js",
-      "require": "./lib/components/index.cjs"
-    },
-    "./components/*": {
-      "types": "./es/components/*.d.ts",
-      "import": "./es/components/*.js",
-      "require": "./lib/components/*.cjs"
-    },
-    "./hooks": {
-      "types": "./es/hooks/index.d.ts",
-      "import": "./es/hooks/index.js",
-      "require": "./lib/hooks/index.cjs"
-    },
-    "./hooks/*": {
-      "types": "./es/hooks/*.d.ts",
-      "import": "./es/hooks/*.js",
-      "require": "./lib/hooks/*.cjs"
-    },
-    "./types": {
-      "types": "./es/types/index.d.ts",
-      "import": "./es/types/index.js",
-      "require": "./lib/types/index.cjs"
-    },
-    "./types/*": {
-      "types": "./es/types/*.d.ts",
-      "import": "./es/types/*.js",
-      "require": "./lib/types/*.cjs"
     }
   },
   "main": "./lib/index.cjs",
@@ -73,30 +34,35 @@
     "LICENSE",
     "package.json",
     "es",
-    "lib"
+    "lib",
+    "dist"
   ],
   "scripts": {
-    "build": "ldesign-builder build -f esm,cjs,umd,dts",
-    "dev": "ldesign-builder build -f esm,cjs,umd,dts --watch",
-    "test": "vitest",
-    "test:run": "vitest run",
-    "lint": "eslint . --fix",
+    "build": "ldesign-builder build",
+    "dev": "ldesign-builder build --watch",
+    "clean": "rimraf es lib dist",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@ldesign/core": "workspace:*",
     "@ldesign/engine-core": "workspace:*"
   },
   "peerDependencies": {
-    "solid-js": "^1.8.0",
-    "@ldesign/engine-core": "workspace:*"
+    "solid-js": "^1.8.0"
   },
   "devDependencies": {
     "@ldesign/builder": "workspace:*",
-    "@types/node": "^22.0.0",
-    "typescript": "^5.7.3",
-    "vitest": "^3.2.4",
-    "solid-js": "^1.8.0",
-    "eslint": "^9.18.0"
+    "@ldesign/router": "workspace:*",
+    "@ldesign/router-solid": "workspace:*",
+    "solid-js": "^1.9.3",
+    "typescript": "^5.7.3"
+  },
+  "optionalDependencies": {
+    "@ldesign/router": "workspace:*",
+    "@ldesign/router-solid": "workspace:*"
+  },
+  "peerDependenciesMeta": {
+    "solid-js": {
+      "optional": false
+    }
   }
 }

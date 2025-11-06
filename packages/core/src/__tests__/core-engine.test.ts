@@ -2,352 +2,332 @@
  * 核心引擎测试
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { createCoreEngine, CoreEngineImpl } from '../core-engine'
-import type { CoreEngine, CoreEngineConfig, Plugin } from '../types'
+import { describe, it, expect, beforeEach } from 'vitest'
+import { createCoreEngine } from '../engine'
+import { definePlugin } from '../plugin'
+import { defineMiddleware } from '../middleware'
 
 describe('CoreEngine', () => {
-  let engine: CoreEngine
+  let engine: ReturnType<typeof createCoreEngine>
 
   beforeEach(() => {
-    engine = createCoreEngine()
+    engine = createCoreEngine({
+      name: 'Test Engine',
+      debug: false,
+    })
   })
 
-  describe('创建引擎', () => {
+  describe('初始化', () => {
     it('应该成功创建引擎实例', () => {
-      expect(engine).toBeInstanceOf(CoreEngineImpl)
-      expect(engine.plugins).toBeDefined()
-      expect(engine.middleware).toBeDefined()
-      expect(engine.lifecycle).toBeDefined()
-      expect(engine.events).toBeDefined()
-      expect(engine.state).toBeDefined()
-      expect(engine.cache).toBeDefined()
-      expect(engine.logger).toBeDefined()
-      expect(engine.config).toBeDefined()
-      expect(engine.di).toBeDefined()
+      expect(engine).toBeDefined()
+      expect(engine.config.name).toBe('Test Engine')
     })
 
-    it('应该使用自定义配置创建引擎', () => {
-      const config: CoreEngineConfig = {
-        name: 'TestEngine',
-        debug: true,
-        logger: {
-          level: 'debug',
-          enabled: true,
-        },
-      }
-
-      const customEngine = createCoreEngine(config)
-      expect(customEngine).toBeInstanceOf(CoreEngineImpl)
-    })
-
-    it('应该创建默认配置的引擎', () => {
-      const defaultEngine = createCoreEngine()
-      expect(defaultEngine).toBeDefined()
-    })
-  })
-
-  describe('初始化引擎', () => {
     it('应该成功初始化引擎', async () => {
       await engine.init()
-      const status = engine.getStatus()
-      expect(status.initialized).toBe(true)
-      expect(status.destroyed).toBe(false)
+      expect(engine).toBeDefined()
     })
 
-    it('应该避免重复初始化', async () => {
-      await engine.init()
-      await engine.init() // 第二次初始化应该被忽略
-      const status = engine.getStatus()
-      expect(status.initialized).toBe(true)
-    })
+    it('应该触发初始化生命周期钩子', async () => {
+      const hooks: string[] = []
 
-    it('应该在初始化失败时抛出错误', async () => {
-      // 创建一个会导致初始化失败的引擎
-      const badEngine = createCoreEngine()
-      
-      // 模拟插件初始化失败
-      const badPlugin: Plugin = {
-        name: 'bad-plugin',
-        version: '1.0.0',
-        install: vi.fn().mockRejectedValue(new Error('Plugin init failed')),
-      }
-      
-      await badEngine.init()
-      await expect(badEngine.use(badPlugin)).rejects.toThrow()
-    })
-
-    it('应该执行生命周期钩子', async () => {
-      const beforeInitSpy = vi.fn()
-      const afterInitSpy = vi.fn()
-
-      engine.lifecycle.on('beforeInit', beforeInitSpy)
-      engine.lifecycle.on('afterInit', afterInitSpy)
+      engine.lifecycle.on('beforeInit', () => hooks.push('beforeInit'))
+      engine.lifecycle.on('init', () => hooks.push('init'))
+      engine.lifecycle.on('afterInit', () => hooks.push('afterInit'))
 
       await engine.init()
 
-      expect(beforeInitSpy).toHaveBeenCalled()
-      expect(beforeInitSpy.mock.calls[0][0]).toHaveProperty('engine', engine)
-      expect(afterInitSpy).toHaveBeenCalled()
-      expect(afterInitSpy.mock.calls[0][0]).toHaveProperty('engine', engine)
+      expect(hooks).toEqual(['beforeInit', 'init', 'afterInit'])
     })
   })
 
-  describe('销毁引擎', () => {
+  describe('插件系统', () => {
+    it('应该成功注册插件', async () => {
+      const plugin = definePlugin({
+        name: 'test-plugin',
+        version: '1.0.0',
+        install(context) {
+          context.engine.state.set('pluginInstalled', true)
+        },
+      })
+
+      await engine.init()
+      await engine.use(plugin)
+
+      expect(engine.plugins.has('test-plugin')).toBe(true)
+      expect(engine.state.get('pluginInstalled')).toBe(true)
+    })
+
+    it('应该支持插件依赖', async () => {
+      const basePlugin = definePlugin({
+        name: 'base-plugin',
+        install() {},
+      })
+
+      const dependentPlugin = definePlugin({
+        name: 'dependent-plugin',
+        dependencies: ['base-plugin'],
+        install() {},
+      })
+
+      await engine.init()
+      await engine.use(basePlugin)
+      await engine.use(dependentPlugin)
+
+      expect(engine.plugins.has('base-plugin')).toBe(true)
+      expect(engine.plugins.has('dependent-plugin')).toBe(true)
+    })
+
+    it('应该在缺少依赖时抛出错误', async () => {
+      const dependentPlugin = definePlugin({
+        name: 'dependent-plugin',
+        dependencies: ['missing-plugin'],
+        install() {},
+      })
+
+      await engine.init()
+
+      await expect(engine.use(dependentPlugin)).rejects.toThrow()
+    })
+  })
+
+  describe('中间件系统', () => {
+    it('应该成功注册中间件', () => {
+      const middleware = defineMiddleware({
+        name: 'test-middleware',
+        execute: async (context, next) => {
+          await next()
+        },
+      })
+
+      engine.middleware.use(middleware)
+
+      expect(engine.middleware.get('test-middleware')).toBeDefined()
+      expect(engine.middleware.size()).toBe(1)
+    })
+
+    it('应该按优先级执行中间件', async () => {
+      const order: number[] = []
+
+      const middleware1 = defineMiddleware({
+        name: 'middleware-1',
+        priority: 1,
+        execute: async (context, next) => {
+          order.push(1)
+          await next()
+        },
+      })
+
+      const middleware2 = defineMiddleware({
+        name: 'middleware-2',
+        priority: 2,
+        execute: async (context, next) => {
+          order.push(2)
+          await next()
+        },
+      })
+
+      engine.middleware.use(middleware1)
+      engine.middleware.use(middleware2)
+
+      await engine.middleware.execute({ data: {} })
+
+      expect(order).toEqual([2, 1]) // 优先级高的先执行
+    })
+
+    it('应该支持中间件错误处理', async () => {
+      let errorHandled = false
+
+      const middleware = defineMiddleware({
+        name: 'error-middleware',
+        execute: async () => {
+          throw new Error('Test error')
+        },
+        onError: async (error) => {
+          errorHandled = true
+          expect(error.message).toBe('Test error')
+        },
+      })
+
+      engine.middleware.use(middleware)
+
+      await engine.middleware.execute({ data: {} })
+
+      expect(errorHandled).toBe(true)
+    })
+  })
+
+  describe('生命周期系统', () => {
+    it('应该成功注册生命周期钩子', () => {
+      const handler = () => {}
+      engine.lifecycle.on('mounted', handler)
+
+      expect(engine.lifecycle.getHandlers('mounted')).toContain(handler)
+    })
+
+    it('应该成功触发生命周期钩子', async () => {
+      let called = false
+
+      engine.lifecycle.on('mounted', () => {
+        called = true
+      })
+
+      await engine.lifecycle.trigger('mounted')
+
+      expect(called).toBe(true)
+    })
+
+    it('应该支持一次性钩子', async () => {
+      let callCount = 0
+
+      engine.lifecycle.once('mounted', () => {
+        callCount++
+      })
+
+      await engine.lifecycle.trigger('mounted')
+      await engine.lifecycle.trigger('mounted')
+
+      expect(callCount).toBe(1)
+    })
+
+    it('应该支持移除钩子', async () => {
+      let called = false
+      const handler = () => {
+        called = true
+      }
+
+      engine.lifecycle.on('mounted', handler)
+      engine.lifecycle.off('mounted', handler)
+
+      await engine.lifecycle.trigger('mounted')
+
+      expect(called).toBe(false)
+    })
+  })
+
+  describe('事件系统', () => {
+    it('应该成功触发和监听事件', () => {
+      let received: any = null
+
+      engine.events.on('test-event', (payload) => {
+        received = payload
+      })
+
+      engine.events.emit('test-event', { data: 'hello' })
+
+      expect(received).toEqual({ data: 'hello' })
+    })
+
+    it('应该支持一次性监听', () => {
+      let callCount = 0
+
+      engine.events.once('test-event', () => {
+        callCount++
+      })
+
+      engine.events.emit('test-event')
+      engine.events.emit('test-event')
+
+      expect(callCount).toBe(1)
+    })
+
+    it('应该支持移除监听器', () => {
+      let called = false
+      const handler = () => {
+        called = true
+      }
+
+      engine.events.on('test-event', handler)
+      engine.events.off('test-event', handler)
+      engine.events.emit('test-event')
+
+      expect(called).toBe(false)
+    })
+
+    it('应该返回正确的监听器数量', () => {
+      engine.events.on('test-event', () => {})
+      engine.events.on('test-event', () => {})
+
+      expect(engine.events.listenerCount('test-event')).toBe(2)
+    })
+  })
+
+  describe('状态管理', () => {
+    it('应该成功设置和获取状态', () => {
+      engine.state.set('count', 0)
+      expect(engine.state.get('count')).toBe(0)
+    })
+
+    it('应该支持状态监听', () => {
+      let newValue: any = null
+      let oldValue: any = null
+
+      engine.state.watch('count', (nv, ov) => {
+        newValue = nv
+        oldValue = ov
+      })
+
+      engine.state.set('count', 0)
+      engine.state.set('count', 1)
+
+      expect(newValue).toBe(1)
+      expect(oldValue).toBe(0)
+    })
+
+    it('应该支持检查状态是否存在', () => {
+      engine.state.set('count', 0)
+      expect(engine.state.has('count')).toBe(true)
+      expect(engine.state.has('missing')).toBe(false)
+    })
+
+    it('应该支持删除状态', () => {
+      engine.state.set('count', 0)
+      expect(engine.state.delete('count')).toBe(true)
+      expect(engine.state.has('count')).toBe(false)
+    })
+
+    it('应该支持获取所有状态键', () => {
+      engine.state.set('key1', 'value1')
+      engine.state.set('key2', 'value2')
+
+      const keys = engine.state.keys()
+      expect(keys).toContain('key1')
+      expect(keys).toContain('key2')
+    })
+
+    it('应该支持获取所有状态', () => {
+      engine.state.set('key1', 'value1')
+      engine.state.set('key2', 'value2')
+
+      const all = engine.state.getAll()
+      expect(all).toEqual({
+        key1: 'value1',
+        key2: 'value2',
+      })
+    })
+  })
+
+  describe('销毁', () => {
     it('应该成功销毁引擎', async () => {
       await engine.init()
       await engine.destroy()
-      const status = engine.getStatus()
-      expect(status.destroyed).toBe(true)
-      expect(status.initialized).toBe(false)
+
+      expect(engine.plugins.getAll()).toHaveLength(0)
+      expect(engine.middleware.size()).toBe(0)
+      expect(engine.state.keys()).toHaveLength(0)
     })
 
-    it('应该避免重复销毁', async () => {
-      await engine.init()
-      await engine.destroy()
-      await engine.destroy() // 第二次销毁应该被忽略
-      const status = engine.getStatus()
-      expect(status.destroyed).toBe(true)
-    })
+    it('应该触发销毁生命周期钩子', async () => {
+      const hooks: string[] = []
 
-    it('应该执行销毁生命周期钩子', async () => {
-      const beforeDestroySpy = vi.fn()
-      const afterDestroySpy = vi.fn()
-
-      engine.lifecycle.on('beforeDestroy', beforeDestroySpy)
-      engine.lifecycle.on('afterDestroy', afterDestroySpy)
+      engine.lifecycle.on('beforeDestroy', () => hooks.push('beforeDestroy'))
+      engine.lifecycle.on('destroyed', () => hooks.push('destroyed'))
 
       await engine.init()
       await engine.destroy()
 
-      expect(beforeDestroySpy).toHaveBeenCalled()
-      expect(beforeDestroySpy.mock.calls[0][0]).toHaveProperty('engine', engine)
-      expect(afterDestroySpy).toHaveBeenCalled()
-      expect(afterDestroySpy.mock.calls[0][0]).toHaveProperty('engine', engine)
-    })
-
-    it('不应该初始化已销毁的引擎', async () => {
-      await engine.init()
-      await engine.destroy()
-      await expect(engine.init()).rejects.toThrow('Cannot initialize destroyed engine')
-    })
-  })
-
-  describe('插件管理', () => {
-    it('应该注册插件', async () => {
-      const plugin: Plugin = {
-        name: 'test-plugin',
-        version: '1.0.0',
-        install: vi.fn(),
-      }
-
-      await engine.use(plugin)
-      
-      const status = engine.getStatus()
-      expect(status.pluginCount).toBe(1)
-      expect(plugin.install).toHaveBeenCalled()
-    })
-
-    it('应该在未初始化时自动初始化', async () => {
-      const plugin: Plugin = {
-        name: 'auto-init-plugin',
-        version: '1.0.0',
-        install: vi.fn(),
-      }
-
-      await engine.use(plugin)
-      
-      const status = engine.getStatus()
-      expect(status.initialized).toBe(true)
-    })
-
-    it('应该注册多个插件', async () => {
-      const plugin1: Plugin = {
-        name: 'plugin-1',
-        version: '1.0.0',
-        install: vi.fn(),
-      }
-
-      const plugin2: Plugin = {
-        name: 'plugin-2',
-        version: '1.0.0',
-        install: vi.fn(),
-      }
-
-      await engine.use(plugin1)
-      await engine.use(plugin2)
-
-      const status = engine.getStatus()
-      expect(status.pluginCount).toBe(2)
-    })
-  })
-
-  describe('引擎状态', () => {
-    it('应该返回正确的初始状态', () => {
-      const status = engine.getStatus()
-      expect(status.initialized).toBe(false)
-      expect(status.destroyed).toBe(false)
-      expect(status.pluginCount).toBe(0)
-      expect(status.middlewareCount).toBe(0)
-    })
-
-    it('应该在初始化后更新状态', async () => {
-      await engine.init()
-      const status = engine.getStatus()
-      expect(status.initialized).toBe(true)
-      expect(status.destroyed).toBe(false)
-    })
-
-    it('应该在销毁后更新状态', async () => {
-      await engine.init()
-      await engine.destroy()
-      const status = engine.getStatus()
-      expect(status.initialized).toBe(false)
-      expect(status.destroyed).toBe(true)
-    })
-
-    it('应该跟踪插件数量', async () => {
-      await engine.init()
-      
-      const plugin: Plugin = {
-        name: 'count-plugin',
-        version: '1.0.0',
-        install: vi.fn(),
-      }
-
-      await engine.use(plugin)
-      
-      const status = engine.getStatus()
-      expect(status.pluginCount).toBe(1)
-    })
-  })
-
-  describe('集成测试', () => {
-    it('应该完整执行生命周期', async () => {
-      const lifecycle: string[] = []
-
-      engine.lifecycle.on('beforeInit', () => lifecycle.push('beforeInit'))
-      engine.lifecycle.on('init', () => lifecycle.push('init'))
-      engine.lifecycle.on('afterInit', () => lifecycle.push('afterInit'))
-      engine.lifecycle.on('beforeDestroy', () => lifecycle.push('beforeDestroy'))
-      engine.lifecycle.on('destroy', () => lifecycle.push('destroy'))
-      engine.lifecycle.on('afterDestroy', () => lifecycle.push('afterDestroy'))
-
-      await engine.init()
-      await engine.destroy()
-
-      expect(lifecycle).toEqual([
-        'beforeInit',
-        'init',
-        'afterInit',
-        'beforeDestroy',
-        'destroy',
-        'afterDestroy',
-      ])
-    })
-
-    it('应该与插件系统集成', async () => {
-      const installOrder: string[] = []
-
-      const plugin1: Plugin = {
-        name: 'plugin-1',
-        version: '1.0.0',
-        install: () => installOrder.push('plugin-1'),
-      }
-
-      const plugin2: Plugin = {
-        name: 'plugin-2',
-        version: '1.0.0',
-        install: () => installOrder.push('plugin-2'),
-      }
-
-      await engine.use(plugin1)
-      await engine.use(plugin2)
-
-      expect(installOrder).toEqual(['plugin-1', 'plugin-2'])
-    })
-
-    it('应该支持事件通信', async () => {
-      await engine.init()
-
-      const handler = vi.fn()
-      engine.events.on('test-event', handler)
-
-      engine.events.emit('test-event', { data: 'test' })
-
-      expect(handler).toHaveBeenCalledWith({ data: 'test' })
-    })
-
-    it('应该支持状态管理', async () => {
-      await engine.init()
-
-      engine.state.set('test-key', 'test-value')
-      expect(engine.state.get('test-key')).toBe('test-value')
-    })
-
-    it('应该支持缓存管理', async () => {
-      await engine.init()
-
-      engine.cache.set('cache-key', 'cache-value')
-      expect(engine.cache.get('cache-key')).toBe('cache-value')
-    })
-  })
-
-  describe('错误处理', () => {
-    it('应该处理初始化错误', async () => {
-      const errorEngine = createCoreEngine()
-      const errorHandler = vi.fn()
-
-      errorEngine.lifecycle.on('error', errorHandler)
-
-      // 模拟初始化过程中的错误
-      vi.spyOn(errorEngine.plugins, 'init').mockRejectedValue(new Error('Init error'))
-
-      await expect(errorEngine.init()).rejects.toThrow()
-      expect(errorHandler).toHaveBeenCalled()
-    })
-
-    it('应该优雅处理管理器销毁错误', async () => {
-      await engine.init()
-
-      // 模拟销毁过程中的错误（但不应该阻止其他管理器销毁）
-      vi.spyOn(engine.plugins, 'destroy').mockRejectedValue(new Error('Destroy error'))
-
-      await engine.destroy() // 不应该抛出错误
-      const status = engine.getStatus()
-      expect(status.destroyed).toBe(true)
-    })
-  })
-
-  describe('配置管理', () => {
-    it('应该使用自定义名称', () => {
-      const namedEngine = createCoreEngine({ name: 'CustomEngine' })
-      expect(namedEngine).toBeDefined()
-    })
-
-    it('应该启用调试模式', () => {
-      const debugEngine = createCoreEngine({ debug: true })
-      expect(debugEngine).toBeDefined()
-    })
-
-    it('应该配置日志器', () => {
-      const logEngine = createCoreEngine({
-        logger: {
-          level: 'debug',
-          enabled: true,
-        },
-      })
-      expect(logEngine.logger).toBeDefined()
-    })
-
-    it('应该配置缓存选项', () => {
-      const cacheEngine = createCoreEngine({
-        cache: {
-          maxSize: 100,
-          ttl: 5000,
-        },
-      })
-      expect(cacheEngine.cache).toBeDefined()
+      expect(hooks).toEqual(['beforeDestroy', 'destroyed'])
     })
   })
 })
+

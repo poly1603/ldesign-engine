@@ -1,0 +1,47 @@
+:root {
+  font-family: var(--size-font-family);
+  line-height: var(--size-line-normal);
+  font-weight: var(--size-font-weight-regular);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-page);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--color-bg-page);
+  color: inherit;
+}
+
+#app {
+  min-height: 100vh;
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+  transition: background-color var(--size-duration-fast) ease,
+    box-shadow var(--size-duration-fast) ease,
+    color var(--size-duration-fast) ease;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: var(--opacity-60);
+}
+
+input {
+  font-family: inherit;
+}
+
+code {
+  font-family: var(--size-font-family-mono);
+}
+

@@ -1,283 +1,195 @@
 # @ldesign/engine-angular
 
-Angular adapter for @ldesign/engine-core - Build powerful Angular applications with plugin system, middleware, and lifecycle management.
+Angular adapter for LDesign Engine - 为 Angular 提供的 LDesign 引擎适配器。
 
-## Features
-
-- 🔌 **Plugin System** - Powerful plugin architecture with dependency management
-- 🔄 **Middleware System** - Flexible middleware pipeline
-- ⏱️ **Lifecycle Management** - Complete lifecycle hooks
-- 📡 **Event System** - Robust event system with RxJS integration
-- 💾 **State Management** - Reactive state management with RxJS Observables
-- 💉 **Dependency Injection** - Full Angular DI support
-- 🎯 **Type Safe** - Complete TypeScript support
-
-## Installation
+## 📦 安装
 
 ```bash
-pnpm add @ldesign/engine-angular @ldesign/engine-core
+npm install @ldesign/engine-angular
+# or
+pnpm add @ldesign/engine-angular
+# or
+yarn add @ldesign/engine-angular
 ```
 
-## Basic Usage
+## 🚀 快速开始
 
-### 1. Import Module
-
-```typescript
-import { NgModule } from '@angular/core'
-import { BrowserModule } from '@angular/platform-browser'
-import { EngineModule } from '@ldesign/engine-angular'
-import { AppComponent } from './app.component'
-
-@NgModule({
-  declarations: [AppComponent],
-  imports: [
-    BrowserModule,
-    EngineModule.forRoot({
-      config: {
-        name: 'My Angular App',
-        version: '1.0.0',
-        debug: true
-      }
-    })
-  ],
-  bootstrap: [AppComponent]
-})
-export class AppModule {}
-```
-
-### 2. Use Services in Components
+### 基本使用
 
 ```typescript
 import { Component, OnInit } from '@angular/core'
-import { EngineService, EngineStateService, EngineEventsService } from '@ldesign/engine-angular'
-import { Observable } from 'rxjs'
+import { CoreEngine } from '@ldesign/engine-core'
+import { createAngularAdapter } from '@ldesign/engine-angular'
+
+@Component({
+  selector: 'app-root',
+  template: '<h1>Angular + LDesign Engine</h1>',
+})
+export class AppComponent implements OnInit {
+  private engine!: CoreEngine
+
+  ngOnInit() {
+    const adapter = createAngularAdapter()
+    this.engine = new CoreEngine({
+      name: 'Angular App',
+      adapter,
+    })
+    
+    this.engine.init()
+  }
+}
+```
+
+### 使用依赖注入
+
+```typescript
+import { Injectable } from '@angular/core'
+import { EngineService } from '@ldesign/engine-angular'
+
+@Injectable()
+export class MyService {
+  constructor(private engineService: EngineService) {}
+
+  doSomething() {
+    const engine = this.engineService.getEngine()
+    if (engine) {
+      engine.state.set('key', 'value')
+    }
+  }
+}
+```
+
+## 🎯 核心功能
+
+### 1. 适配器
+
+```typescript
+import { createAngularAdapter } from '@ldesign/engine-angular'
+
+const adapter = createAngularAdapter()
+```
+
+### 2. 引擎服务
+
+```typescript
+import { Component, OnInit } from '@angular/core'
+import { EngineService } from '@ldesign/engine-angular'
 
 @Component({
   selector: 'app-counter',
   template: `
     <div>
-      <h2>Count: {{ count$ | async }}</h2>
-      <button (click)="increment()">+1</button>
-      <button (click)="decrement()">-1</button>
-      <button (click)="reset()">Reset</button>
+      <p>Count: {{ count }}</p>
+      <button (click)="increment()">+</button>
     </div>
-  `
+  `,
 })
 export class CounterComponent implements OnInit {
-  count$!: Observable<number | undefined>
-  private setCount!: (value: number | ((prev: number | undefined) => number)) => void
+  count = 0
 
-  constructor(
-    private stateService: EngineStateService,
-    private eventsService: EngineEventsService
-  ) {}
+  constructor(private engineService: EngineService) {}
 
   ngOnInit() {
-    // 创建响应式状态
-    const [count$, setCount] = this.stateService.createState<number>('count', 0)
-    this.count$ = count$
-    this.setCount = setCount
-
-    // 监听事件
-    this.eventsService.listen('count:changed', (payload) => {
-      console.log('Count changed:', payload)
-    })
+    const engine = this.engineService.getEngine()
+    if (engine) {
+      this.count = engine.state.get('count') || 0
+      
+      engine.state.watch('count', (value: number) => {
+        this.count = value
+      })
+    }
   }
 
   increment() {
-    this.setCount(prev => (prev || 0) + 1)
-    this.eventsService.emit('count:changed', { action: 'increment' })
-  }
-
-  decrement() {
-    this.setCount(prev => (prev || 0) - 1)
-    this.eventsService.emit('count:changed', { action: 'decrement' })
-  }
-
-  reset() {
-    this.setCount(0)
-    this.eventsService.emit('count:changed', { action: 'reset' })
+    const engine = this.engineService.getEngine()
+    if (engine) {
+      engine.state.set('count', this.count + 1)
+    }
   }
 }
 ```
 
-## API Documentation
+### 3. RxJS 集成
+
+```typescript
+import { Component, OnInit } from '@angular/core'
+import { EngineService } from '@ldesign/engine-angular'
+import { Observable } from 'rxjs'
+import { map } from 'rxjs/operators'
+
+@Component({
+  selector: 'app-state',
+  template: `
+    <div>
+      <p>Engine: {{ (engineName$ | async) || 'Not initialized' }}</p>
+    </div>
+  `,
+})
+export class StateComponent implements OnInit {
+  engineName$!: Observable<string>
+
+  constructor(private engineService: EngineService) {}
+
+  ngOnInit() {
+    this.engineName$ = this.engineService.getEngine$().pipe(
+      map(engine => engine?.config.name || 'Not initialized')
+    )
+  }
+}
+```
+
+## 🌟 特性
+
+- ✅ **RxJS 集成** - 基于 RxJS 的响应式系统
+- ✅ **依赖注入** - 完整的 Angular DI 支持
+- ✅ **类型安全** - 完整的 TypeScript 支持
+- ✅ **插件系统** - 强大的插件架构
+- ✅ **中间件** - 洋葱模型中间件系统
+- ✅ **事件系统** - 基于 RxJS Subject 的事件系统
+- ✅ **生命周期** - 与 Angular 生命周期集成
+- ✅ **状态管理** - 基于 BehaviorSubject 的状态管理
+
+## 📚 API 文档
+
+### AngularAdapter
+
+Angular 框架适配器类。
+
+```typescript
+import { AngularAdapter } from '@ldesign/engine-angular'
+
+const adapter = new AngularAdapter()
+```
 
 ### EngineService
 
-Core engine service providing access to the engine instance.
+引擎服务,提供依赖注入支持。
 
 ```typescript
-@Injectable({ providedIn: 'root' })
-export class EngineService {
-  // Initialize engine
-  async init(config?: CoreEngineConfig): Promise<void>
-  
-  // Register plugin
-  async use(plugin: Plugin): Promise<void>
-  
-  // Register middleware
-  useMiddleware(middleware: Middleware): void
-  
-  // Access engine modules
-  readonly state: StateManager
-  readonly events: EventManager
-  readonly lifecycle: LifecycleManager
-  readonly logger: Logger
-  readonly plugins: PluginManager
-  readonly middleware: MiddlewareManager
+import { EngineService } from '@ldesign/engine-angular'
+
+@Injectable()
+export class MyService {
+  constructor(private engineService: EngineService) {}
 }
 ```
 
-### EngineStateService
+### ENGINE_TOKEN
 
-State management service with RxJS Observables.
-
-```typescript
-@Injectable({ providedIn: 'root' })
-export class EngineStateService {
-  // Create reactive state (read/write)
-  createState<T>(
-    path: string,
-    defaultValue?: T
-  ): [Observable<T | undefined>, (value: T | ((prev: T | undefined) => T)) => void]
-  
-  // Create readonly state
-  createStateValue<T>(path: string, defaultValue?: T): Observable<T | undefined>
-  
-  // Get state value (non-reactive)
-  get<T>(path: string): T | undefined
-  
-  // Set state value
-  set<T>(path: string, value: T): void
-  
-  // Delete state
-  delete(path: string): void
-  
-  // Clear all states
-  clear(): void
-}
-```
-
-### EngineEventsService
-
-Event system service with RxJS Subscriptions.
+引擎实例注入令牌。
 
 ```typescript
-@Injectable({ providedIn: 'root' })
-export class EngineEventsService {
-  // Listen to event
-  listen<T>(
-    eventName: string,
-    handler: EventHandler<T>,
-    options?: EventOptions
-  ): Subscription
-  
-  // Emit event
-  emit(eventName: string, payload?: any): void
-  
-  // Listen once
-  once<T>(eventName: string, handler: EventHandler<T>): Subscription
-  
-  // Remove all listeners for event
-  off(eventName: string): void
-}
+import { ENGINE_TOKEN } from '@ldesign/engine-angular'
+import { Inject } from '@angular/core'
+
+constructor(@Inject(ENGINE_TOKEN) private engine: CoreEngine) {}
 ```
 
-## Plugin Development
+## 📄 许可证
 
-```typescript
-import { Plugin } from '@ldesign/engine-core'
+MIT
 
-const myPlugin: Plugin = {
-  name: 'my-plugin',
-  version: '1.0.0',
-  install(context) {
-    const { engine, logger } = context
-    logger.info('Plugin installed!')
-    
-    engine.events.on('app:ready', () => {
-      console.log('App is ready!')
-    })
-  }
-}
+## 🤝 贡献
 
-// Register in module
-EngineModule.forRoot({
-  plugins: [myPlugin]
-})
-```
-
-## Advanced Usage
-
-### With APP_INITIALIZER
-
-```typescript
-import { NgModule, APP_INITIALIZER } from '@angular/core'
-import { EngineModule, engineInitializerFactory, EngineService, ENGINE_CONFIG } from '@ldesign/engine-angular'
-
-@NgModule({
-  imports: [
-    EngineModule.forRoot({
-      config: {
-        name: 'My App',
-        version: '1.0.0'
-      }
-    })
-  ],
-  providers: [
-    {
-      provide: APP_INITIALIZER,
-      useFactory: engineInitializerFactory,
-      deps: [EngineService, ENGINE_CONFIG],
-      multi: true
-    }
-  ]
-})
-export class AppModule {}
-```
-
-### Reactive State with Async Pipe
-
-```typescript
-@Component({
-  selector: 'app-user-profile',
-  template: `
-    <div *ngIf="user$ | async as user">
-      <h2>{{ user.name }}</h2>
-      <p>{{ user.email }}</p>
-    </div>
-  `
-})
-export class UserProfileComponent implements OnInit {
-  user$!: Observable<User | undefined>
-
-  constructor(private stateService: EngineStateService) {}
-
-  ngOnInit() {
-    this.user$ = this.stateService.createStateValue<User>('user')
-  }
-}
-```
-
-## API 一致性
-
-与其他框架的 API 保持一致：
-
-| 功能 | React | Vue | Angular |
-|------|-------|-----|---------|
-| 引擎访问 | `useEngine()` | `useEngine()` | `EngineService` (注入) |
-| 状态读写 | `useEngineState()` | `useEngineState()` | `createState()` |
-| 只读状态 | `useEngineStateValue()` | `useEngineStateValue()` | `createStateValue()` |
-| 事件监听 | `useEventListener()` | `useEventListener()` | `listen()` |
-| 事件发射 | `useEventEmitter()` | `useEventEmitter()` | `emit()` |
-
-## Documentation
-
-For detailed documentation, visit [our documentation site](https://ldesign.github.io/engine/).
-
-## License
-
-MIT © ldesign
-
+欢迎提交 Issue 和 Pull Request!
 

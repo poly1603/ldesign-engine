@@ -4,8 +4,9 @@
     "skipLibCheck": true,
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "strict": true
   },
-  "include": ["launcher.config.ts"]
+  "include": ["vite.config.ts"]
 }
 

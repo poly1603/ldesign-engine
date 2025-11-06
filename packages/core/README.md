@@ -1,81 +1,56 @@
 # @ldesign/engine-core
 
-Framework-agnostic core engine for building modern applications with plugin system, middleware, lifecycle management, and more.
+框架无关的核心引擎包,提供插件系统、中间件、生命周期管理等核心功能。
 
-## Features
-
-- 🔌 **Plugin System** - Powerful plugin architecture with dependency management
-- 🔄 **Middleware System** - Flexible middleware pipeline for request/response handling
-- ⏱️ **Lifecycle Management** - Complete lifecycle hooks for fine-grained control
-- 📡 **Event System** - Robust event system with priority and namespaces
-- 💾 **State Management** - Framework-agnostic state management foundation
-- 🗄️ **Cache Management** - Intelligent caching with multiple strategies
-- 📊 **Performance Monitoring** - Built-in performance tracking and optimization
-- 🛡️ **Error Handling** - Comprehensive error management and recovery
-- 🔒 **Security** - Built-in security features and best practices
-- 📝 **Logger** - Flexible logging system with multiple levels
-- ⚙️ **Configuration** - Type-safe configuration management
-- 💉 **Dependency Injection** - IoC container for better code organization
-
-## Installation
+## 安装
 
 ```bash
 pnpm add @ldesign/engine-core
 ```
 
-## Basic Usage
+## 使用
 
 ```typescript
-import { createCoreEngine } from '@ldesign/engine-core'
+import { 
+  createCoreEngine,
+  definePlugin,
+  defineMiddleware 
+} from '@ldesign/engine-core'
 
-// Create engine instance
+// 创建核心引擎
 const engine = createCoreEngine({
-  config: {
-    debug: true,
-    name: 'My App'
-  }
+  name: 'My App',
+  debug: true,
 })
 
-// Register plugins
-await engine.use({
-  name: 'my-plugin',
-  install: (context) => {
-    console.log('Plugin installed!', context)
-  }
-})
-
-// Initialize engine
+// 初始化引擎
 await engine.init()
 
-// Use lifecycle hooks
-engine.lifecycle.on('afterInit', () => {
-  console.log('Engine initialized!')
+// 使用插件
+const myPlugin = definePlugin({
+  name: 'my-plugin',
+  version: '1.0.0',
+  install(context) {
+    console.log('Plugin installed')
+  }
 })
 
-// Emit events
-engine.events.emit('app:ready', { timestamp: Date.now() })
-
-// Manage state
-engine.state.set('user', { name: 'John', role: 'admin' })
-const user = engine.state.get('user')
-
-// Cache data
-engine.cache.set('config', configData, 3600000) // 1 hour TTL
-const cachedConfig = engine.cache.get('config')
+await engine.use(myPlugin)
 ```
 
-## Framework Adapters
+## 功能
 
-This core package is framework-agnostic. Use framework-specific adapters:
+- ✅ 插件系统
+- ✅ 中间件系统
+- ✅ 生命周期管理
+- ✅ 事件系统
+- ✅ 状态管理
+- ✅ 缓存管理
+- ✅ 依赖注入
+- ✅ 配置管理
+- ✅ 日志系统
 
-- **Vue 3**: `@ldesign/engine-vue3`
-- **React**: `@ldesign/engine-react`
+## 文档
 
-## Documentation
-
-For detailed documentation, visit [our documentation site](https://ldesign.github.io/engine/).
-
-## License
-
-MIT © ldesign
+查看完整文档: [packages/engine/UNIVERSAL_ENGINE_ARCHITECTURE.md](../../UNIVERSAL_ENGINE_ARCHITECTURE.md)
 

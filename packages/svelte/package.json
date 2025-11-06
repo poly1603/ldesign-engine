@@ -1,15 +1,17 @@
 {
   "name": "@ldesign/engine-svelte",
-  "version": "0.2.0",
-  "description": "Svelte adapter for @ldesign/engine-core",
+  "version": "0.3.0",
+  "description": "Svelte adapter for LDesign Engine - Provides Svelte-specific integration for the universal application engine",
   "keywords": [
     "svelte",
+    "svelte5",
     "engine",
+    "adapter",
     "plugin",
     "middleware",
-    "typescript",
-    "reactive",
-    "stores"
+    "stores",
+    "runes",
+    "typescript"
   ],
   "author": "ldesign",
   "license": "MIT",
@@ -20,46 +22,6 @@
       "types": "./es/index.d.ts",
       "import": "./es/index.js",
       "require": "./lib/index.cjs"
-    },
-    "./adapter": {
-      "types": "./es/adapter/index.d.ts",
-      "import": "./es/adapter/index.js",
-      "require": "./lib/adapter/index.cjs"
-    },
-    "./adapter/*": {
-      "types": "./es/adapter/*.d.ts",
-      "import": "./es/adapter/*.js",
-      "require": "./lib/adapter/*.cjs"
-    },
-    "./components": {
-      "types": "./es/components/index.d.ts",
-      "import": "./es/components/index.js",
-      "require": "./lib/components/index.cjs"
-    },
-    "./components/*": {
-      "types": "./es/components/*.d.ts",
-      "import": "./es/components/*.js",
-      "require": "./lib/components/*.cjs"
-    },
-    "./stores": {
-      "types": "./es/stores/index.d.ts",
-      "import": "./es/stores/index.js",
-      "require": "./lib/stores/index.cjs"
-    },
-    "./stores/*": {
-      "types": "./es/stores/*.d.ts",
-      "import": "./es/stores/*.js",
-      "require": "./lib/stores/*.cjs"
-    },
-    "./types": {
-      "types": "./es/types/index.d.ts",
-      "import": "./es/types/index.js",
-      "require": "./lib/types/index.cjs"
-    },
-    "./types/*": {
-      "types": "./es/types/*.d.ts",
-      "import": "./es/types/*.js",
-      "require": "./lib/types/*.cjs"
     }
   },
   "main": "./lib/index.cjs",
@@ -75,28 +37,31 @@
     "lib"
   ],
   "scripts": {
-    "build": "ldesign-builder build -f esm,cjs,umd,dts",
-    "dev": "ldesign-builder build -f esm,cjs,umd,dts --watch",
-    "test": "vitest",
-    "test:run": "vitest run",
-    "lint": "eslint . --fix",
+    "build": "ldesign-builder build",
+    "dev": "ldesign-builder build --watch",
+    "clean": "rimraf es lib dist",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@ldesign/core": "workspace:*",
     "@ldesign/engine-core": "workspace:*"
   },
   "peerDependencies": {
-    "svelte": "^4.0.0 || ^5.0.0",
-    "@ldesign/engine-core": "workspace:*"
+    "svelte": "^4.0.0 || ^5.0.0"
   },
   "devDependencies": {
+    "@ldesign/router": "workspace:*",
+    "@ldesign/router-svelte": "workspace:*",
     "@ldesign/builder": "workspace:*",
-    "@types/node": "^22.0.0",
-    "typescript": "^5.7.3",
-    "vitest": "^3.2.4",
-    "svelte": "^4.2.0",
-    "eslint": "^9.18.0"
+    "svelte": "^5.18.0",
+    "typescript": "^5.7.3"
   },
-  "svelte": "./es/index.js"
+  "optionalDependencies": {
+    "@ldesign/router": "workspace:*",
+    "@ldesign/router-svelte": "workspace:*"
+  },
+  "peerDependenciesMeta": {
+    "svelte": {
+      "optional": false
+    }
+  }
 }

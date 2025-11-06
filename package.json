@@ -1,7 +1,6 @@
 {
   "name": "@ldesign/engine",
   "version": "0.3.0",
-  "private": true,
   "description": "A powerful multi-framework application engine with plugin system, middleware support, and global management - Supports Vue3, React, and more",
   "keywords": [
     "vue3",
@@ -26,211 +25,6 @@
       "types": "./es/index.d.ts",
       "import": "./es/index.js",
       "require": "./lib/index.cjs"
-    },
-    "./core": {
-      "types": "./es/core.d.ts",
-      "import": "./es/core.js",
-      "require": "./lib/core.cjs"
-    },
-    "./react": {
-      "types": "./es/react.d.ts",
-      "import": "./es/react.js",
-      "require": "./lib/react.cjs"
-    },
-    "./angular": {
-      "types": "./es/angular.d.ts",
-      "import": "./es/angular.js",
-      "require": "./lib/angular.cjs"
-    },
-    "./solid": {
-      "types": "./es/solid.d.ts",
-      "import": "./es/solid.js",
-      "require": "./lib/solid.cjs"
-    },
-    "./svelte": {
-      "types": "./es/svelte.d.ts",
-      "import": "./es/svelte.js",
-      "require": "./lib/svelte.cjs"
-    },
-    "./ai/*": {
-      "types": "./es/ai/*.d.ts",
-      "import": "./es/ai/*.js",
-      "require": "./lib/ai/*.cjs"
-    },
-    "./cache/*": {
-      "types": "./es/cache/*.d.ts",
-      "import": "./es/cache/*.js",
-      "require": "./lib/cache/*.cjs"
-    },
-    "./composables/*": {
-      "types": "./es/composables/*.d.ts",
-      "import": "./es/composables/*.js",
-      "require": "./lib/composables/*.cjs"
-    },
-    "./config": {
-      "types": "./es/config/index.d.ts",
-      "import": "./es/config/index.js",
-      "require": "./lib/config/index.cjs"
-    },
-    "./config/*": {
-      "types": "./es/config/*.d.ts",
-      "import": "./es/config/*.js",
-      "require": "./lib/config/*.cjs"
-    },
-    "./constants": {
-      "types": "./es/constants/index.d.ts",
-      "import": "./es/constants/index.js",
-      "require": "./lib/constants/index.cjs"
-    },
-    "./constants/*": {
-      "types": "./es/constants/*.d.ts",
-      "import": "./es/constants/*.js",
-      "require": "./lib/constants/*.cjs"
-    },
-    "./core/*": {
-      "types": "./es/core/*.d.ts",
-      "import": "./es/core/*.js",
-      "require": "./lib/core/*.cjs"
-    },
-    "./devtools/*": {
-      "types": "./es/devtools/*.d.ts",
-      "import": "./es/devtools/*.js",
-      "require": "./lib/devtools/*.cjs"
-    },
-    "./directives": {
-      "types": "./es/directives/index.d.ts",
-      "import": "./es/directives/index.js",
-      "require": "./lib/directives/index.cjs"
-    },
-    "./directives/*": {
-      "types": "./es/directives/*.d.ts",
-      "import": "./es/directives/*.js",
-      "require": "./lib/directives/*.cjs"
-    },
-    "./environment/*": {
-      "types": "./es/environment/*.d.ts",
-      "import": "./es/environment/*.js",
-      "require": "./lib/environment/*.cjs"
-    },
-    "./errors/*": {
-      "types": "./es/errors/*.d.ts",
-      "import": "./es/errors/*.js",
-      "require": "./lib/errors/*.cjs"
-    },
-    "./events/*": {
-      "types": "./es/events/*.d.ts",
-      "import": "./es/events/*.js",
-      "require": "./lib/events/*.cjs"
-    },
-    "./hmr/*": {
-      "types": "./es/hmr/*.d.ts",
-      "import": "./es/hmr/*.js",
-      "require": "./lib/hmr/*.cjs"
-    },
-    "./lifecycle/*": {
-      "types": "./es/lifecycle/*.d.ts",
-      "import": "./es/lifecycle/*.js",
-      "require": "./lib/lifecycle/*.cjs"
-    },
-    "./locale": {
-      "types": "./es/locale/index.d.ts",
-      "import": "./es/locale/index.js",
-      "require": "./lib/locale/index.cjs"
-    },
-    "./locale/*": {
-      "types": "./es/locale/*.d.ts",
-      "import": "./es/locale/*.js",
-      "require": "./lib/locale/*.cjs"
-    },
-    "./logger": {
-      "types": "./es/logger/index.d.ts",
-      "import": "./es/logger/index.js",
-      "require": "./lib/logger/index.cjs"
-    },
-    "./logger/*": {
-      "types": "./es/logger/*.d.ts",
-      "import": "./es/logger/*.js",
-      "require": "./lib/logger/*.cjs"
-    },
-    "./micro-frontend/*": {
-      "types": "./es/micro-frontend/*.d.ts",
-      "import": "./es/micro-frontend/*.js",
-      "require": "./lib/micro-frontend/*.cjs"
-    },
-    "./middleware/*": {
-      "types": "./es/middleware/*.d.ts",
-      "import": "./es/middleware/*.js",
-      "require": "./lib/middleware/*.cjs"
-    },
-    "./notifications/*": {
-      "types": "./es/notifications/*.d.ts",
-      "import": "./es/notifications/*.js",
-      "require": "./lib/notifications/*.cjs"
-    },
-    "./performance/*": {
-      "types": "./es/performance/*.d.ts",
-      "import": "./es/performance/*.js",
-      "require": "./lib/performance/*.cjs"
-    },
-    "./plugins/*": {
-      "types": "./es/plugins/*.d.ts",
-      "import": "./es/plugins/*.js",
-      "require": "./lib/plugins/*.cjs"
-    },
-    "./security/*": {
-      "types": "./es/security/*.d.ts",
-      "import": "./es/security/*.js",
-      "require": "./lib/security/*.cjs"
-    },
-    "./shortcuts/*": {
-      "types": "./es/shortcuts/*.d.ts",
-      "import": "./es/shortcuts/*.js",
-      "require": "./lib/shortcuts/*.cjs"
-    },
-    "./state/*": {
-      "types": "./es/state/*.d.ts",
-      "import": "./es/state/*.js",
-      "require": "./lib/state/*.cjs"
-    },
-    "./types": {
-      "types": "./es/types/index.d.ts",
-      "import": "./es/types/index.js",
-      "require": "./lib/types/index.cjs"
-    },
-    "./types/*": {
-      "types": "./es/types/*.d.ts",
-      "import": "./es/types/*.js",
-      "require": "./lib/types/*.cjs"
-    },
-    "./utils": {
-      "types": "./es/utils/index.d.ts",
-      "import": "./es/utils/index.js",
-      "require": "./lib/utils/index.cjs"
-    },
-    "./utils/*": {
-      "types": "./es/utils/*.d.ts",
-      "import": "./es/utils/*.js",
-      "require": "./lib/utils/*.cjs"
-    },
-    "./vue": {
-      "types": "./es/vue/index.d.ts",
-      "import": "./es/vue/index.js",
-      "require": "./lib/vue/index.cjs"
-    },
-    "./vue/*": {
-      "types": "./es/vue/*.d.ts",
-      "import": "./es/vue/*.js",
-      "require": "./lib/vue/*.cjs"
-    },
-    "./workers/*": {
-      "types": "./es/workers/*.d.ts",
-      "import": "./es/workers/*.js",
-      "require": "./lib/workers/*.cjs"
-    },
-    "./di": {
-      "types": "./es/core/di-container.d.ts",
-      "import": "./es/core/di-container.js",
-      "require": "./lib/core/di-container.cjs"
     }
   },
   "main": "./lib/index.cjs",
@@ -243,8 +37,7 @@
     "LICENSE",
     "package.json",
     "es",
-    "lib",
-    "dist"
+    "lib"
   ],
   "scripts": {
     "build": "ldesign-builder build -f esm,cjs,dts",
@@ -290,17 +83,7 @@
     "quality:fix": "pnpm run lint && pnpm run format && pnpm run test:unit",
     "lint:fix": "eslint . --fix"
   },
-  "dependencies": {
-    "@ldesign/engine-core": "workspace:*",
-    "@ldesign/engine-vue": "workspace:*",
-    "@ldesign/engine-react": "workspace:*",
-    "@ldesign/engine-angular": "workspace:*",
-    "@ldesign/engine-solid": "workspace:*",
-    "@ldesign/engine-svelte": "workspace:*",
-    "@ldesign/engine-lit": "workspace:*",
-    "@ldesign/engine-preact": "workspace:*",
-    "@ldesign/engine-qwik": "workspace:*"
-  },
+  "dependencies": {},
   "peerDependencies": {
     "vue": "^3.5.18"
   },
@@ -339,6 +122,7 @@
       "limit": "50 KB"
     }
   ],
+  "private": true,
   "peerDependenciesMeta": {
     "vue": {
       "optional": true

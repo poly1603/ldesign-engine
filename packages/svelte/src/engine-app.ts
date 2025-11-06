@@ -1,172 +1,177 @@
-/**
+﻿/**
  * Svelte 引擎应用创建函数
  */
 
-import { CoreEngineImpl } from '@ldesign/engine-core'
-import type { SvelteComponent } from 'svelte'
-import { setContext } from 'svelte'
-import type { SvelteEngine, SvelteEngineAppOptions, SvelteComponentConstructor } from './types'
+import type { ComponentType } from 'svelte'
+import type {
+  CoreEngine,
+  CoreEngineConfig,
+  Plugin,
+  Middleware,
+} from '@ldesign/engine-core'
+import { createCoreEngine } from '@ldesign/engine-core'
+import { createSvelteAdapter } from './adapter'
 
-// 引擎上下文键
-export const ENGINE_CONTEXT_KEY = 'engine'
-
-/**
- * Svelte 引擎实现
- */
-export class SvelteEngineImpl extends CoreEngineImpl implements SvelteEngine {
-  rootComponent?: SvelteComponentConstructor
-  private componentInstance?: SvelteComponent
-
-  /**
-   * 挂载应用
-   */
-  async mount(mountElement: string | Element): Promise<void> {
-    if (!this.rootComponent) {
-      throw new Error('Root component not set')
-    }
-
-    if (this.componentInstance) {
-      throw new Error('App already mounted')
-    }
-
-    // 执行 beforeMount 生命周期
-    await this.lifecycle.execute('beforeMount', this)
-
-    try {
-      const element =
-        typeof mountElement === 'string'
-          ? document.querySelector(mountElement)
-          : mountElement
-
-      if (!element) {
-        throw new Error(`Mount element not found: ${mountElement}`)
-      }
-
-      // 创建 Svelte 组件实例，传入 engine 作为 prop
-      this.componentInstance = new this.rootComponent({
-        target: element,
-        props: {
-          engine: this
-        }
-      })
-
-      // 执行 mount 生命周期
-      await this.lifecycle.execute('mount', this)
-
-      // 执行 afterMount 生命周期
-      await this.lifecycle.execute('afterMount', this)
-
-      this.logger.info('Svelte app mounted')
-    } catch (error) {
-      this.logger.error('Failed to mount Svelte app:', error)
-      await this.lifecycle.execute('error', this, { error })
-      throw error
-    }
-  }
-
-  /**
-   * 卸载应用
-   */
-  async unmount(): Promise<void> {
-    if (!this.componentInstance) {
-      this.logger.warn('No Svelte app to unmount')
-      return
-    }
-
-    // 执行 beforeUnmount 生命周期
-    await this.lifecycle.execute('beforeUnmount', this)
-
-    try {
-      this.componentInstance.$destroy()
-
-      // 执行 unmount 生命周期
-      await this.lifecycle.execute('unmount', this)
-
-      // 执行 afterUnmount 生命周期
-      await this.lifecycle.execute('afterUnmount', this)
-
-      this.componentInstance = undefined
-      this.rootComponent = undefined
-      this.logger.info('Svelte app unmounted')
-    } catch (error) {
-      this.logger.error('Failed to unmount Svelte app:', error)
-      throw error
-    }
-  }
+export interface RouterConfig {
+  mode?: 'history' | 'hash' | 'memory'
+  base?: string
+  routes: any[]
+  preset?: 'spa' | 'mpa' | 'mobile' | 'desktop' | 'admin' | 'blog'
 }
 
-/**
- * 创建 Svelte 引擎应用
- */
+export interface SvelteEngineAppOptions {
+  rootComponent: ComponentType
+  mountElement: string | Element
+  config?: CoreEngineConfig
+  plugins?: Plugin[]
+  middleware?: Middleware[]
+  router?: RouterConfig
+  rootProps?: Record<string, any>
+  onReady?: (engine: SvelteEngineApp) => void | Promise<void>
+  onMounted?: (engine: SvelteEngineApp) => void | Promise<void>
+  onError?: (error: Error, context: string) => void
+}
+
+export interface SvelteEngineApp extends CoreEngine {
+  app: any
+  adapter: ReturnType<typeof createSvelteAdapter>
+}
+
 export async function createEngineApp(
   options: SvelteEngineAppOptions
-): Promise<SvelteEngine> {
+): Promise<SvelteEngineApp> {
   const {
     rootComponent,
     mountElement,
     config = {},
     plugins = [],
     middleware = [],
-    features = {},
+    router: routerConfig,
+    rootProps = {},
     onReady,
     onMounted,
-    onError = (error, context) => console.error(`[SvelteEngine] Error in ${context}:`, error),
+    onError,
   } = options
 
   try {
-    // 创建引擎实例
-    const engine = new SvelteEngineImpl(config)
-    engine.rootComponent = rootComponent
+    const adapter = createSvelteAdapter()
+    const coreEngine = createCoreEngine(config)
+    await coreEngine.init()
 
-    // 初始化引擎
-    await engine.init()
-
-    // 注册中间件
-    for (const m of middleware) {
-      try {
-        engine.middleware.use(m)
-      } catch (error) {
-        onError(error as Error, `middleware registration: ${m.name}`)
-      }
+    for (const mw of middleware) {
+      coreEngine.middleware.use(mw)
     }
 
-    // 注册插件
-    for (const plugin of plugins) {
+    if (routerConfig) {
       try {
-        await engine.use(plugin)
-      } catch (error) {
-        onError(error as Error, `plugin installation: ${plugin.name}`)
-      }
-    }
+        const { createRouterEnginePlugin } = await import('@ldesign/router-svelte')
+        const routerPlugin = createRouterEnginePlugin({
+          name: 'router',
+          version: '1.0.0',
+          ...routerConfig,
+        })
+        plugins.unshift(routerPlugin)
 
-    // 触发就绪回调
-    if (onReady) {
-      try {
-        await onReady(engine)
-      } catch (error) {
-        onError(error as Error, 'onReady callback')
-      }
-    }
-
-    // 自动挂载（如果提供了挂载元素）
-    if (mountElement) {
-      await engine.mount(mountElement)
-
-      // 触发挂载完成回调
-      if (onMounted) {
-        try {
-          await onMounted(engine)
-        } catch (error) {
-          onError(error as Error, 'onMounted callback')
+        if (config.debug) {
+          console.log('[Engine] Router plugin created successfully')
         }
+      } catch (error) {
+        console.warn(
+          'Failed to load @ldesign/router-svelte. Router functionality will not be available.',
+          error
+        )
       }
     }
 
-    return engine
+    for (const plugin of plugins) {
+      await coreEngine.use(plugin)
+    }
+
+    const app = adapter.createApp(rootComponent, rootProps)
+    adapter.registerEngine(app, coreEngine)
+
+    const engineApp: SvelteEngineApp = {
+      ...coreEngine,
+      app,
+      adapter,
+    }
+
+    if (onReady) {
+      await onReady(engineApp)
+    }
+
+    await coreEngine.lifecycle.trigger('beforeMount')
+    await adapter.mount(app, mountElement)
+    await coreEngine.lifecycle.trigger('mounted')
+
+    if (onMounted) {
+      await onMounted(engineApp)
+    }
+
+    console.log(' Svelte 应用已启动')
+    return engineApp
   } catch (error) {
-    onError(error as Error, 'engine initialization')
+    if (onError) {
+      onError(error as Error, 'createEngineApp')
+    }
     throw error
   }
 }
 
+export interface SvelteEngineAppConfig {
+  rootComponent: ComponentType
+  mountElement: string | Element
+  config?: CoreEngineConfig
+  plugins?: Plugin[]
+  middleware?: Middleware[]
+  props?: Record<string, any>
+  onReady?: (engine: CoreEngine) => void | Promise<void>
+  onMounted?: (engine: CoreEngine) => void | Promise<void>
+  onError?: (error: Error, context: any) => void
+}
 
+export function createEngineAppSync(config: SvelteEngineAppConfig): CoreEngine {
+  const adapter = createSvelteAdapter()
+  const engine = createCoreEngine({
+    name: config.config?.name || 'Svelte Engine App',
+    version: config.config?.version || '1.0.0',
+    debug: config.config?.debug ?? false,
+    adapter,
+  })
+
+  ;(async () => {
+    try {
+      for (const plugin of config.plugins || []) {
+        await engine.use(plugin)
+      }
+
+      for (const mw of config.middleware || []) {
+        engine.middleware.use(mw)
+      }
+
+      await engine.init()
+
+      if (config.onReady) {
+        await config.onReady(engine)
+      }
+
+      const app = adapter.createApp(config.rootComponent, { props: config.props })
+      adapter.registerEngine(app, engine)
+      await adapter.mount(app, config.mountElement)
+
+      if (config.onMounted) {
+        await config.onMounted(engine)
+      }
+
+      await engine.lifecycle.trigger('mounted')
+    } catch (error) {
+      if (config.onError) {
+        config.onError(error as Error, { config })
+      } else {
+        console.error('Failed to initialize Svelte engine app:', error)
+      }
+    }
+  })()
+
+  return engine
+}

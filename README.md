@@ -1,132 +1,152 @@
-# @ldesign/engine
+# LDesign Engine
 
-[![npm version](https://img.shields.io/npm/v/@ldesign/engine.svg)](https://www.npmjs.com/package/@ldesign/engine)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
+通用前端应用引擎系统,提供框架无关的核心功能和多框架适配器。
 
-> 🚀 现代化、多框架通用的应用引擎 - 统一的插件系统、中间件、状态管理和事件系统
+## 📦 包结构
 
-## ✨ 特性
-
-- **🎯 框架无关**: 核心功能完全框架无关,可在任何 JavaScript 环境运行
-- **🔌 统一插件系统**: 一次编写,所有框架通用的插件系统
-- **⚡️ 多框架支持**: 开箱即用支持 React, Vue, Svelte, Angular, Solid.js 等 5+ 框架
-- **🎨 内置功能插件**: i18n、主题切换、全局尺寸控制等开箱即用
-- **📦 模块化设计**: 按需引入,Tree-shaking 友好
-- **🔒 类型安全**: 完整的 TypeScript 类型定义
-- **🎪 丰富的管理器**: 状态、事件、缓存、日志、配置、生命周期等
-- **⚙️ 高性能**: 优化的性能和最小化的打包体积
-- **🔧 高度可扩展**: 通过插件和中间件轻松扩展功能
-
-## 📦 安装
-
-```bash
-# 使用 pnpm (推荐)
-pnpm add @ldesign/engine
-
-# 使用 npm
-npm install @ldesign/engine
-
-# 使用 yarn
-yarn add @ldesign/engine
+```
+packages/engine/packages/
+├── core/           # @ldesign/engine-core - 核心引擎包
+├── vue2/           # @ldesign/engine-vue2 - Vue 2 适配器
+├── vue3/           # @ldesign/engine-vue3 - Vue 3 适配器
+├── react/          # @ldesign/engine-react - React 适配器
+├── svelte/         # @ldesign/engine-svelte - Svelte 适配器
+├── solid/          # @ldesign/engine-solid - Solid 适配器
+└── angular/        # @ldesign/engine-angular - Angular 适配器
 ```
 
-## 🚀 快速开始
+## ✨ 核心特性
 
-### Vue 3
+### 统一的 API
+
+所有框架适配器提供完全一致的 API:
 
 ```typescript
-import { createEngineApp } from '@ldesign/engine-vue'
-import { createI18nPlugin, createThemePlugin } from '@ldesign/engine-core'
-import App from './App.vue'
+import { createEngineApp } from '@ldesign/engine-vue3' // 或 vue2, react, svelte 等
 
 const engine = await createEngineApp({
   rootComponent: App,
   mountElement: '#app',
-  plugins: [
-    createI18nPlugin({
-      locale: 'zh-CN',
-      fallbackLocale: 'en-US',
-      messages: {
-        'zh-CN': { hello: '你好' },
-        'en-US': { hello: 'Hello' }
-      }
-    }),
-    createThemePlugin({
-      defaultTheme: 'light',
-      themes: {
-        light: { variables: { 'primary-color': '#1890ff' } },
-        dark: { variables: { 'primary-color': '#177ddc' } }
-      }
-    })
-  ]
+  config: { name: 'My App', debug: true },
+  plugins: [myPlugin],
+  middleware: [myMiddleware],
 })
-
-// 使用插件功能
-engine.setLocale('en-US')
-engine.setTheme('dark')
 ```
 
-### React
+### 核心功能
+
+- ✅ **插件系统** - 可复用的功能扩展
+- ✅ **中间件系统** - 请求/响应处理链
+- ✅ **生命周期管理** - 统一的生命周期钩子
+- ✅ **事件系统** - 发布/订阅模式
+- ✅ **状态管理** - 全局状态管理
+- ✅ **TypeScript** - 完整的类型支持
+
+## 🚀 快速开始
+
+### 安装
+
+```bash
+# Vue 3
+pnpm add @ldesign/engine-vue3
+
+# Vue 2
+pnpm add @ldesign/engine-vue2
+
+# React
+pnpm add @ldesign/engine-react
+```
+
+### 使用示例
+
+#### Vue 3
+
+```typescript
+import { createEngineApp, definePlugin } from '@ldesign/engine-vue3'
+import App from './App.vue'
+
+// 定义插件
+const myPlugin = definePlugin({
+  name: 'my-plugin',
+  version: '1.0.0',
+  install(context) {
+    context.engine.state.set('count', 0)
+  }
+})
+
+// 创建应用
+const engine = await createEngineApp({
+  rootComponent: App,
+  mountElement: '#app',
+  plugins: [myPlugin],
+})
+```
+
+#### React
 
 ```typescript
 import { createEngineApp } from '@ldesign/engine-react'
-import { createI18nPlugin } from '@ldesign/engine-core'
 import App from './App'
 
 const engine = await createEngineApp({
   rootComponent: App,
-  mountElement: '#root',
-  plugins: [createI18nPlugin({ /* ... */ })]
+  mountElement: '#app',
 })
 ```
 
 ## 📚 文档
 
-### 快速开始
-- 🚀 [5分钟快速上手](./QUICK_START.md) - 所有框架快速入门
-- 🏛️ [架构设计](./ARCHITECTURE.md) - 系统架构详解
-- 🔄 [迁移指南](./MIGRATION.md) - 版本升级指南
+### 核心包
 
-### 框架指南
-- ⚖️ [框架对比](./FRAMEWORK_COMPARISON.md) - 所有框架详细对比
-- ⚛️ [React 示例](../../examples/react)
-- 🟢 [Vue 示例](../../examples/vue)
-- 🔴 [Svelte 示例](../../examples/svelte)
-- 🟠 [Solid.js 示例](../../examples/solid)
+- [@ldesign/engine-core](./packages/core/README.md) - 核心引擎文档
 
-### 进阶文档
-- [核心概念](./docs/guide/core-concepts.md)
-- [插件开发](./docs/guide/plugin-development.md)
-- [API 参考](./docs/api/README.md)
-- [项目进度](./PROGRESS.md)
+### 框架适配器
 
-## 🌐 支持的框架
+- [@ldesign/engine-vue2](./packages/vue2/README.md) - Vue 2 适配器文档
+- [@ldesign/engine-vue3](./packages/vue3/README.md) - Vue 3 适配器文档
+- [@ldesign/engine-react](./packages/react/README.md) - React 适配器文档
 
-| 框架 | 包名 | 状态 | 示例 |
-|------|------|------|------|
-| React | `@ldesign/engine-react` | ✅ 95% | [React 示例](../../examples/react) |
-| Vue 3 | `@ldesign/engine-vue` | ✅ 95% | [Vue 示例](../../examples/vue) |
-| Svelte | `@ldesign/engine-svelte` | ✅ 95% | [Svelte 示例](../../examples/svelte) |
-| Solid.js | `@ldesign/engine-solid` | ✅ 95% | [Solid.js 示例](../../examples/solid) |
-| Angular | `@ldesign/engine-angular` | 🚧 85% | 待创建 |
-| Preact | `@ldesign/engine-preact` | 📅 计划中 | - |
-| Qwik | `@ldesign/engine-qwik` | 📅 计划中 | - |
+## 🏗️ 架构设计
 
-### 响应式系统对比
+### 两层架构
 
-- **React**: Hooks + Context
-- **Vue**: Composition API + provide/inject
-- **Svelte**: Stores (writable/readable)
-- **Solid.js**: Signals (细粒度响应式)
-- **Angular**: RxJS Observables + DI
+1. **核心引擎层** (`@ldesign/engine-core`)
+   - 框架无关的核心功能
+   - 插件、中间件、生命周期、事件、状态管理
 
-更多对比信息请查看 [框架对比文档](./FRAMEWORK_COMPARISON.md)
+2. **框架适配器层** (`@ldesign/engine-*`)
+   - 桥接框架特性到核心引擎
+   - 提供框架特定的 API 和组合式函数
 
-## 📝 许可证
+### 设计原则
 
-[MIT](./LICENSE) © ldesign
+- **框架无关** - 核心功能不依赖任何框架
+- **统一 API** - 所有框架使用相同的 API
+- **可扩展** - 通过插件和中间件扩展功能
+- **类型安全** - 完整的 TypeScript 类型支持
+- **轻量级** - 最小化依赖,按需加载
 
----
+## 🔧 开发
 
-**Made with ❤️ by the ldesign team**
+### 构建所有包
+
+```bash
+pnpm --filter "@ldesign/engine-*" build
+```
+
+### 开发模式
+
+```bash
+pnpm --filter "@ldesign/engine-core" dev
+```
+
+### 运行测试
+
+```bash
+pnpm --filter "@ldesign/engine-*" test
+```
+
+## 📄 License
+
+MIT
+

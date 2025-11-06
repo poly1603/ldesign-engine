@@ -1,47 +1,26 @@
 {
   "name": "@ldesign/engine-angular",
-  "version": "0.2.0",
-  "description": "Angular adapter for @ldesign/engine-core",
+  "version": "0.3.0",
+  "description": "Angular adapter for LDesign Engine - Provides Angular-specific integration for the universal application engine",
   "keywords": [
     "angular",
     "engine",
+    "adapter",
     "plugin",
     "middleware",
-    "state-management"
+    "rxjs",
+    "dependency-injection",
+    "typescript"
   ],
   "author": "ldesign",
   "license": "MIT",
   "type": "module",
+  "sideEffects": false,
   "exports": {
     ".": {
       "types": "./es/index.d.ts",
       "import": "./es/index.js",
       "require": "./lib/index.cjs"
-    },
-    "./adapters": {
-      "types": "./es/adapters/index.d.ts",
-      "import": "./es/adapters/index.js",
-      "require": "./lib/adapters/index.cjs"
-    },
-    "./adapters/*": {
-      "types": "./es/adapters/*.d.ts",
-      "import": "./es/adapters/*.js",
-      "require": "./lib/adapters/*.cjs"
-    },
-    "./module": {
-      "types": "./es/module/index.d.ts",
-      "import": "./es/module/index.js",
-      "require": "./lib/module/index.cjs"
-    },
-    "./module/*": {
-      "types": "./es/module/*.d.ts",
-      "import": "./es/module/*.js",
-      "require": "./lib/module/*.cjs"
-    },
-    "./services": {
-      "types": "./es/services/index.d.ts",
-      "import": "./es/services/index.js",
-      "require": "./lib/services/index.cjs"
     },
     "./services/*": {
       "types": "./es/services/*.d.ts",
@@ -59,28 +38,34 @@
     "LICENSE",
     "package.json",
     "es",
-    "lib"
+    "lib",
+    "dist"
   ],
   "scripts": {
-    "build": "ldesign-builder build -f esm,cjs,umd,dts",
-    "dev": "ldesign-builder build -f esm,cjs,umd,dts --watch",
-    "clean": "rimraf es lib dist"
+    "build": "ldesign-builder build",
+    "dev": "ldesign-builder build --watch",
+    "clean": "rimraf es lib dist",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@ldesign/core": "workspace:*",
-    "@ldesign/engine-core": "workspace:*"
+    "@ldesign/engine-core": "workspace:*",
+    "rxjs": "^7.8.1"
   },
   "peerDependencies": {
     "@angular/core": "^17.0.0 || ^18.0.0",
-    "@ldesign/engine-core": "workspace:*",
-    "rxjs": "^7.8.0",
-    "zone.js": "~0.14.0"
+    "@angular/common": "^17.0.0 || ^18.0.0"
   },
   "devDependencies": {
-    "@angular/core": "^18.0.0",
+    "@angular/core": "^18.2.0",
+    "@angular/common": "^18.2.0",
     "@ldesign/builder": "workspace:*",
-    "rxjs": "^7.8.1",
-    "typescript": "^5.3.3",
-    "zone.js": "~0.14.0"
+    "@ldesign/router": "workspace:*",
+    "@ldesign/router-angular": "workspace:*",
+    "typescript": "^5.7.3",
+    "zone.js": "^0.14.0"
+  },
+  "optionalDependencies": {
+    "@ldesign/router": "workspace:*",
+    "@ldesign/router-angular": "workspace:*"
   }
 }

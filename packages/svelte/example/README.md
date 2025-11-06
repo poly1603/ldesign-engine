@@ -1,101 +1,296 @@
-# Svelte Engine Example
+# Svelte Engine 示例项目
 
-这是一个演示 `@ldesign/engine-svelte` 中 `createEngineApp` 统一 API 的示例项目。
+这是一个使用 `@ldesign/engine-svelte` 和 Svelte 5 Runes 构建的完整示例项目,展示了引擎的所有核心功能。
 
-## 功能演示
+## 📦 功能展示
 
-本示例展示了以下核心特性：
+### 1. 插件系统
+- ✅ 插件安装和卸载
+- ✅ 插件依赖管理
+- ✅ 插件上下文访问
+- ✅ 动态插件注册
 
-### 1. 统一的 createEngineApp API
-```typescript
-const engine = await createEngineApp({
-  rootComponent: App,
-  mountElement: '#app',
-  config: { debug: true },
-  plugins: [loggingPlugin],
-  middleware: [authMiddleware],
-  onReady: async (engine) => { /* ... */ },
-  onMounted: async (engine) => { /* ... */ },
-  onError: (error, context) => { /* ... */ }
-})
-```
+### 2. 中间件系统
+- ✅ 中间件注册和执行
+- ✅ 优先级控制
+- ✅ 洋葱模型执行
+- ✅ 上下文传递
 
-### 2. Plugin（插件系统）
-- 演示如何创建和注册插件
-- 插件可以监听引擎事件
-- 插件可以扩展引擎功能
+### 3. 状态管理
+- ✅ 状态设置和获取
+- ✅ 状态监听
+- ✅ 批量更新
+- ✅ 响应式状态
 
-### 3. Middleware（中间件）
-- 演示如何创建和注册中间件
-- 中间件可以拦截和处理请求
-- 支持异步中间件
+### 4. 事件系统
+- ✅ 事件发布和订阅
+- ✅ 异步事件
+- ✅ 事件日志
+- ✅ 自定义事件
 
-### 4. Lifecycle（生命周期）
-- `onReady` - 引擎初始化完成
-- `onMounted` - 应用挂载完成
-- `onError` - 错误处理
-- 支持自定义生命周期钩子
+### 5. 生命周期管理
+- ✅ 生命周期钩子
+- ✅ 钩子触发
+- ✅ 自定义钩子
+- ✅ 钩子计数
 
-### 5. State Management（状态管理）
-- 使用 `engine.state` 管理应用状态
-- 支持状态的读取和更新
-- 状态变化会触发事件
-
-### 6. Event System（事件系统）
-- 使用 `engine.events` 发送和监听事件
-- 支持自定义事件
-- 事件驱动的架构
-
-## 运行示例
+## 🚀 快速开始
 
 ### 安装依赖
+
 ```bash
 pnpm install
 ```
 
 ### 启动开发服务器
+
 ```bash
 pnpm dev
 ```
 
-访问 http://localhost:5102
-
 ### 构建生产版本
+
 ```bash
 pnpm build
 ```
 
-### 预览生产构建
+### 预览构建结果
+
 ```bash
 pnpm preview
 ```
 
-## 项目结构
+## 📁 项目结构
 
 ```
 example/
 ├── src/
-│   ├── App.svelte       # 主应用组件
-│   ├── main.ts          # 入口文件，演示 createEngineApp
-│   └── style.css        # 全局样式
-├── index.html           # HTML 模板
-├── launcher.config.ts   # Launcher 配置
-├── package.json         # 项目配置
-├── tsconfig.json        # TypeScript 配置
-└── README.md            # 本文件
+│   ├── components/          # 演示组件
+│   │   ├── PluginDemo.svelte      # 插件系统演示
+│   │   ├── MiddlewareDemo.svelte  # 中间件系统演示
+│   │   ├── StateDemo.svelte       # 状态管理演示
+│   │   ├── EventDemo.svelte       # 事件系统演示
+│   │   ├── LifecycleDemo.svelte   # 生命周期演示
+│   │   └── DemoCard.css           # 共享样式
+│   ├── App.svelte           # 主应用组件
+│   ├── main.ts              # 入口文件
+│   └── global.css           # 全局样式
+├── index.html               # HTML 模板
+├── package.json             # 项目配置
+└── tsconfig.json            # TypeScript 配置
 ```
 
-## 技术栈
+## 💡 使用示例
 
-- **Svelte 4** - 编译型前端框架
-- **TypeScript** - 类型安全
-- **@ldesign/engine-svelte** - Svelte 引擎适配器
-- **@ldesign/engine-core** - 引擎核心
-- **@ldesign/launcher** - 开发服务器和构建工具
+### 创建引擎应用
 
-## 了解更多
+```typescript
+import { createEngineApp } from '@ldesign/engine-svelte'
+import App from './App.svelte'
 
-- [Svelte Engine 文档](../../README.md)
-- [统一 API 文档](../../../UNIFIED_API.md)
-- [Engine Core 文档](../../core/README.md)
+await createEngineApp({
+  rootComponent: App,
+  mountElement: '#app',
+  config: {
+    name: 'My Svelte App',
+    debug: true,
+  },
+  plugins: [/* 插件列表 */],
+  middleware: [/* 中间件列表 */],
+})
+```
+
+### 使用 Svelte 5 Runes
+
+```svelte
+<script lang="ts">
+  import { getEngineContext, createEngineState } from '@ldesign/engine-svelte'
+
+  // 获取引擎实例
+  const engine = getEngineContext()
+
+  // 使用 Svelte 5 runes
+  let count = $state(0)
+
+  // 监听引擎状态
+  $effect(() => {
+    const unsub = engine.state.watch('count', (value) => {
+      count = value
+    })
+    return () => unsub()
+  })
+</script>
+
+<div>Count: {count}</div>
+```
+
+### 使用插件
+
+```typescript
+const myPlugin = {
+  name: 'my-plugin',
+  version: '1.0.0',
+  install(context) {
+    // 插件逻辑
+    context.engine.state.set('pluginData', {})
+  },
+}
+
+await engine.use(myPlugin)
+```
+
+### 使用中间件
+
+```typescript
+const myMiddleware = {
+  name: 'my-middleware',
+  priority: 100,
+  async execute(context, next) {
+    console.log('Before')
+    await next()
+    console.log('After')
+  },
+}
+
+engine.middleware.use(myMiddleware)
+```
+
+### 状态管理
+
+```typescript
+// 设置状态
+engine.state.set('count', 0)
+
+// 获取状态
+const count = engine.state.get('count')
+
+// 监听状态变化
+engine.state.watch('count', (newValue, oldValue) => {
+  console.log('Count changed:', oldValue, '->', newValue)
+})
+
+// 批量更新
+engine.state.batch(() => {
+  engine.state.set('a', 1)
+  engine.state.set('b', 2)
+  engine.state.set('c', 3)
+})
+```
+
+### 事件系统
+
+```typescript
+// 监听事件
+engine.events.on('user:login', (user) => {
+  console.log('User logged in:', user)
+})
+
+// 触发事件
+engine.events.emit('user:login', { name: 'Alice' })
+
+// 异步事件
+await engine.events.emitAsync('data:load', { id: 123 })
+```
+
+### 生命周期钩子
+
+```typescript
+// 注册钩子
+engine.lifecycle.on('mounted', () => {
+  console.log('App mounted!')
+})
+
+// 触发钩子
+await engine.lifecycle.trigger('mounted')
+```
+
+## 🎨 Svelte Stores API
+
+### setEngineContext(engine)
+设置引擎到 Svelte 上下文
+
+```svelte
+<script>
+  import { setEngineContext } from '@ldesign/engine-svelte'
+  
+  setEngineContext(engine)
+</script>
+```
+
+### getEngineContext()
+从 Svelte 上下文获取引擎
+
+```svelte
+<script>
+  import { getEngineContext } from '@ldesign/engine-svelte'
+  
+  const engine = getEngineContext()
+</script>
+```
+
+### createEngineState(key, defaultValue)
+创建引擎状态 store
+
+```svelte
+<script>
+  import { createEngineState } from '@ldesign/engine-svelte'
+  
+  const count = createEngineState('count', 0)
+</script>
+
+<button on:click={() => $count++}>
+  Count: {$count}
+</button>
+```
+
+### createEventListener(event, handler)
+创建事件监听器(自动清理)
+
+```svelte
+<script>
+  import { createEventListener } from '@ldesign/engine-svelte'
+  
+  createEventListener('user:login', (user) => {
+    console.log('User logged in:', user)
+  })
+</script>
+```
+
+### createLifecycleHook(hook, handler)
+创建生命周期钩子监听器(自动清理)
+
+```svelte
+<script>
+  import { createLifecycleHook } from '@ldesign/engine-svelte'
+  
+  createLifecycleHook('mounted', () => {
+    console.log('Component mounted!')
+  })
+</script>
+```
+
+### emitEngineEvent(event, data)
+触发引擎事件
+
+```svelte
+<script>
+  import { emitEngineEvent } from '@ldesign/engine-svelte'
+</script>
+
+<button on:click={() => emitEngineEvent('user:logout')}>
+  Logout
+</button>
+```
+
+## 🔗 相关链接
+
+- [@ldesign/engine-svelte 文档](../README.md)
+- [@ldesign/engine-core 文档](../../core/README.md)
+- [LDesign Engine 架构](../../../README.md)
+- [Svelte 官方文档](https://svelte.dev/)
+- [Svelte 5 Runes](https://svelte-5-preview.vercel.app/docs/runes)
+
+## 📄 License
+
+MIT
 

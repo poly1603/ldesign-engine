@@ -1,0 +1,23 @@
+{
+  "name": "vue3-engine-example",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Vue 3 Engine 示例项目 - 展示 @ldesign/engine-vue3 的使用",
+  "private": true,
+  "scripts": {
+    "dev": "ldesign-launcher dev",
+    "build": "ldesign-launcher build",
+    "preview": "ldesign-launcher preview"
+  },
+  "dependencies": {
+    "@ldesign/engine-vue3": "workspace:*",
+    "@ldesign/router": "workspace:*",
+    "@ldesign/router-vue": "workspace:*",
+    "vue": "^3.5.18"
+  },
+  "devDependencies": {
+    "@ldesign/launcher": "workspace:*",
+    "typescript": "^5.7.3"
+  }
+}
+

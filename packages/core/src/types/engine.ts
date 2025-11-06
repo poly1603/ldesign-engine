@@ -2,74 +2,45 @@
  * 核心引擎类型定义
  */
 
-import type { CacheManager } from './cache'
-import type { ConfigManager, EngineConfig } from './config'
-import type { DIContainer } from './di'
-import type { EventManager } from './events'
-import type { LifecycleManager } from './lifecycle'
-import type { Logger } from './logger'
+import type { PluginManager, Plugin } from './plugin'
 import type { MiddlewareManager } from './middleware'
-import type { Plugin, PluginManager } from './plugin'
+import type { LifecycleManager } from './lifecycle'
+import type { EventManager } from './event'
 import type { StateManager } from './state'
 
 /**
- * 核心引擎配置
+ * 引擎配置
  */
-export interface CoreEngineConfig extends EngineConfig {
-  /** 日志配置 */
-  logger?: {
-    level?: 'debug' | 'info' | 'warn' | 'error'
-    enabled?: boolean
-  }
-
-  /** 缓存配置 */
-  cache?: {
-    maxSize?: number
-    defaultTTL?: number
-    strategy?: 'lru' | 'lfu' | 'fifo' | 'ttl'
-  }
-
-  /** 插件配置 */
-  plugins?: {
-    autoInit?: boolean
-  }
+export interface CoreEngineConfig {
+  /** 应用名称 */
+  name?: string
+  /** 调试模式 */
+  debug?: boolean
+  /** 自定义配置 */
+  [key: string]: any
 }
 
 /**
  * 核心引擎接口
  */
 export interface CoreEngine {
-  /** 核心管理器 */
+  /** 配置 */
+  readonly config: CoreEngineConfig
+  /** 插件管理器 */
   readonly plugins: PluginManager
+  /** 中间件管理器 */
   readonly middleware: MiddlewareManager
+  /** 生命周期管理器 */
   readonly lifecycle: LifecycleManager
+  /** 事件管理器 */
   readonly events: EventManager
+  /** 状态管理器 */
   readonly state: StateManager
-  readonly cache: CacheManager
-  readonly logger: Logger
-  readonly config: ConfigManager
-  readonly di: DIContainer
-
-  /** 生命周期方法 */
+  /** 初始化引擎 */
   init(): Promise<void>
+  /** 销毁引擎 */
   destroy(): Promise<void>
-
-  /** 插件注册 */
-  use(plugin: Plugin): Promise<void>
-
-  /** 获取引擎状态 */
-  getStatus(): {
-    initialized: boolean
-    destroyed: boolean
-    pluginCount: number
-    middlewareCount: number
-  }
-}
-
-/**
- * 创建引擎选项
- */
-export interface CreateEngineOptions {
-  config?: CoreEngineConfig
+  /** 使用插件 */
+  use<T = any>(plugin: Plugin<T>, options?: T): Promise<void>
 }
 

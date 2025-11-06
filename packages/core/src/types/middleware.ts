@@ -3,59 +3,34 @@
  */
 
 /**
- * 中间件请求对象
- */
-export interface MiddlewareRequest {
-  method?: string
-  url?: string
-  headers?: Record<string, string>
-  body?: unknown
-  params?: Record<string, string>
-  query?: Record<string, string>
-  [key: string]: unknown
-}
-
-/**
- * 中间件响应对象
- */
-export interface MiddlewareResponse {
-  status?: number
-  statusText?: string
-  headers?: Record<string, string>
-  body?: unknown
-  [key: string]: unknown
-}
-
-/**
  * 中间件上下文
  */
-export interface MiddlewareContext {
-  request?: MiddlewareRequest
-  response?: MiddlewareResponse
-  error?: Error
-  [key: string]: unknown
+export interface MiddlewareContext<T = any> {
+  /** 上下文数据 */
+  data: T
+  /** 元数据 */
+  metadata?: Record<string, any>
+  /** 是否已取消 */
+  cancelled?: boolean
 }
 
 /**
- * 中间件下一个函数类型
+ * 中间件下一步函数
  */
-export type MiddlewareNext = () => Promise<void> | void
-
-/**
- * 中间件函数类型
- */
-export type MiddlewareFunction = (
-  context: MiddlewareContext,
-  next: MiddlewareNext
-) => Promise<void> | void
+export type MiddlewareNext = () => void | Promise<void>
 
 /**
  * 中间件接口
  */
-export interface Middleware {
-  name: string
-  handler: MiddlewareFunction
-  priority?: number
+export interface Middleware<T = any> {
+  /** 中间件名称 */
+  readonly name: string
+  /** 中间件优先级 (数字越大优先级越高) */
+  readonly priority?: number
+  /** 执行函数 */
+  execute: (context: MiddlewareContext<T>, next: MiddlewareNext) => void | Promise<void>
+  /** 错误处理函数 */
+  onError?: (error: Error, context: MiddlewareContext<T>) => void | Promise<void>
 }
 
 /**
@@ -65,18 +40,16 @@ export interface MiddlewareManager {
   /** 注册中间件 */
   use: (middleware: Middleware) => void
   /** 移除中间件 */
-  remove: (name: string) => void
+  remove: (name: string) => boolean
   /** 获取中间件 */
   get: (name: string) => Middleware | undefined
   /** 获取所有中间件 */
   getAll: () => Middleware[]
-  /** 执行中间件管道 */
-  execute(context: MiddlewareContext): Promise<void>
-  /** 执行特定中间件 */
-  execute(name: string, context: MiddlewareContext): Promise<unknown>
-
-  /** 初始化和销毁 */
-  init?(): Promise<void>
-  destroy?(): Promise<void>
+  /** 执行中间件链 */
+  execute: <T = any>(context: MiddlewareContext<T>) => Promise<void>
+  /** 清空所有中间件 */
+  clear: () => void
+  /** 获取中间件数量 */
+  size: () => number
 }
 

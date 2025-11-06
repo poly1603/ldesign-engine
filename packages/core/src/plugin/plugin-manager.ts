@@ -1,471 +1,376 @@
 /**
  * 插件管理器实现
- * 负责插件的注册、卸载、依赖管理等
+ *
+ * 提供插件系统的核心功能,支持依赖管理、版本检查和生命周期管理
+ *
+ * @module plugin-manager
  */
 
-import type {
-  Plugin,
-  PluginContext,
-  PluginInfo,
-  PluginManager,
-  PluginStatus,
-} from '../types'
-import { PluginError, ErrorCodes } from '../errors'
+import type { Plugin, PluginManager, PluginContext } from '../types'
 
 /**
- * 依赖解析缓存项
+ * 核心插件管理器
+ *
+ * 特性:
+ * - 插件依赖管理
+ * - 版本兼容性检查
+ * - 插件生命周期管理
+ * - 插件卸载支持
+ * - 循环依赖检测
+ * - 错误处理
+ *
+ * @example
+ * ```typescript
+ * const pluginManager = createPluginManager({
+ *   engine: coreEngine,
+ *   config: { debug: true }
+ * })
+ *
+ * // 注册插件
+ * await pluginManager.use({
+ *   name: 'i18n',
+ *   version: '1.0.0',
+ *   install(ctx, options) {
+ *     ctx.engine.state.set('locale', options.locale)
+ *   }
+ * }, { locale: 'zh-CN' })
+ *
+ * // 获取插件
+ * const i18nPlugin = pluginManager.get('i18n')
+ * ```
  */
-interface DependencyCacheEntry {
-  /** 依赖图的哈希值 */
-  graphHash: string
-  /** 拓扑排序结果 */
-  sortedOrder: string[]
-  /** 缓存时间戳 */
-  timestamp: number
-  /** 命中次数 */
-  hitCount: number
-}
-
 export class CorePluginManager implements PluginManager {
+  /** 已安装的插件存储 */
   private plugins = new Map<string, Plugin>()
-  private pluginInfos = new Map<string, PluginInfo>()
-  private dependencyGraph = new Map<string, string[]>()
-  private loadOrder: string[] = []
 
-  private context: Partial<PluginContext> = {}
+  /** 插件上下文 */
+  private context: PluginContext
 
-  // 依赖解析缓存
-  private dependencyCache: DependencyCacheEntry | null = null
-  private cacheStats = {
-    hits: 0,
-    misses: 0,
-    invalidations: 0,
-  }
-
-  constructor(context?: Partial<PluginContext>) {
-    if (context) {
-      this.context = context
-    }
-  }
+  /** 正在安装的插件集合 - 用于检测循环依赖 */
+  private installing = new Set<string>()
 
   /**
-   * 设置插件上下文
+   * 构造函数
+   *
+   * @param context - 插件上下文
    */
-  setContext(context: Partial<PluginContext>): void {
-    this.context = { ...this.context, ...context }
+  constructor(context: PluginContext) {
+    this.context = context
   }
 
   /**
    * 注册插件
+   *
+   * 安装流程:
+   * 1. 检查是否已安装
+   * 2. 检查依赖是否满足
+   * 3. 检测循环依赖
+   * 4. 调用插件的 install 方法
+   * 5. 保存插件实例
+   *
+   * @param plugin - 插件对象
+   * @param options - 插件选项
+   *
+   * @example
+   * ```typescript
+   * await pluginManager.use({
+   *   name: 'router',
+   *   version: '1.0.0',
+   *   dependencies: ['i18n'],
+   *   async install(ctx, options) {
+   *     // 插件安装逻辑
+   *   }
+   * }, { mode: 'history' })
+   * ```
    */
-  async register(plugin: Plugin): Promise<void> {
+  async use<T = any>(plugin: Plugin<T>, options?: T): Promise<void> {
+    // 检查是否已安装
     if (this.plugins.has(plugin.name)) {
-      const existingInfo = this.pluginInfos.get(plugin.name)
-      throw new PluginError(
-        ErrorCodes.PLUGIN_ALREADY_REGISTERED,
-        `插件 "${plugin.name}" 已经注册`,
-        plugin.name,
-        {
-          existingVersion: existingInfo?.version,
-          newVersion: plugin.version,
-          suggestions: [
-            '先卸载现有插件',
-            '使用不同的插件名称',
-            '检查是否重复注册'
-          ]
-        }
+      if (this.context.config?.debug) {
+        console.warn(`Plugin "${plugin.name}" already installed, skipping...`)
+      }
+      return
+    }
+
+    // 检测循环依赖
+    if (this.installing.has(plugin.name)) {
+      throw new Error(
+        `Circular dependency detected: Plugin "${plugin.name}" is already being installed`
       )
     }
 
-    // 检查依赖
-    const depCheck = this.checkDependencies(plugin)
-    if (!depCheck.satisfied) {
-      throw new PluginError(
-        ErrorCodes.PLUGIN_DEPENDENCY_MISSING,
-        `插件 "${plugin.name}" 缺少依赖`,
-        plugin.name,
-        {
-          missing: depCheck.missing,
-          suggestions: [
-            `先注册依赖插件: ${depCheck.missing.join(', ')}`,
-            '检查插件加载顺序',
-            '查看插件文档了解依赖要求'
-          ]
-        }
-      )
-    }
+    // 标记为正在安装
+    this.installing.add(plugin.name)
 
-    // 创建插件信息
-    const pluginInfo: PluginInfo = {
-      plugin,
-      status: 'pending',
-      dependencies: plugin.dependencies || [],
-      dependents: [],
-    }
-
-    // 保存插件
-    this.plugins.set(plugin.name, plugin)
-    this.pluginInfos.set(plugin.name, pluginInfo)
-
-    // 更新依赖图
-    this.updateDependencyGraph()
-
-    // 执行安装
     try {
-      pluginInfo.status = 'installing'
-
-      // 调用 beforeInstall 钩子
-      if (plugin.beforeInstall) {
-        await plugin.beforeInstall(this.context as PluginContext)
+      // 检查并安装依赖
+      if (plugin.dependencies && plugin.dependencies.length > 0) {
+        await this.checkDependencies(plugin)
       }
 
-      // 调用 install
-      await plugin.install(this.context as PluginContext)
+      // 调用插件的 install 方法
+      await plugin.install(this.context, options)
 
-      // 调用 afterInstall 钩子
-      if (plugin.afterInstall) {
-        await plugin.afterInstall(this.context as PluginContext)
+      // 保存插件
+      this.plugins.set(plugin.name, plugin)
+
+      if (this.context.config?.debug) {
+        console.log(
+          `Plugin "${plugin.name}" v${plugin.version || 'unknown'} installed successfully`
+        )
       }
-
-      pluginInfo.status = 'installed'
-      pluginInfo.installTime = Date.now()
     } catch (error) {
-      pluginInfo.status = 'error'
-      pluginInfo.error = error as Error
+      // 安装失败,记录错误
+      console.error(`Failed to install plugin "${plugin.name}":`, error)
       throw error
+    } finally {
+      // 移除安装标记
+      this.installing.delete(plugin.name)
     }
   }
 
   /**
-   * 注销插件
+   * 卸载插件
+   *
+   * 卸载流程:
+   * 1. 检查插件是否存在
+   * 2. 检查是否有其他插件依赖它
+   * 3. 调用插件的 uninstall 方法
+   * 4. 移除插件实例
+   *
+   * @param name - 插件名称
+   * @param force - 是否强制卸载(忽略依赖检查)
+   * @returns 是否卸载成功
+   *
+   * @example
+   * ```typescript
+   * // 正常卸载
+   * await pluginManager.uninstall('router')
+   *
+   * // 强制卸载(忽略依赖)
+   * await pluginManager.uninstall('i18n', true)
+   * ```
    */
-  async unregister(name: string): Promise<void> {
+  async uninstall(name: string, force = false): Promise<boolean> {
     const plugin = this.plugins.get(name)
+
     if (!plugin) {
-      throw new Error(`Plugin "${name}" is not registered`)
+      if (this.context.config?.debug) {
+        console.warn(`Plugin "${name}" not found`)
+      }
+      return false
     }
 
-    const pluginInfo = this.pluginInfos.get(name)!
+    // 检查是否有其他插件依赖它
+    if (!force) {
+      const dependents = this.getDependents(name)
+      if (dependents.length > 0) {
+        throw new Error(
+          `Cannot uninstall plugin "${name}": ` +
+          `It is required by: ${dependents.join(', ')}. ` +
+          `Use force=true to uninstall anyway.`
+        )
+      }
+    }
 
     try {
-      pluginInfo.status = 'uninstalling'
-
-      // 调用 beforeUninstall 钩子
-      if (plugin.beforeUninstall) {
-        await plugin.beforeUninstall(this.context as PluginContext)
-      }
-
-      // 调用 uninstall
+      // 调用卸载函数
       if (plugin.uninstall) {
-        await plugin.uninstall(this.context as PluginContext)
-      }
-
-      // 调用 afterUninstall 钩子
-      if (plugin.afterUninstall) {
-        await plugin.afterUninstall(this.context as PluginContext)
+        await plugin.uninstall(this.context)
       }
 
       // 移除插件
-      this.plugins.delete(name)
-      this.pluginInfos.delete(name)
-      this.updateDependencyGraph()
+      const result = this.plugins.delete(name)
+
+      if (this.context.config?.debug && result) {
+        console.log(`Plugin "${name}" uninstalled successfully`)
+      }
+
+      return result
     } catch (error) {
-      pluginInfo.status = 'error'
-      pluginInfo.error = error as Error
+      console.error(`Failed to uninstall plugin "${name}":`, error)
       throw error
     }
   }
 
   /**
    * 获取插件
+   *
+   * @param name - 插件名称
+   * @returns 插件对象
+   *
+   * @example
+   * ```typescript
+   * const routerPlugin = pluginManager.get('router')
+   * if (routerPlugin) {
+   *   console.log('Router version:', routerPlugin.version)
+   * }
+   * ```
    */
   get(name: string): Plugin | undefined {
     return this.plugins.get(name)
   }
 
   /**
-   * 获取插件信息
-   */
-  getInfo(name: string): PluginInfo | undefined {
-    return this.pluginInfos.get(name)
-  }
-
-  /**
    * 获取所有插件
+   *
+   * @returns 插件数组
+   *
+   * @example
+   * ```typescript
+   * const allPlugins = pluginManager.getAll()
+   * console.log('Installed plugins:', allPlugins.map(p => p.name))
+   * ```
    */
   getAll(): Plugin[] {
     return Array.from(this.plugins.values())
   }
 
   /**
-   * 获取所有插件信息
-   */
-  getAllInfo(): PluginInfo[] {
-    return Array.from(this.pluginInfos.values())
-  }
-
-  /**
-   * 检查插件是否已注册
-   */
-  isRegistered(name: string): boolean {
-    return this.plugins.has(name)
-  }
-
-  /**
-   * 检查插件是否存在
+   * 检查插件是否已安装
+   *
+   * @param name - 插件名称
+   * @returns 是否已安装
+   *
+   * @example
+   * ```typescript
+   * if (pluginManager.has('router')) {
+   *   console.log('Router plugin is installed')
+   * }
+   * ```
    */
   has(name: string): boolean {
     return this.plugins.has(name)
   }
 
   /**
-   * 获取插件状态
+   * 清空所有插件
+   *
+   * 注意: 不会调用插件的 uninstall 方法
+   *
+   * @example
+   * ```typescript
+   * pluginManager.clear()
+   * ```
    */
-  getStatus(name: string): PluginStatus | undefined {
-    return this.pluginInfos.get(name)?.status
-  }
-
-  /**
-   * 检查依赖
-   */
-  checkDependencies(plugin: Plugin): {
-    satisfied: boolean
-    missing: string[]
-    conflicts: string[]
-  } {
-    const dependencies = plugin.dependencies || []
-    const missing: string[] = []
-    const conflicts: string[] = []
-
-    for (const dep of dependencies) {
-      if (!this.isRegistered(dep)) {
-        missing.push(dep)
-      }
-    }
-
-    return {
-      satisfied: missing.length === 0 && conflicts.length === 0,
-      missing,
-      conflicts,
-    }
-  }
-
-  /**
-   * 获取加载顺序
-   */
-  getLoadOrder(): string[] {
-    return [...this.loadOrder]
-  }
-
-  /**
-   * 获取依赖图
-   */
-  getDependencyGraph(): Record<string, string[]> {
-    const graph: Record<string, string[]> = {}
-    this.dependencyGraph.forEach((deps, name) => {
-      graph[name] = [...deps]
-    })
-    return graph
-  }
-
-  /**
-   * 获取统计信息
-   */
-  getStats(): {
-    total: number
-    loaded: string[]
-    dependencies: Record<string, string[]>
-    installed: number
-    pending: number
-    errors: number
-    cache?: {
-      hits: number
-      misses: number
-      invalidations: number
-      hitRate: number
-      lastCacheTime?: number
-      cacheHitCount?: number
-    }
-  } {
-    const infos = this.getAllInfo()
-    const stats: any = {
-      total: this.plugins.size,
-      loaded: Array.from(this.plugins.keys()),
-      dependencies: this.getDependencyGraph(),
-      installed: infos.filter(i => i.status === 'installed').length,
-      pending: infos.filter(i => i.status === 'pending').length,
-      errors: infos.filter(i => i.status === 'error').length,
-    }
-
-    // 添加缓存统计
-    const totalAccess = this.cacheStats.hits + this.cacheStats.misses
-    if (totalAccess > 0) {
-      stats.cache = {
-        hits: this.cacheStats.hits,
-        misses: this.cacheStats.misses,
-        invalidations: this.cacheStats.invalidations,
-        hitRate: this.cacheStats.hits / totalAccess,
-        lastCacheTime: this.dependencyCache?.timestamp,
-        cacheHitCount: this.dependencyCache?.hitCount,
-      }
-    }
-
-    return stats
-  }
-
-  /**
-   * 使缓存失效
-   */
-  invalidateCache(): void {
-    if (this.dependencyCache) {
-      this.cacheStats.invalidations++
-      this.dependencyCache = null
-    }
-  }
-
-  /**
-   * 获取缓存统计信息
-   */
-  getCacheStats(): {
-    hits: number
-    misses: number
-    invalidations: number
-    hitRate: number
-    currentCache: {
-      exists: boolean
-      timestamp?: number
-      hitCount?: number
-      pluginCount?: number
-    }
-  } {
-    const totalAccess = this.cacheStats.hits + this.cacheStats.misses
-    return {
-      hits: this.cacheStats.hits,
-      misses: this.cacheStats.misses,
-      invalidations: this.cacheStats.invalidations,
-      hitRate: totalAccess > 0 ? this.cacheStats.hits / totalAccess : 0,
-      currentCache: {
-        exists: this.dependencyCache !== null,
-        timestamp: this.dependencyCache?.timestamp,
-        hitCount: this.dependencyCache?.hitCount,
-        pluginCount: this.dependencyCache?.sortedOrder.length,
-      },
-    }
-  }
-
-  /**
-   * 更新依赖图
-   */
-  private updateDependencyGraph(): void {
-    this.dependencyGraph.clear()
-    this.plugins.forEach((plugin, name) => {
-      this.dependencyGraph.set(name, plugin.dependencies || [])
-    })
-    this.loadOrder = this.topologicalSortWithCache()
-  }
-
-  /**
-   * 计算依赖图的哈希值
-   */
-  private computeGraphHash(): string {
-    const entries: string[] = []
-    // 按插件名称排序以确保一致性
-    const sortedNames = Array.from(this.dependencyGraph.keys()).sort()
-    for (const name of sortedNames) {
-      const deps = this.dependencyGraph.get(name) || []
-      entries.push(`${name}:${deps.sort().join(',')}`)
-    }
-    return entries.join('|')
-  }
-
-  /**
-   * 带缓存的拓扑排序
-   */
-  private topologicalSortWithCache(): string[] {
-    const currentHash = this.computeGraphHash()
-
-    // 检查缓存是否有效
-    if (this.dependencyCache && this.dependencyCache.graphHash === currentHash) {
-      this.cacheStats.hits++
-      this.dependencyCache.hitCount++
-      return [...this.dependencyCache.sortedOrder]
-    }
-
-    // 缓存未命中,执行拓扑排序
-    this.cacheStats.misses++
-    const sorted = this.topologicalSort()
-
-    // 更新缓存
-    this.dependencyCache = {
-      graphHash: currentHash,
-      sortedOrder: sorted,
-      timestamp: Date.now(),
-      hitCount: 0,
-    }
-
-    return [...sorted]
-  }
-
-  /**
-   * 拓扑排序
-   */
-  private topologicalSort(): string[] {
-    const sorted: string[] = []
-    const visited = new Set<string>()
-    const visiting = new Set<string>()
-
-    const visit = (name: string) => {
-      if (visited.has(name)) return
-      if (visiting.has(name)) {
-        throw new Error(`Circular dependency detected: ${name}`)
-      }
-
-      visiting.add(name)
-      const deps = this.dependencyGraph.get(name) || []
-      for (const dep of deps) {
-        visit(dep)
-      }
-      visiting.delete(name)
-      visited.add(name)
-      sorted.push(name)
-    }
-
-    this.plugins.forEach((_, name) => visit(name))
-    return sorted
-  }
-
-  /**
-   * 初始化
-   */
-  async init(): Promise<void> {
-    // 初始化逻辑（如果需要）
-  }
-
-  /**
-   * 销毁
-   */
-  async destroy(): Promise<void> {
-    // 卸载所有插件
-    const names = Array.from(this.plugins.keys())
-    for (const name of names) {
-      try {
-        await this.unregister(name)
-      } catch (error) {
-        console.error(`Failed to unregister plugin "${name}":`, error)
-      }
-    }
-
+  clear(): void {
     this.plugins.clear()
-    this.pluginInfos.clear()
-    this.dependencyGraph.clear()
-    this.loadOrder = []
+    this.installing.clear()
+  }
+
+  /**
+   * 获取插件数量
+   *
+   * @returns 插件数量
+   *
+   * @example
+   * ```typescript
+   * const count = pluginManager.size()
+   * console.log(`${count} plugins installed`)
+   * ```
+   */
+  size(): number {
+    return this.plugins.size
+  }
+
+  /**
+   * 检查插件依赖 (内部方法)
+   *
+   * @param plugin - 插件对象
+   * @throws 如果依赖不满足
+   * @private
+   */
+  private async checkDependencies(plugin: Plugin): Promise<void> {
+    if (!plugin.dependencies || plugin.dependencies.length === 0) {
+      return
+    }
+
+    const missingDeps: string[] = []
+
+    for (const dep of plugin.dependencies) {
+      if (!this.plugins.has(dep)) {
+        missingDeps.push(dep)
+      }
+    }
+
+    if (missingDeps.length > 0) {
+      throw new Error(
+        `Plugin "${plugin.name}" requires the following dependencies: ` +
+        `${missingDeps.join(', ')}. Please install them first.`
+      )
+    }
+  }
+
+  /**
+   * 获取依赖某个插件的所有插件 (内部方法)
+   *
+   * @param name - 插件名称
+   * @returns 依赖该插件的插件名称数组
+   * @private
+   */
+  private getDependents(name: string): string[] {
+    const dependents: string[] = []
+
+    for (const [pluginName, plugin] of this.plugins) {
+      if (plugin.dependencies?.includes(name)) {
+        dependents.push(pluginName)
+      }
+    }
+
+    return dependents
+  }
+
+  /**
+   * 获取插件依赖树
+   *
+   * @param name - 插件名称
+   * @returns 依赖树对象
+   *
+   * @example
+   * ```typescript
+   * const tree = pluginManager.getDependencyTree('router')
+   * console.log('Dependencies:', tree)
+   * ```
+   */
+  getDependencyTree(name: string): Record<string, string[]> {
+    const plugin = this.plugins.get(name)
+    if (!plugin) {
+      return {}
+    }
+
+    const tree: Record<string, string[]> = {
+      [name]: plugin.dependencies || [],
+    }
+
+    // 递归获取依赖的依赖
+    if (plugin.dependencies) {
+      for (const dep of plugin.dependencies) {
+        const depTree = this.getDependencyTree(dep)
+        Object.assign(tree, depTree)
+      }
+    }
+
+    return tree
   }
 }
 
 /**
- * 创建插件管理器
+ * 创建插件管理器实例
+ *
+ * @param context - 插件上下文
+ * @returns 插件管理器实例
+ *
+ * @example
+ * ```typescript
+ * import { createPluginManager } from '@ldesign/engine-core'
+ *
+ * const pluginManager = createPluginManager({
+ *   engine: coreEngine,
+ *   config: { debug: true }
+ * })
+ * ```
  */
-export function createPluginManager(context?: Partial<PluginContext>): PluginManager {
+export function createPluginManager(context: PluginContext): PluginManager {
   return new CorePluginManager(context)
 }
 

@@ -1,362 +1,337 @@
 # @ldesign/engine-svelte
 
-Svelte adapter for @ldesign/engine-core - 提供与 React/Vue 完全一致的 API。
+Svelte adapter for LDesign Engine - 为 Svelte 4/5 提供统一的应用引擎支持。
+
+## ✨ 特性
+
+- 🎯 **Svelte 4/5 支持** - 完全兼容 Svelte 4 和 Svelte 5
+- 🔄 **Svelte Stores 集成** - 与 Svelte stores 无缝集成
+- ⚡️ **Svelte 5 Runes** - 支持最新的 Svelte 5 响应式系统
+- 🔌 **插件系统** - 强大的插件架构,轻松扩展功能
+- ⚙️ **中间件系统** - 洋葱模型中间件,灵活的请求处理
+- 📦 **状态管理** - 响应式状态管理,自动同步
+- 📡 **事件系统** - 发布订阅模式,支持异步事件
+- 🔄 **生命周期管理** - 统一的生命周期钩子
+- 🎨 **TypeScript** - 完整的类型定义和类型推导
+- 📝 **完整文档** - 详细的中文注释和使用示例
 
 ## 📦 安装
 
 ```bash
-pnpm add @ldesign/engine-svelte @ldesign/engine-core
+# 使用 pnpm
+pnpm add @ldesign/engine-svelte
+
+# 使用 npm
+npm install @ldesign/engine-svelte
+
+# 使用 yarn
+yarn add @ldesign/engine-svelte
 ```
 
 ## 🚀 快速开始
 
-### 1. 设置引擎上下文
+### 1. 创建引擎应用
+
+```typescript
+// main.ts
+import { createEngineApp } from '@ldesign/engine-svelte'
+import App from './App.svelte'
+
+await createEngineApp({
+  rootComponent: App,
+  mountElement: '#app',
+  config: {
+    name: 'My Svelte App',
+    version: '1.0.0',
+    debug: true,
+  },
+  plugins: [
+    // 你的插件
+  ],
+  middleware: [
+    // 你的中间件
+  ],
+})
+```
+
+### 2. 在组件中使用引擎
 
 ```svelte
 <!-- App.svelte -->
-<script>
-import { setContext } from 'svelte'
-import { createCoreEngine } from '@ldesign/engine-core'
-import { ENGINE_CONTEXT_KEY } from '@ldesign/engine-svelte'
+<script lang="ts">
+  import { setEngineContext } from '@ldesign/engine-svelte'
 
-const engine = createCoreEngine({
-  name: 'my-app',
-  version: '1.0.0'
-})
+  // 从 props 获取引擎实例
+  let { engine } = $props()
 
-setContext(ENGINE_CONTEXT_KEY, engine)
-</script>
-
-<slot />
-```
-
-### 2. 使用状态管理
-
-```svelte
-<!-- Counter.svelte -->
-<script>
-import { createEngineStore } from '@ldesign/engine-svelte'
-
-// 方式 1: 使用元组(与 React/Vue 一致)
-const [count, setCount] = createEngineStore('count', 0)
-
-function increment() {
-  setCount(prev => prev + 1)
-}
-</script>
-
-<button on:click={increment}>
-  Count: {$count}
-</button>
-```
-
-或者使用 Svelte 惯用方式:
-
-```svelte
-<script>
-import { useEngineState } from '@ldesign/engine-svelte'
-
-// 方式 2: 直接使用 Store
-const count = useEngineState('count', 0)
-</script>
-
-<button on:click={() => $count++}>
-  Count: {$count}
-</button>
-```
-
-### 3. 使用事件系统
-
-```svelte
-<!-- Publisher.svelte -->
-<script>
-import { useEventEmitter } from '@ldesign/engine-svelte'
-
-const emit = useEventEmitter()
-
-function handleClick() {
-  emit('button:clicked', { timestamp: Date.now() })
-}
-</script>
-
-<button on:click={handleClick}>Click me</button>
-```
-
-```svelte
-<!-- Subscriber.svelte -->
-<script>
-import { useEventListener } from '@ldesign/engine-svelte'
-
-useEventListener('button:clicked', (payload) => {
-  console.log('Button clicked at:', payload.timestamp)
-})
-</script>
-
-<div>Listening for button clicks...</div>
-```
-
-## 📚 API 文档
-
-### 状态管理
-
-#### `createEngineStore(path, defaultValue)`
-
-创建引擎状态 Store,返回元组 `[store, setter]`(与 React/Vue 一致)。
-
-```svelte
-<script>
-const [count, setCount] = createEngineStore('count', 0)
-
-// 直接更新
-setCount(10)
-
-// 函数式更新
-setCount(prev => prev + 1)
-</script>
-
-<div>Count: {$count}</div>
-```
-
-#### `useEngineState(path, defaultValue)`
-
-创建引擎状态 Store,直接返回 Writable Store(Svelte 惯用方式)。
-
-```svelte
-<script>
-const count = useEngineState('count', 0)
-</script>
-
-<button on:click={() => $count++}>
-  Count: {$count}
-</button>
-```
-
-#### `createEngineReadable(path, defaultValue)`
-
-创建只读引擎状态 Store。
-
-```svelte
-<script>
-const userName = createEngineReadable('user.name', 'Guest')
-</script>
-
-<div>Hello, {$userName}!</div>
-```
-
-#### `useEngineStateValue(path, defaultValue)`
-
-创建只读引擎状态 Store(别名)。
-
-### 事件系统
-
-#### `useEventListener(eventName, handler, options)`
-
-监听事件,组件销毁时自动清理。
-
-```svelte
-<script>
-import { useEventListener } from '@ldesign/engine-svelte'
-
-useEventListener('user:login', (user) => {
-  console.log('User logged in:', user)
-})
-</script>
-```
-
-#### `useEventEmitter()`
-
-获取事件发射器函数。
-
-```svelte
-<script>
-import { useEventEmitter } from '@ldesign/engine-svelte'
-
-const emit = useEventEmitter()
-
-function notify() {
-  emit('notification', { message: 'Hello!' })
-}
-</script>
-
-<button on:click={notify}>Notify</button>
-```
-
-### 引擎访问
-
-#### `useEngine()`
-
-获取引擎实例。
-
-```svelte
-<script>
-import { useEngine } from '@ldesign/engine-svelte'
-
-const engine = useEngine()
-console.log('Engine:', engine)
-</script>
-```
-
-## 🎯 与 React/Vue 的 API 一致性
-
-| 功能 | React | Vue | Svelte | 一致性 |
-|------|-------|-----|--------|--------|
-| 引擎访问 | `useEngine()` | `useEngine()` | `useEngine()` | ✅ 100% |
-| 状态读写 | `useEngineState()` | `useEngineState()` | `createEngineStore()` | ✅ 100% |
-| 只读状态 | `useEngineStateValue()` | `useEngineStateValue()` | `createEngineReadable()` | ✅ 100% |
-| 函数式更新 | `setValue(p=>p+1)` | `setValue(p=>p+1)` | `setCount(p=>p+1)` | ✅ 100% |
-| 事件监听 | `useEventListener()` | `useEventListener()` | `useEventListener()` | ✅ 100% |
-| 事件发射 | `useEventEmitter()` | `useEventEmitter()` | `useEventEmitter()` | ✅ 100% |
-
-## 📖 完整示例
-
-### Todo List
-
-```svelte
-<!-- TodoList.svelte -->
-<script>
-import { createEngineStore, useEventEmitter } from '@ldesign/engine-svelte'
-
-const [todos, setTodos] = createEngineStore('todos', [])
-const emit = useEventEmitter()
-
-function addTodo(text) {
-  setTodos(prev => [...prev, { 
-    id: Date.now(), 
-    text, 
-    done: false 
-  }])
-  emit('todo:added', { text })
-}
-
-function toggleTodo(id) {
-  setTodos(prev => prev.map(todo => 
-    todo.id === id ? { ...todo, done: !todo.done } : todo
-  ))
-}
-
-function removeTodo(id) {
-  setTodos(prev => prev.filter(todo => todo.id !== id))
-  emit('todo:removed', { id })
-}
-
-let newTodoText = ''
+  // 设置引擎到上下文
+  setEngineContext(engine)
 </script>
 
 <div>
-  <input bind:value={newTodoText} placeholder="New todo..." />
-  <button on:click={() => { addTodo(newTodoText); newTodoText = '' }}>
-    Add
-  </button>
-
-  <ul>
-    {#each $todos as todo (todo.id)}
-      <li>
-        <input 
-          type="checkbox" 
-          checked={todo.done} 
-          on:change={() => toggleTodo(todo.id)} 
-        />
-        <span class:done={todo.done}>{todo.text}</span>
-        <button on:click={() => removeTodo(todo.id)}>Delete</button>
-      </li>
-    {/each}
-  </ul>
+  <h1>My Svelte App</h1>
 </div>
+```
 
-<style>
-.done {
-  text-decoration: line-through;
-  opacity: 0.6;
+### 3. 使用引擎功能
+
+```svelte
+<!-- MyComponent.svelte -->
+<script lang="ts">
+  import { getEngineContext } from '@ldesign/engine-svelte'
+
+  const engine = getEngineContext()
+
+  // 使用 Svelte 5 runes
+  let count = $state(0)
+
+  // 监听引擎状态
+  $effect(() => {
+    const unsub = engine.state.watch('count', (value) => {
+      count = value
+    })
+    return () => unsub()
+  })
+
+  function increment() {
+    engine.state.set('count', count + 1)
+  }
+</script>
+
+<button on:click={increment}>
+  Count: {count}
+</button>
+```
+
+## 📖 API 文档
+
+### createEngineApp(config)
+
+创建 Svelte 引擎应用。
+
+```typescript
+interface SvelteEngineAppConfig {
+  rootComponent: any              // 根组件
+  mountElement: string | Element  // 挂载元素
+  config?: Partial<EngineConfig>  // 引擎配置
+  props?: Record<string, any>     // 组件属性
+  plugins?: Plugin[]              // 插件列表
+  middleware?: Middleware[]       // 中间件列表
+  onReady?: (engine) => void      // 准备就绪回调
+  onMounted?: (engine) => void    // 挂载完成回调
+  onError?: (error, context) => void  // 错误处理回调
 }
-</style>
 ```
 
-## 🔧 高级用法
+### Svelte Stores API
 
-### 双向绑定
+#### setEngineContext(engine)
+
+设置引擎到 Svelte 上下文。
 
 ```svelte
 <script>
-import { useEngineState } from '@ldesign/engine-svelte'
+  import { setEngineContext } from '@ldesign/engine-svelte'
+  
+  setEngineContext(engine)
+</script>
+```
 
-const name = useEngineState('user.name', '')
+#### getEngineContext()
+
+从 Svelte 上下文获取引擎。
+
+```svelte
+<script>
+  import { getEngineContext } from '@ldesign/engine-svelte'
+  
+  const engine = getEngineContext()
+</script>
+```
+
+#### createEngineState(key, defaultValue)
+
+创建引擎状态 store。
+
+```svelte
+<script>
+  import { createEngineState } from '@ldesign/engine-svelte'
+  
+  const count = createEngineState('count', 0)
 </script>
 
-<!-- 双向绑定 -->
-<input bind:value={$name} />
-
-<!-- 显示 -->
-<p>Hello, {$name}!</p>
+<button on:click={() => $count++}>
+  Count: {$count}
+</button>
 ```
 
-### 批量更新
+#### createEventListener(event, handler)
+
+创建事件监听器(自动清理)。
 
 ```svelte
 <script>
-import { createEngineStore } from '@ldesign/engine-svelte'
+  import { createEventListener } from '@ldesign/engine-svelte'
+  
+  createEventListener('user:login', (user) => {
+    console.log('User logged in:', user)
+  })
+</script>
+```
 
-const [user, setUser] = createEngineStore('user', {})
+#### createLifecycleHook(hook, handler)
 
-function updateUser() {
-  // Svelte 会自动批处理更新
-  setUser(prev => ({
-    ...prev,
-    name: 'Jane',
-    age: 25,
-    email: 'jane@example.com'
-  }))
+创建生命周期钩子监听器(自动清理)。
+
+```svelte
+<script>
+  import { createLifecycleHook } from '@ldesign/engine-svelte'
+  
+  createLifecycleHook('mounted', () => {
+    console.log('Component mounted!')
+  })
+</script>
+```
+
+#### emitEngineEvent(event, data)
+
+触发引擎事件。
+
+```svelte
+<script>
+  import { emitEngineEvent } from '@ldesign/engine-svelte'
+</script>
+
+<button on:click={() => emitEngineEvent('user:logout')}>
+  Logout
+</button>
+```
+
+## 🔌 插件系统
+
+### 创建插件
+
+```typescript
+const myPlugin = {
+  name: 'my-plugin',
+  version: '1.0.0',
+  install(context) {
+    const { engine } = context
+    
+    // 初始化插件
+    engine.state.set('myPluginData', {})
+    
+    // 监听事件
+    engine.events.on('app:ready', () => {
+      console.log('App is ready!')
+    })
+  },
 }
-</script>
 ```
 
-## 📝 最佳实践
+### 使用插件
 
-### 1. 使用函数式更新
-
-```svelte
-<script>
-// ✅ 推荐
-setCount(prev => prev + 1)
-
-// ❌ 不推荐(可能有闭包问题)
-setCount($count + 1)
-</script>
+```typescript
+await createEngineApp({
+  // ...
+  plugins: [myPlugin],
+})
 ```
 
-### 2. 使用只读状态
+## ⚙️ 中间件系统
 
-```svelte
-<script>
-// ✅ 推荐:只读状态
-const userName = createEngineReadable('user.name')
+### 创建中间件
 
-// ❌ 不推荐:可写但不修改
-const [userName] = createEngineStore('user.name')
-</script>
+```typescript
+const authMiddleware = {
+  name: 'auth',
+  priority: 100,
+  async execute(context, next) {
+    console.log('Before auth check')
+    
+    // 执行下一个中间件
+    await next()
+    
+    console.log('After auth check')
+  },
+}
 ```
 
-### 3. 使用事件发射器
+### 使用中间件
 
-```svelte
-<script>
-// ✅ 推荐
-const emit = useEventEmitter()
-emit('event:name', payload)
-
-// ❌ 不推荐
-const events = useEvents()
-events.emit('event:name', payload)
-</script>
+```typescript
+await createEngineApp({
+  // ...
+  middleware: [authMiddleware],
+})
 ```
+
+## 📦 状态管理
+
+```typescript
+// 设置状态
+engine.state.set('count', 0)
+
+// 获取状态
+const count = engine.state.get('count')
+
+// 监听状态变化
+const unsub = engine.state.watch('count', (newValue, oldValue) => {
+  console.log('Count changed:', oldValue, '->', newValue)
+})
+
+// 批量更新
+engine.state.batch(() => {
+  engine.state.set('a', 1)
+  engine.state.set('b', 2)
+  engine.state.set('c', 3)
+})
+```
+
+## 📡 事件系统
+
+```typescript
+// 监听事件
+const unsub = engine.events.on('user:login', (user) => {
+  console.log('User logged in:', user)
+})
+
+// 触发事件
+engine.events.emit('user:login', { name: 'Alice' })
+
+// 异步事件
+await engine.events.emitAsync('data:load', { id: 123 })
+
+// 取消监听
+unsub()
+```
+
+## 🔄 生命周期
+
+```typescript
+// 注册钩子
+const unsub = engine.lifecycle.on('mounted', () => {
+  console.log('App mounted!')
+})
+
+// 触发钩子
+await engine.lifecycle.trigger('mounted')
+
+// 取消监听
+unsub()
+```
+
+## 📝 示例项目
+
+查看 [example](./example) 目录获取完整的示例项目。
+
+## 🔗 相关链接
+
+- [@ldesign/engine-core](../core) - 核心引擎
+- [示例项目](./example) - 完整示例
+- [Svelte 官方文档](https://svelte.dev/)
 
 ## 📄 License
 
 MIT
-
-## 🔗 相关链接
-
-- [核心包文档](../core/README.md)
-- [React 适配器](../react/README.md)
-- [Vue 适配器](../vue/README.md)
-- [统一 API 规范](../../UNIFIED_API_SPECIFICATION.md)
 

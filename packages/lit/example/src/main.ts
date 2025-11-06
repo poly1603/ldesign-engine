@@ -1,77 +1,97 @@
 /**
- * Lit Engine 示例 - 演示 createEngineApp 的使用
+ * Lit Engine 示例 - 入口文件
  */
-
+import { App } from './app/App'
 import { createEngineApp } from '@ldesign/engine-lit'
-import type { Plugin, Middleware } from '@ldesign/engine-core'
-import './app-component'
-import './style.css'
+import type { LitEngineApp } from '@ldesign/engine-lit'
+import './pages/home-page'
+import './pages/about-page'
+import './pages/user-page'
+import './styles.css'
 
-// 示例插件
-const loggingPlugin: Plugin = {
-  name: 'logging-plugin',
+// 定义示例插件
+const loggerPlugin = {
+  name: 'logger',
   version: '1.0.0',
-  install(engine) {
-    console.log('[Plugin] Logging plugin installed')
-    
-    // 监听状态变化
-    engine.events.on('state:changed', (data) => {
-      console.log('[Plugin] State changed:', data)
+  install(context: any) {
+    console.log('📦 Logger 插件已安装')
+
+    // 监听所有事件
+    context.engine.events.on('*', (event: string, data: any) => {
+      console.log(`📢 事件触发: ${event}`, data)
     })
-  }
+  },
 }
 
-// 示例中间件
-const authMiddleware: Middleware = {
-  name: 'auth-middleware',
-  async execute(context, next) {
-    console.log('[Middleware] Auth middleware executing')
+const themePlugin = {
+  name: 'theme',
+  version: '1.0.0',
+  install(context: any) {
+    console.log('🎨 Theme 插件已安装')
+
+    // 设置默认主题
+    context.engine.state.set('theme', 'light')
+  },
+}
+
+// 定义示例中间件
+const authMiddleware = {
+  name: 'auth',
+  priority: 100,
+  async execute(context: any, next: () => Promise<void>) {
+    console.log('🔐 Auth 中间件: 执行前')
     await next()
-    console.log('[Middleware] Auth middleware completed')
-  }
+    console.log('🔐 Auth 中间件: 执行后')
+  },
+}
+
+const loggingMiddleware = {
+  name: 'logging',
+  priority: 50,
+  async execute(context: any, next: () => Promise<void>) {
+    console.log('📝 Logging 中间件: 执行前', context.data)
+    await next()
+    console.log('📝 Logging 中间件: 执行后')
+  },
 }
 
 // 创建引擎应用
-async function bootstrap() {
-  try {
-    const engine = await createEngineApp({
-      mountElement: '#app',
-      config: {
-        debug: true,
-      },
-      plugins: [loggingPlugin],
-      middleware: [authMiddleware],
-      onReady: async (engine) => {
-        console.log('✅ Engine ready!')
-        
-        // 设置初始状态
-        engine.state.set('appName', 'Lit Engine Example')
-        engine.state.set('version', '0.2.0')
-        
-        // 注册自定义元素
-        if ('registerElement' in engine) {
-          console.log('Custom elements registered')
-        }
-      },
-      onMounted: async (engine) => {
-        console.log('✅ App mounted!')
-        
-        // 发送自定义事件
-        engine.events.emit('app:mounted', { timestamp: Date.now() })
-      },
-      onError: (error, context) => {
-        console.error(`❌ Error in ${context}:`, error)
-      }
-    })
+createEngineApp({
+  rootComponent: App,
+  mountElement: '#app',
+  config: {
+    name: 'Lit Engine Demo',
+    debug: true,
+  },
+  router: {
+    mode: 'hash',
+    preset: 'spa',
+    routes: [
+      { path: '/', component: 'home-page', meta: { title: '首页' } },
+      { path: '/about', component: 'about-page', meta: { title: '关于' } },
+      { path: '/user/:id', component: 'user-page', meta: { title: '用户详情' } },
+    ],
+  },
+  plugins: [loggerPlugin, themePlugin],
+  middleware: [authMiddleware, loggingMiddleware],
+  onReady: async (engine: LitEngineApp) => {
+    console.log('✅ 引擎准备就绪!', engine)
 
-    // 暴露到全局以便调试
-    ;(window as any).__ENGINE__ = engine
+    // 设置初始状态
+    engine.state.set('count', 0)
+    engine.state.set('user', { name: 'Lit 用户', role: 'admin' })
 
-    console.log('🚀 Lit Engine App started successfully!')
-  } catch (error) {
-    console.error('Failed to start app:', error)
-  }
-}
+    // 触发欢迎事件
+    engine.events.emit('app:welcome', { message: '欢迎使用 Lit Engine!' })
+  },
+  onMounted: async (engine: LitEngineApp) => {
+    console.log('✅ 应用已挂载!', engine)
+  },
+  onError: (error: Error, context: string) => {
+    console.error('❌ 错误:', error, '上下文:', context)
+  },
+})
 
-bootstrap()
+
+
 

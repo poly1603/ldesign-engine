@@ -1,47 +1,25 @@
 {
   "name": "@ldesign/engine-lit",
-  "version": "0.2.0",
-  "description": "Lit adapter for LDesign Engine",
+  "version": "0.3.0",
+  "description": "Lit adapter for LDesign Engine - Provides Lit-specific integration for the universal application engine",
   "keywords": [
-    "ldesign",
-    "engine",
     "lit",
     "web-components",
-    "adapter"
+    "engine",
+    "adapter",
+    "plugin",
+    "middleware",
+    "typescript"
   ],
-  "author": "LDesign Team",
+  "author": "ldesign",
   "license": "MIT",
   "type": "module",
+  "sideEffects": false,
   "exports": {
     ".": {
       "types": "./es/index.d.ts",
       "import": "./es/index.js",
       "require": "./lib/index.cjs"
-    },
-    "./adapter/*": {
-      "types": "./es/adapter/*.d.ts",
-      "import": "./es/adapter/*.js",
-      "require": "./lib/adapter/*.cjs"
-    },
-    "./decorators/*": {
-      "types": "./es/decorators/*.d.ts",
-      "import": "./es/decorators/*.js",
-      "require": "./lib/decorators/*.cjs"
-    },
-    "./types": {
-      "types": "./es/types/index.d.ts",
-      "import": "./es/types/index.js",
-      "require": "./lib/types/index.cjs"
-    },
-    "./types/*": {
-      "types": "./es/types/*.d.ts",
-      "import": "./es/types/*.js",
-      "require": "./lib/types/*.cjs"
-    },
-    "./__tests__/*": {
-      "types": "./es/__tests__/*.d.ts",
-      "import": "./es/__tests__/*.js",
-      "require": "./lib/__tests__/*.cjs"
     }
   },
   "main": "./lib/index.cjs",
@@ -57,23 +35,31 @@
     "lib"
   ],
   "scripts": {
-    "build": "ldesign-builder build -f esm,cjs,umd,dts",
-    "clean": "rimraf dist es lib",
-    "dev": "ldesign-builder build -f esm,cjs,umd,dts --watch",
-    "type-check": "tsc --noEmit",
-    "test": "vitest"
+    "build": "ldesign-builder build",
+    "dev": "ldesign-builder build --watch",
+    "clean": "rimraf es lib dist",
+    "type-check": "tsc --noEmit"
   },
-  "peerDependencies": {
-    "lit": "^3.0.0",
+  "dependencies": {
     "@ldesign/engine-core": "workspace:*"
   },
+  "peerDependencies": {
+    "lit": "^3.0.0"
+  },
   "devDependencies": {
-    "lit": "^3.2.1",
-    "@ldesign/engine-core": "workspace:*",
-    "@types/node": "^20.0.0",
-    "rimraf": "^5.0.0",
-    "tsup": "^8.0.0",
-    "typescript": "^5.0.0",
-    "vitest": "^3.0.0"
+    "@ldesign/builder": "workspace:*",
+    "@ldesign/router": "workspace:*",
+    "@ldesign/router-lit": "workspace:*",
+    "lit": "^3.1.0",
+    "typescript": "^5.7.3"
+  },
+  "optionalDependencies": {
+    "@ldesign/router": "workspace:*",
+    "@ldesign/router-lit": "workspace:*"
+  },
+  "peerDependenciesMeta": {
+    "lit": {
+      "optional": false
+    }
   }
 }

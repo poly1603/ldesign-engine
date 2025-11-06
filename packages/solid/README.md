@@ -1,168 +1,119 @@
 # @ldesign/engine-solid
 
-Solid.js adapter for @ldesign/engine-core - 提供与 React/Vue 完全一致的 API。
+Solid.js adapter for LDesign Engine - 为 Solid.js 提供的 LDesign 引擎适配器。
 
 ## 📦 安装
 
 ```bash
-pnpm add @ldesign/engine-solid @ldesign/engine-core
+npm install @ldesign/engine-solid
+# or
+pnpm add @ldesign/engine-solid
+# or
+yarn add @ldesign/engine-solid
 ```
 
 ## 🚀 快速开始
 
-### 1. 设置引擎 Provider
+### 基本使用
 
-```tsx
-// App.tsx
-import { EngineProvider } from '@ldesign/engine-solid'
-import { createCoreEngine } from '@ldesign/engine-core'
+```typescript
+import { createEngineApp } from '@ldesign/engine-solid'
+import App from './App'
 
-const engine = createCoreEngine({
-  name: 'my-app',
-  version: '1.0.0'
+const engine = await createEngineApp({
+  rootComponent: App,
+  mountElement: '#app',
+  config: {
+    name: 'My Solid App',
+    debug: true,
+  },
 })
-
-function App() {
-  return (
-    <EngineProvider engine={engine}>
-      <YourApp />
-    </EngineProvider>
-  )
-}
-
-export default App
 ```
 
-### 2. 使用状态管理
+### 在组件中使用
 
 ```tsx
-// Counter.tsx
-import { useEngineState } from '@ldesign/engine-solid'
+import { Component } from 'solid-js'
+import { useEngine, useEngineState, useEvent } from '@ldesign/engine-solid'
 
-function Counter() {
+const Counter: Component = () => {
+  const engine = useEngine()
   const [count, setCount] = useEngineState('count', 0)
 
-  return (
-    <button onClick={() => setCount(prev => prev + 1)}>
-      Count: {count()}
-    </button>
-  )
-}
-```
-
-### 3. 使用事件系统
-
-```tsx
-// Publisher.tsx
-import { useEventEmitter } from '@ldesign/engine-solid'
-
-function Publisher() {
-  const emit = useEventEmitter()
-
-  const handleClick = () => {
-    emit('button:clicked', { timestamp: Date.now() })
-  }
-
-  return <button onClick={handleClick}>Click me</button>
-}
-```
-
-```tsx
-// Subscriber.tsx
-import { useEventListener } from '@ldesign/engine-solid'
-
-function Subscriber() {
-  useEventListener('button:clicked', (payload) => {
-    console.log('Button clicked at:', payload.timestamp)
+  useEvent('reset', () => {
+    setCount(0)
   })
-
-  return <div>Listening for button clicks...</div>
-}
-```
-
-## 📚 API 文档
-
-### 状态管理
-
-#### `useEngineState(path, defaultValue)`
-
-使用引擎状态,返回 `[Accessor, Setter]` 元组(与 React/Vue 一致)。
-
-```tsx
-import { useEngineState } from '@ldesign/engine-solid'
-
-function MyComponent() {
-  const [count, setCount] = useEngineState('count', 0)
-
-  // 直接更新
-  const increment = () => setCount(10)
-
-  // 函数式更新
-  const incrementByOne = () => setCount(prev => prev + 1)
 
   return (
     <div>
       <p>Count: {count()}</p>
-      <button onClick={increment}>Set to 10</button>
-      <button onClick={incrementByOne}>+1</button>
+      <button onClick={() => setCount(count() + 1)}>Increment</button>
     </div>
   )
 }
 ```
 
-#### `useEngineStateValue(path, defaultValue)`
+## 🎯 核心功能
 
-使用引擎状态(只读),返回 `Accessor`。
+### 1. 引擎创建
 
-```tsx
-import { useEngineStateValue } from '@ldesign/engine-solid'
+#### createEngineApp
 
-function UserGreeting() {
-  const userName = useEngineStateValue('user.name', 'Guest')
+创建并初始化 Solid 引擎应用。
 
-  return <div>Hello, {userName()}!</div>
-}
+```typescript
+import { createEngineApp } from '@ldesign/engine-solid'
+
+const engine = await createEngineApp({
+  rootComponent: App,
+  mountElement: '#app',
+  config: {
+    name: 'My App',
+    version: '1.0.0',
+    debug: true,
+  },
+  plugins: [
+    {
+      name: 'my-plugin',
+      version: '1.0.0',
+      install(context) {
+        // 插件逻辑
+      },
+    },
+  ],
+  middleware: [
+    {
+      name: 'my-middleware',
+      async execute(context, next) {
+        await next()
+      },
+    },
+  ],
+  onReady: async (engine) => {
+    console.log('Engine ready!')
+  },
+  onMounted: async (engine) => {
+    console.log('App mounted!')
+  },
+})
 ```
 
-### 事件系统
+#### createEngineAppSync
 
-#### `useEventListener(eventName, handler, options)`
+同步版本的引擎创建(初始化是异步的)。
 
-监听事件,组件销毁时自动清理。
+```typescript
+import { createEngineAppSync } from '@ldesign/engine-solid'
 
-```tsx
-import { useEventListener } from '@ldesign/engine-solid'
-
-function MyComponent() {
-  useEventListener('user:login', (user) => {
-    console.log('User logged in:', user)
-  })
-
-  return <div>Listening...</div>
-}
+const engine = createEngineAppSync({
+  rootComponent: App,
+  mountElement: '#app',
+})
 ```
 
-#### `useEventEmitter()`
+### 2. Solid Signals 集成
 
-获取事件发射器函数。
-
-```tsx
-import { useEventEmitter } from '@ldesign/engine-solid'
-
-function MyComponent() {
-  const emit = useEventEmitter()
-
-  const notify = () => {
-    emit('notification', { message: 'Hello!' })
-  }
-
-  return <button onClick={notify}>Notify</button>
-}
-```
-
-### 引擎访问
-
-#### `useEngine()`
+#### useEngine
 
 获取引擎实例。
 
@@ -171,194 +122,304 @@ import { useEngine } from '@ldesign/engine-solid'
 
 function MyComponent() {
   const engine = useEngine()
-  console.log('Engine:', engine)
-
-  return <div>Engine loaded</div>
+  
+  return <div>Engine: {engine.config.name}</div>
 }
 ```
 
-## 🎯 与 React/Vue 的 API 一致性
+#### useEngineState
 
-| 功能 | React | Vue | Solid | 一致性 |
-|------|-------|-----|-------|--------|
-| 引擎访问 | `useEngine()` | `useEngine()` | `useEngine()` | ✅ 100% |
-| 状态读写 | `useEngineState()` | `useEngineState()` | `useEngineState()` | ✅ 100% |
-| 只读状态 | `useEngineStateValue()` | `useEngineStateValue()` | `useEngineStateValue()` | ✅ 100% |
-| 函数式更新 | `setValue(p=>p+1)` | `setValue(p=>p+1)` | `setCount(p=>p+1)` | ✅ 100% |
-| 事件监听 | `useEventListener()` | `useEventListener()` | `useEventListener()` | ✅ 100% |
-| 事件发射 | `useEventEmitter()` | `useEventEmitter()` | `useEventEmitter()` | ✅ 100% |
-
-## 📖 完整示例
-
-### Todo List
-
-```tsx
-// TodoList.tsx
-import { useEngineState, useEventEmitter } from '@ldesign/engine-solid'
-import { createSignal, For } from 'solid-js'
-
-interface Todo {
-  id: number
-  text: string
-  done: boolean
-}
-
-function TodoList() {
-  const [todos, setTodos] = useEngineState<Todo[]>('todos', [])
-  const emit = useEventEmitter()
-  const [newTodoText, setNewTodoText] = createSignal('')
-
-  const addTodo = () => {
-    const text = newTodoText()
-    if (!text.trim()) return
-
-    setTodos(prev => [...(prev || []), {
-      id: Date.now(),
-      text,
-      done: false
-    }])
-    emit('todo:added', { text })
-    setNewTodoText('')
-  }
-
-  const toggleTodo = (id: number) => {
-    setTodos(prev => (prev || []).map(todo =>
-      todo.id === id ? { ...todo, done: !todo.done } : todo
-    ))
-  }
-
-  const removeTodo = (id: number) => {
-    setTodos(prev => (prev || []).filter(todo => todo.id !== id))
-    emit('todo:removed', { id })
-  }
-
-  return (
-    <div>
-      <div>
-        <input
-          value={newTodoText()}
-          onInput={(e) => setNewTodoText(e.currentTarget.value)}
-          placeholder="New todo..."
-        />
-        <button onClick={addTodo}>Add</button>
-      </div>
-
-      <ul>
-        <For each={todos()}>
-          {(todo) => (
-            <li>
-              <input
-                type="checkbox"
-                checked={todo.done}
-                onChange={() => toggleTodo(todo.id)}
-              />
-              <span style={{ 
-                'text-decoration': todo.done ? 'line-through' : 'none',
-                opacity: todo.done ? 0.6 : 1
-              }}>
-                {todo.text}
-              </span>
-              <button onClick={() => removeTodo(todo.id)}>Delete</button>
-            </li>
-          )}
-        </For>
-      </ul>
-    </div>
-  )
-}
-
-export default TodoList
-```
-
-## 🔧 高级用法
-
-### 计算属性
+创建与引擎同步的响应式状态。
 
 ```tsx
 import { useEngineState } from '@ldesign/engine-solid'
-import { createMemo } from 'solid-js'
 
-function ShoppingCart() {
-  const [items, setItems] = useEngineState('cart.items', [])
+function Counter() {
+  const [count, setCount] = useEngineState('count', 0)
+  
+  return (
+    <button onClick={() => setCount(count() + 1)}>
+      Count: {count()}
+    </button>
+  )
+}
+```
 
-  // 计算总价
-  const total = createMemo(() => {
-    return (items() || []).reduce((sum, item) => sum + item.price, 0)
+#### useEngineStateReadonly
+
+创建只读的引擎状态。
+
+```tsx
+import { useEngineStateReadonly } from '@ldesign/engine-solid'
+
+function ThemeDisplay() {
+  const theme = useEngineStateReadonly('theme', 'light')
+  
+  return <div class={theme()}>Current theme: {theme()}</div>
+}
+```
+
+#### useComputedState
+
+创建计算状态。
+
+```tsx
+import { useEngineState, useComputedState } from '@ldesign/engine-solid'
+
+function DoubledCounter() {
+  const [count] = useEngineState('count', 0)
+  const doubled = useComputedState(() => count() * 2)
+  
+  return <div>Doubled: {doubled()}</div>
+}
+```
+
+#### useEvent
+
+监听引擎事件。
+
+```tsx
+import { useEvent } from '@ldesign/engine-solid'
+
+function LoginListener() {
+  useEvent('user:login', (user) => {
+    console.log('User logged in:', user)
   })
+  
+  return <div>Listening...</div>
+}
+```
 
+#### useLifecycle
+
+监听生命周期钩子。
+
+```tsx
+import { useLifecycle } from '@ldesign/engine-solid'
+
+function MountedLogger() {
+  useLifecycle('mounted', () => {
+    console.log('Component mounted!')
+  })
+  
+  return <div>Component</div>
+}
+```
+
+#### usePlugin
+
+获取插件实例。
+
+```tsx
+import { usePlugin } from '@ldesign/engine-solid'
+
+function I18nComponent() {
+  const i18n = usePlugin('i18n')
+  
+  return <div>{i18n() ? 'Plugin loaded' : 'Loading...'}</div>
+}
+```
+
+#### emitEngineEvent
+
+触发引擎事件。
+
+```tsx
+import { emitEngineEvent } from '@ldesign/engine-solid'
+
+function LogoutButton() {
   return (
-    <div>
-      <p>Total: ${total()}</p>
-    </div>
+    <button onClick={() => emitEngineEvent('user:logout')}>
+      Logout
+    </button>
   )
 }
 ```
 
-### 批量更新
+#### emitEngineEventAsync
+
+触发异步引擎事件。
 
 ```tsx
-import { useEngineState } from '@ldesign/engine-solid'
+import { emitEngineEventAsync } from '@ldesign/engine-solid'
 
-function UserProfile() {
-  const [user, setUser] = useEngineState('user', {})
-
-  const updateUser = () => {
-    // Solid 会自动批处理更新
-    setUser(prev => ({
-      ...prev,
-      name: 'Jane',
-      age: 25,
-      email: 'jane@example.com'
-    }))
+function LoadDataButton() {
+  const handleClick = async () => {
+    await emitEngineEventAsync('data:load', { id: 123 })
   }
-
-  return <button onClick={updateUser}>Update User</button>
+  
+  return <button onClick={handleClick}>Load Data</button>
 }
 ```
 
-## 📝 最佳实践
+### 3. 插件系统
 
-### 1. 使用函数式更新
+```typescript
+const myPlugin = {
+  name: 'my-plugin',
+  version: '1.0.0',
+  dependencies: ['other-plugin'], // 可选
+  install(context) {
+    const { engine } = context
+    
+    // 设置状态
+    engine.state.set('plugin-data', {})
+    
+    // 监听事件
+    engine.events.on('some-event', (data) => {
+      console.log('Event received:', data)
+    })
+    
+    // 注册中间件
+    engine.middleware.use({
+      name: 'plugin-middleware',
+      async execute(ctx, next) {
+        await next()
+      },
+    })
+  },
+  uninstall(context) {
+    // 清理逻辑
+  },
+}
 
-```tsx
-// ✅ 推荐
-setCount(prev => prev + 1)
-
-// ❌ 不推荐(可能有闭包问题)
-setCount(count() + 1)
+await engine.use(myPlugin)
 ```
 
-### 2. 使用只读状态
+### 4. 中间件系统
 
-```tsx
-// ✅ 推荐:只读状态
-const userName = useEngineStateValue('user.name')
+```typescript
+const myMiddleware = {
+  name: 'my-middleware',
+  priority: 100, // 优先级越高越先执行
+  async execute(context, next) {
+    console.log('Before')
+    await next()
+    console.log('After')
+  },
+}
 
-// ❌ 不推荐:可写但不修改
-const [userName] = useEngineState('user.name')
+engine.middleware.use(myMiddleware)
+await engine.middleware.execute({ data: {} })
 ```
 
-### 3. 使用事件发射器
+### 5. 状态管理
 
-```tsx
-// ✅ 推荐
-const emit = useEventEmitter()
-emit('event:name', payload)
+```typescript
+// 设置状态
+engine.state.set('user', { name: 'John', age: 30 })
 
-// ❌ 不推荐
-const events = useEvents()
-events.emit('event:name', payload)
+// 获取状态
+const user = engine.state.get('user')
+
+// 监听状态变化
+const unwatch = engine.state.watch('user', (newValue, oldValue) => {
+  console.log('User changed:', newValue)
+})
+
+// 批量更新
+engine.state.batch(() => {
+  engine.state.set('count', 100)
+  engine.state.set('user', { name: 'Jane' })
+})
+
+// 取消监听
+unwatch()
 ```
 
-## 📄 License
+### 6. 事件系统
+
+```typescript
+// 监听事件
+const unsubscribe = engine.events.on('user:login', (user) => {
+  console.log('User logged in:', user)
+})
+
+// 触发事件
+engine.events.emit('user:login', { id: 1, name: 'John' })
+
+// 异步事件
+await engine.events.emitAsync('data:load', { id: 123 })
+
+// 一次性监听
+engine.events.once('app:ready', () => {
+  console.log('App is ready!')
+})
+
+// 取消监听
+unsubscribe()
+```
+
+### 7. 生命周期
+
+```typescript
+// 监听生命周期钩子
+engine.lifecycle.on('mounted', () => {
+  console.log('App mounted!')
+})
+
+// 触发自定义钩子
+await engine.lifecycle.trigger('custom-hook', { data: 'value' })
+```
+
+## 📁 示例项目
+
+查看 [example](./example) 目录获取完整的示例项目,包含:
+
+- ✅ 插件系统演示
+- ✅ 中间件系统演示
+- ✅ 状态管理演示
+- ✅ 事件系统演示
+- ✅ 生命周期演示
+
+## 🔧 TypeScript 支持
+
+完整的 TypeScript 类型定义:
+
+```typescript
+import type {
+  CoreEngine,
+  EngineConfig,
+  Plugin,
+  Middleware,
+  SolidEngineAppConfig,
+} from '@ldesign/engine-solid'
+```
+
+## 📚 API 文档
+
+### 类型定义
+
+```typescript
+interface SolidEngineAppConfig {
+  rootComponent: any
+  mountElement: string | Element
+  config?: Partial<EngineConfig>
+  props?: Record<string, any>
+  plugins?: Plugin[]
+  middleware?: Middleware[]
+  onReady?: (engine: CoreEngine) => void | Promise<void>
+  onMounted?: (engine: CoreEngine) => void | Promise<void>
+  onError?: (error: Error, context?: any) => void
+}
+```
+
+## 🌟 特性
+
+- ✅ **细粒度响应式** - 基于 Solid Signals 的高性能响应式系统
+- ✅ **类型安全** - 完整的 TypeScript 支持
+- ✅ **插件系统** - 强大的插件架构
+- ✅ **中间件** - 洋葱模型中间件系统
+- ✅ **事件系统** - 灵活的发布订阅模式
+- ✅ **生命周期** - 完整的生命周期管理
+- ✅ **状态管理** - 响应式状态管理
+- ✅ **零配置** - 开箱即用
+
+## 📄 许可证
 
 MIT
 
-## 🔗 相关链接
+## 🤝 贡献
 
-- [核心包文档](../core/README.md)
-- [React 适配器](../react/README.md)
-- [Vue 适配器](../vue/README.md)
-- [Svelte 适配器](../svelte/README.md)
-- [统一 API 规范](../../UNIFIED_API_SPECIFICATION.md)
+欢迎提交 Issue 和 Pull Request!
 

@@ -1,183 +1,290 @@
 /**
- * Lit 引擎应用创建函数
+ * Lit 引擎应用
  */
 
-import { CoreEngineImpl } from '@ldesign/engine-core'
-import type { LitEngine, LitEngineAppOptions } from './types'
+import type {
+  CoreEngineConfig,
+  Plugin,
+  Middleware,
+  CoreEngine,
+} from '@ldesign/engine-core'
+import { createCoreEngine } from '@ldesign/engine-core'
+import { createLitAdapter } from './adapter'
 
 /**
- * Lit 引擎实现
+ * ·�����ýӿ�
  */
-export class LitEngineImpl extends CoreEngineImpl implements LitEngine {
-  private mounted = false
-  private customElements = new Set<string>()
+export interface RouterConfig {
+  mode?: 'history' | 'hash' | 'memory'
+  base?: string
+  routes: RouteConfig[]
+  preset?: 'spa' | 'mpa' | 'mobile' | 'desktop' | 'admin' | 'blog'
+  scrollBehavior?: (to: any, from: any, savedPosition: any) => any
+  linkActiveClass?: string
+  linkExactActiveClass?: string
+  preload?: boolean | PreloadConfig
+  cache?: boolean | CacheConfig
+  animation?: boolean | AnimationConfig
+  performance?: PerformanceConfig
+  development?: DevelopmentConfig
+  security?: SecurityConfig
+}
 
-  /**
-   * 挂载应用
-   * 
-   * 注意: Lit 组件通过自定义元素自动挂载
-   * 这里主要执行生命周期和初始化逻辑
-   */
-  async mount(mountElement?: string | Element): Promise<void> {
-    if (this.mounted) {
-      throw new Error('App already mounted')
-    }
+export interface RouteConfig {
+  path: string
+  component?: any
+  children?: RouteConfig[]
+  meta?: Record<string, any>
+  [key: string]: any
+}
 
-    // 执行 beforeMount 生命周期
-    await this.lifecycle.execute('beforeMount', this)
+export interface PreloadConfig {
+  enabled: boolean
+  delay?: number
+  [key: string]: any
+}
 
-    try {
-      // Lit 的挂载是通过自定义元素完成的
-      this.mounted = true
+export interface CacheConfig {
+  enabled: boolean
+  maxAge?: number
+  [key: string]: any
+}
 
-      // 执行 mount 生命周期
-      await this.lifecycle.execute('mount', this)
+export interface AnimationConfig {
+  enabled: boolean
+  duration?: number
+  [key: string]: any
+}
 
-      // 执行 afterMount 生命周期
-      await this.lifecycle.execute('afterMount', this)
+export interface PerformanceConfig {
+  [key: string]: any
+}
 
-      this.logger.info('Lit app mounted')
-    } catch (error) {
-      this.logger.error('Failed to mount Lit app:', error)
-      await this.lifecycle.execute('error', this, { error })
-      throw error
-    }
-  }
+export interface DevelopmentConfig {
+  [key: string]: any
+}
 
-  /**
-   * 卸载应用
-   */
-  async unmount(): Promise<void> {
-    if (!this.mounted) {
-      this.logger.warn('No Lit app to unmount')
-      return
-    }
+export interface SecurityConfig {
+  [key: string]: any
+}
 
-    // 执行 beforeUnmount 生命周期
-    await this.lifecycle.execute('beforeUnmount', this)
 
-    try {
-      this.mounted = false
+/**
+ * Lit 引擎应用类型
+ */
+export interface LitEngineApp extends CoreEngine {
+  app: any
+  adapter: ReturnType<typeof createLitAdapter>
+}
 
-      // 执行 unmount 生命周期
-      await this.lifecycle.execute('unmount', this)
-
-      // 执行 afterUnmount 生命周期
-      await this.lifecycle.execute('afterUnmount', this)
-
-      this.logger.info('Lit app unmounted')
-    } catch (error) {
-      this.logger.error('Failed to unmount Lit app:', error)
-      throw error
-    }
-  }
-
-  /**
-   * 注册自定义元素
-   */
-  registerElement(tagName: string, elementClass: CustomElementConstructor): void {
-    if (this.customElements.has(tagName)) {
-      this.logger.warn(`Custom element "${tagName}" already registered`)
-      return
-    }
-
-    try {
-      customElements.define(tagName, elementClass)
-      this.customElements.add(tagName)
-      this.logger.debug(`Custom element "${tagName}" registered`)
-    } catch (error) {
-      this.logger.error(`Failed to register custom element "${tagName}":`, error)
-      throw error
-    }
-  }
-
-  /**
-   * 获取已注册的自定义元素列表
-   */
-  getRegisteredElements(): string[] {
-    return Array.from(this.customElements)
-  }
+/**
+ * Lit 引擎应用选项
+ */
+export interface LitEngineAppOptions {
+  /** 根组�?*/
+  rootComponent: any
+  /** 挂载元素 */
+  mountElement?: string | Element
+  /** 引擎配置 */
+  config?: CoreEngineConfig
+  /** 路由配置 */
+  router?: RouterConfig
+  /** 插件列表 */
+  plugins?: Plugin[]
+  /** 中间件列�?*/
+  middleware?: Middleware[]
+  /** 准备就绪回调 */
+  onReady?: (engine: LitEngineApp) => void | Promise<void>
+  /** 挂载完成回调 */
+  onMounted?: (engine: LitEngineApp) => void | Promise<void>
+  /** 错误处理回调 */
+  onError?: (error: Error, context: string) => void
 }
 
 /**
  * 创建 Lit 引擎应用
+ * 
+ * @param options - 应用选项
+ * @returns Lit 引擎应用实例
+ * 
+ * @example
+ * ```typescript
+ * import { createEngineApp } from '@ldesign/engine-lit'
+ * import App from './App'
+ * 
+ * createEngineApp({
+ *   rootComponent: App,
+ *   mountElement: '#app',
+ *   config: {
+ *     name: 'My App',
+ *     debug: true,
+ *   },
+ *   plugins: [loggerPlugin, themePlugin],
+ *   middleware: [authMiddleware],
+ *   onReady: async (engine) => {
+ *     console.log('Engine ready!')
+ *   },
+ * })
+ * ```
  */
 export async function createEngineApp(
   options: LitEngineAppOptions
-): Promise<LitEngine> {
+): Promise<LitEngineApp> {
   const {
-    mountElement,
+    rootComponent,
+    mountElement = '#app',
     config = {},
+    router: routerConfig,
     plugins = [],
     middleware = [],
-    features = {},
-    customElements: elements = [],
     onReady,
     onMounted,
-    onError = (error, context) => console.error(`[LitEngine] Error in ${context}:`, error),
+    onError,
   } = options
 
   try {
-    // 创建引擎实例
-    const engine = new LitEngineImpl(config)
+    // 创建适配�?    const adapter = createLitAdapter()
 
-    // 初始化引擎
-    await engine.init()
+    // 创建核心引擎
+    const coreEngine = createCoreEngine(config)
+
+    // 验证引擎对象
+    if (!coreEngine || typeof coreEngine !== 'object') {
+      throw new Error(`createCoreEngine returned invalid value: ${typeof coreEngine}`)
+    }
+
+    // 如果配置了路由，动态加载路由插件
+    if (routerConfig) {
+      try {
+        const { createRouterEnginePlugin } = await import('@ldesign/router-lit')
+        const routerPlugin = createRouterEnginePlugin({
+          name: 'router',
+          version: '1.0.0',
+          ...routerConfig,
+        })
+        plugins.unshift(routerPlugin)
+
+        if (config.debug) {
+          console.log('[Engine] Router plugin created successfully')
+        }
+      } catch (error) {
+        console.warn(
+          'Failed to load @ldesign/router-lit. Make sure it is installed if you want to use routing features.',
+          error
+        )
+      }
+    }
 
     // 注册中间件
-    for (const m of middleware) {
-      try {
-        engine.middleware.use(m)
-      } catch (error) {
-        onError(error as Error, `middleware registration: ${m.name}`)
-      }
+    for (const mw of middleware) {
+      coreEngine.middleware.use(mw)
     }
 
     // 注册插件
     for (const plugin of plugins) {
-      try {
-        await engine.use(plugin)
-      } catch (error) {
-        onError(error as Error, `plugin installation: ${plugin.name}`)
-      }
+      await coreEngine.use(plugin)
     }
 
-    // 注册自定义元素
-    for (const element of elements) {
-      try {
-        engine.registerElement(element.tagName, element.elementClass)
-      } catch (error) {
-        onError(error as Error, `custom element registration: ${element.tagName}`)
-      }
+    // 初始化引擎
+    await coreEngine.init()
+
+    // 创建 Lit 应用
+    const app = adapter.createApp(rootComponent)
+
+    // 注册引擎�?Lit
+    // 验证参数
+    if (!adapter || typeof adapter.registerEngine !== 'function') {
+      throw new Error(`Invalid adapter: registerEngine is not a function`)
+    }
+    if (!coreEngine || typeof coreEngine !== 'object') {
+      throw new Error(`Invalid coreEngine: expected object, got ${typeof coreEngine}`)
+    }
+    adapter.registerEngine(app, coreEngine)
+
+    // 创建引擎应用对象
+    const engineApp: LitEngineApp = {
+      ...coreEngine,
+      app,
+      adapter,
     }
 
-    // 触发就绪回调
+    // 触发准备就绪回调
     if (onReady) {
-      try {
-        await onReady(engine)
-      } catch (error) {
-        onError(error as Error, 'onReady callback')
-      }
+      await onReady(engineApp)
     }
 
-    // 自动挂载（如果提供了挂载元素）
-    if (mountElement !== undefined) {
-      await engine.mount(mountElement)
+    // 触发生命周期事件
+    await coreEngine.lifecycle.trigger('beforeMount')
 
-      // 触发挂载完成回调
-      if (onMounted) {
-        try {
-          await onMounted(engine)
-        } catch (error) {
-          onError(error as Error, 'onMounted callback')
-        }
-      }
+    // 挂载应用
+    await adapter.mount(app, mountElement)
+
+    // 触发生命周期事件
+    await coreEngine.lifecycle.trigger('mounted')
+
+    // 触发挂载完成回调
+    if (onMounted) {
+      await onMounted(engineApp)
     }
 
-    return engine
+    return engineApp
   } catch (error) {
-    onError(error as Error, 'engine initialization')
+    if (onError) {
+      onError(error as Error, 'createEngineApp')
+    }
+    console.error('Failed to create Lit engine app:', error)
     throw error
   }
 }
+
+/**
+ * 创建 Lit 引擎应用（旧�?API，已废弃�? * @deprecated 使用 createEngineApp 代替
+ */
+export async function createLitEngineApp(
+  rootComponent: any,
+  config: CoreEngineConfig = {},
+  options: {
+    mountElement?: string | Element
+    middleware?: Middleware[]
+    plugins?: Plugin[]
+    onReady?: (app: LitEngineApp) => void | Promise<void>
+    onMounted?: (app: LitEngineApp) => void | Promise<void>
+  } = {},
+): Promise<LitEngineApp> {
+  return createEngineApp({
+    rootComponent,
+    mountElement: options.mountElement,
+    config,
+    plugins: options.plugins,
+    middleware: options.middleware,
+    onReady: options.onReady,
+    onMounted: options.onMounted,
+  })
+}
+
+/**
+ * 卸载 Lit 引擎应用
+ */
+export async function unmountLitEngineApp(
+  engineApp: LitEngineApp,
+  mountElement?: string | Element,
+): Promise<void> {
+  try {
+    const { adapter, lifecycle } = engineApp
+    const element = mountElement || '#app'
+
+    // 触发卸载前生命周�?    await lifecycle.trigger('beforeUnmount')
+
+    // 卸载应用
+    await adapter.unmount(engineApp.app, element)
+
+    // 触发卸载后生命周�?    await lifecycle.trigger('unmounted')
+
+    // 销毁引�?    await engineApp.destroy()
+  } catch (error) {
+    console.error('Failed to unmount Lit engine app:', error)
+    throw error
+  }
+}
+
 

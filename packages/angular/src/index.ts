@@ -1,38 +1,24 @@
 /**
  * @ldesign/engine-angular
- *
- * Angular adapter for @ldesign/engine-core
+ * 
+ * Angular adapter for LDesign Engine
+ * 
+ * @packageDocumentation
  */
 
-// 引擎应用导出
-export * from './engine-app'
+// 导出适配器
+export { AngularAdapter, createAngularAdapter } from './adapter'
 
-// 模块导出
-export * from './module'
+// 导出引擎应用创建函数
+export { createEngineApp } from './engine-app'
+export type { AngularEngineApp, AngularEngineAppOptions } from './engine-app'
 
-// 服务导出
-export * from './services'
-export { EngineService, ENGINE_TOKEN, provideEngine } from './services/engine.service'
+// 导出辅助函数
+export { useEngine } from './helpers'
 
-// 适配器导出
-export * from './adapters'
+// 导出服务
+export { EngineService, ENGINE_TOKEN } from './services/engine.service'
 
-// 类型导出
-export type * from './types'
-
-// Re-export core types
-export type {
-  CoreEngine,
-  Plugin,
-  PluginContext,
-  EngineConfig,
-  Logger,
-  EventBus,
-  StateManager,
-  ConfigManager
-} from '@ldesign/engine-core'
-
-// 版本
-export const version = '0.2.0'
-
+// 重新导出核心功能
+export * from '@ldesign/engine-core'
 

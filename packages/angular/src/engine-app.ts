@@ -2,147 +2,254 @@
  * Angular 引擎应用创建函数
  */
 
-import { CoreEngineImpl } from '@ldesign/engine-core'
-import type { AngularEngine, AngularEngineAppOptions } from './types'
+import { bootstrapApplication, type ApplicationRef } from '@angular/platform-browser'
+import { provideZoneChangeDetection } from '@angular/core'
+import type {
+  CoreEngine,
+  CoreEngineConfig,
+  Plugin,
+  Middleware,
+} from '@ldesign/engine-core'
+import { createCoreEngine } from '@ldesign/engine-core'
+import { createAngularAdapter } from './adapter'
+import { EngineService } from './services/engine.service'
 
 /**
- * Angular 引擎实现
+ * 路由配置接口
  */
-export class AngularEngineImpl extends CoreEngineImpl implements AngularEngine {
-  private mounted = false
+export interface RouterConfig {
+  mode?: 'history' | 'hash' | 'memory'
+  base?: string
+  routes: RouteConfig[]
+  preset?: 'spa' | 'mpa' | 'mobile' | 'desktop' | 'admin' | 'blog'
+  scrollBehavior?: (to: any, from: any, savedPosition: any) => any
+  linkActiveClass?: string
+  linkExactActiveClass?: string
+  preload?: boolean | PreloadConfig
+  cache?: boolean | CacheConfig
+  animation?: boolean | AnimationConfig
+  performance?: PerformanceConfig
+  development?: DevelopmentConfig
+  security?: SecurityConfig
+}
 
-  /**
-   * 挂载应用
-   * 
-   * 注意: Angular 应用通过 bootstrapApplication 或 platformBrowserDynamic 启动
-   * 这里主要执行生命周期逻辑
-   */
-  async mount(mountElement?: string | Element): Promise<void> {
-    if (this.mounted) {
-      throw new Error('App already mounted')
-    }
+export interface RouteConfig {
+  path: string
+  component?: any
+  children?: RouteConfig[]
+  meta?: Record<string, any>
+  [key: string]: any
+}
 
-    // 执行 beforeMount 生命周期
-    await this.lifecycle.execute('beforeMount', this)
+export interface PreloadConfig {
+  enabled: boolean
+  delay?: number
+  [key: string]: any
+}
 
-    try {
-      // Angular 的挂载由框架自身处理
-      this.mounted = true
+export interface CacheConfig {
+  enabled: boolean
+  maxAge?: number
+  [key: string]: any
+}
 
-      // 执行 mount 生命周期
-      await this.lifecycle.execute('mount', this)
+export interface AnimationConfig {
+  enabled: boolean
+  duration?: number
+  [key: string]: any
+}
 
-      // 执行 afterMount 生命周期
-      await this.lifecycle.execute('afterMount', this)
+export interface PerformanceConfig {
+  [key: string]: any
+}
 
-      this.logger.info('Angular app mounted')
-    } catch (error) {
-      this.logger.error('Failed to mount Angular app:', error)
-      await this.lifecycle.execute('error', this, { error })
-      throw error
-    }
-  }
+export interface DevelopmentConfig {
+  [key: string]: any
+}
 
-  /**
-   * 卸载应用
-   */
-  async unmount(): Promise<void> {
-    if (!this.mounted) {
-      this.logger.warn('No Angular app to unmount')
-      return
-    }
+export interface SecurityConfig {
+  [key: string]: any
+}
 
-    // 执行 beforeUnmount 生命周期
-    await this.lifecycle.execute('beforeUnmount', this)
+/**
+ * Angular 引擎应用选项
+ */
+export interface AngularEngineAppOptions {
+  /** 根组�?*/
+  rootComponent: any
+  /** 引擎配置 */
+  config?: CoreEngineConfig
+  /** 路由配置 */
+  router?: RouterConfig
+  /** 插件列表 */
+  plugins?: Plugin[]
+  /** 中间件列�?*/
+  middleware?: Middleware[]
+  /** 准备就绪回调 */
+  onReady?: (engine: AngularEngineApp) => void | Promise<void>
+  /** 启动完成回调 */
+  onMounted?: (engine: AngularEngineApp) => void | Promise<void>
+  /** 错误处理回调 */
+  onError?: (error: Error, context: string) => void
+  /** 额外�?Angular providers */
+  providers?: any[]
+}
 
-    try {
-      this.mounted = false
-
-      // 执行 unmount 生命周期
-      await this.lifecycle.execute('unmount', this)
-
-      // 执行 afterUnmount 生命周期
-      await this.lifecycle.execute('afterUnmount', this)
-
-      this.logger.info('Angular app unmounted')
-    } catch (error) {
-      this.logger.error('Failed to unmount Angular app:', error)
-      throw error
-    }
-  }
+/**
+ * Angular 引擎应用
+ */
+export interface AngularEngineApp extends CoreEngine {
+  /** Angular 应用引用 */
+  appRef: ApplicationRef
+  /** 框架适配�?*/
+  adapter: ReturnType<typeof createAngularAdapter>
+  /** 引擎服务 */
+  engineService: EngineService
 }
 
 /**
  * 创建 Angular 引擎应用
  * 
- * 注意: Angular 应用通常通过 EngineService 在依赖注入系统中使用
- * 这个函数提供了一个统一的创建方式，但在 Angular 中推荐使用 EngineService
+ * @param options - 应用选项
+ * @returns Angular 引擎应用实例
+ * 
+ * @example
+ * ```typescript
+ * import { createEngineApp } from '@ldesign/engine-angular'
+ * import { AppComponent } from './app/app.component'
+ * 
+ * createEngineApp({
+ *   rootComponent: AppComponent,
+ *   config: {
+ *     name: 'My App',
+ *     debug: true,
+ *   },
+ *   plugins: [loggerPlugin, themePlugin],
+ *   middleware: [authMiddleware],
+ *   onReady: async (engine) => {
+ *     console.log('Engine ready!')
+ *   },
+ *   onMounted: async (engine) => {
+ *     console.log('App mounted!')
+ *   },
+ * })
+ * ```
  */
 export async function createEngineApp(
   options: AngularEngineAppOptions
-): Promise<AngularEngine> {
+): Promise<AngularEngineApp> {
   const {
-    mountElement,
+    rootComponent,
     config = {},
+    router: routerConfig,
     plugins = [],
     middleware = [],
-    features = {},
     onReady,
     onMounted,
-    onError = (error, context) => console.error(`[AngularEngine] Error in ${context}:`, error),
+    onError,
+    providers = [],
   } = options
 
   try {
-    // 创建引擎实例
-    const engine = new AngularEngineImpl(config)
+    // 创建适配器
+    const adapter = createAngularAdapter()
 
-    // 初始化引擎
-    await engine.init()
+    // 创建核心引擎
+    const coreEngine = createCoreEngine({
+      ...config,
+      adapter,
+    })
+
+    // 如果配置了路由，动态加载路由插件
+    if (routerConfig) {
+      try {
+        const { createRouterEnginePlugin } = await import('@ldesign/router-angular')
+        const routerPlugin = createRouterEnginePlugin({
+          name: 'router',
+          version: '1.0.0',
+          ...routerConfig,
+        })
+        plugins.unshift(routerPlugin)
+
+        if (config.debug) {
+          console.log('[Engine] Router plugin created successfully')
+        }
+      } catch (error) {
+        console.warn(
+          'Failed to load @ldesign/router-angular. Make sure it is installed if you want to use routing features.',
+          error
+        )
+      }
+    }
 
     // 注册中间件
-    for (const m of middleware) {
-      try {
-        engine.middleware.use(m)
-      } catch (error) {
-        onError(error as Error, `middleware registration: ${m.name}`)
-      }
+    for (const mw of middleware) {
+      coreEngine.middleware.use(mw)
     }
 
     // 注册插件
     for (const plugin of plugins) {
-      try {
-        await engine.use(plugin)
-      } catch (error) {
-        onError(error as Error, `plugin installation: ${plugin.name}`)
-      }
+      await coreEngine.use(plugin)
     }
 
-    // 触发就绪回调
+    // 初始化引擎
+    await coreEngine.init()
+
+    // 创建引擎服务
+    const engineService = new EngineService()
+    engineService.setEngine(coreEngine)
+
+    // 创建引擎应用对象
+    const engineApp: AngularEngineApp = {
+      ...coreEngine,
+      appRef: null as any,
+      adapter,
+      engineService,
+    }
+
+    // 触发准备就绪回调
     if (onReady) {
-      try {
-        await onReady(engine)
-      } catch (error) {
-        onError(error as Error, 'onReady callback')
-      }
+      await onReady(engineApp)
     }
 
-    // 自动挂载（如果提供了挂载元素）
-    if (mountElement !== undefined) {
-      await engine.mount(mountElement)
+    // 触发生命周期事件
+    await coreEngine.lifecycle.trigger('beforeMount')
 
-      // 触发挂载完成回调
-      if (onMounted) {
-        try {
-          await onMounted(engine)
-        } catch (error) {
-          onError(error as Error, 'onMounted callback')
-        }
+    // 启动 Angular 应用
+    const appRef = await bootstrapApplication(rootComponent, {
+      providers: [
+        provideZoneChangeDetection({ eventCoalescing: true }),
+        {
+          provide: EngineService,
+          useValue: engineService,
+        },
+        ...providers,
+      ],
+    }).catch((err) => {
+      if (onError) {
+        onError(err as Error, 'bootstrapApplication')
       }
+      throw err
+    })
+
+    // 设置应用引用
+    engineApp.appRef = appRef
+
+    // 触发生命周期事件
+    await coreEngine.lifecycle.trigger('mounted')
+
+    // 触发启动完成回调
+    if (onMounted) {
+      await onMounted(engineApp)
     }
 
-    return engine
+    console.log('�?Angular 应用已启�?')
+
+    return engineApp
   } catch (error) {
-    onError(error as Error, 'engine initialization')
+    if (onError) {
+      onError(error as Error, 'createEngineApp')
+    }
     throw error
   }
 }

@@ -1,310 +1,308 @@
 /**
- * Solid.js Signals for @ldesign/engine
+ * Solid Signals 集成
+ * 
+ * 提供与引擎集成的 Solid signals 和 utilities
  */
 
-import { createSignal, createEffect, onCleanup, createMemo } from 'solid-js'
-import type { Accessor, Setter } from 'solid-js'
-import type { CoreEngine, Plugin } from '@ldesign/engine-core'
-
-let engineInstance: CoreEngine | null = null
+import { createSignal, createEffect, createMemo, onCleanup, useContext, createContext } from 'solid-js'
+import type { Context } from 'solid-js'
+import type { CoreEngine } from '@ldesign/engine-core'
 
 /**
- * 设置引擎实例
- * 
- * @param engine - 引擎实例
- * 
- * @example
- * ```ts
- * import { createEngine } from '@ldesign/engine-core'
- * import { setEngine } from '@ldesign/engine-solid'
- * 
- * const engine = createEngine({ ... })
- * await engine.initialize()
- * setEngine(engine)
- * ```
+ * 引擎上下文
  */
-export function setEngine(engine: CoreEngine): void {
-  engineInstance = engine
-}
+export const EngineContext: Context<CoreEngine | undefined> = createContext<CoreEngine | undefined>()
 
 /**
  * 获取引擎实例
  * 
  * @returns 引擎实例
- * @throws 如果引擎未设置
- */
-export function getEngine(): CoreEngine {
-  if (!engineInstance) {
-    throw new Error('[getEngine] Engine not initialized. Call setEngine() first.')
-  }
-  return engineInstance
-}
-
-/**
- * 创建引擎信号
- * 
- * @returns 引擎的响应式信号
+ * @throws 如果引擎未设置则抛出错误
  * 
  * @example
  * ```tsx
- * function App() {
- *   const engine = useEngine()
- *   
- *   return <div>Engine: {engine().name}</div>
- * }
- * ```
- */
-export function useEngine(): Accessor<CoreEngine> {
-  const engine = getEngine()
-  const [engineSignal] = createSignal(engine)
-  return engineSignal
-}
-
-/**
- * 创建插件信号
+ * import { useEngine } from '@ldesign/engine-solid'
  * 
- * @param pluginName - 插件名称
- * @returns 插件的响应式信号
- * 
- * @example
- * ```tsx
  * function MyComponent() {
- *   const i18nPlugin = usePlugin('i18n')
- *   
- *   return (
- *     <Show when={i18nPlugin()}>
- *       <p>Plugin loaded: {i18nPlugin()?.name}</p>
- *     </Show>
- *   )
+ *   const engine = useEngine()
+ *   return <div>Engine: {engine.config.name}</div>
  * }
  * ```
  */
-export function usePlugin(pluginName: string): Accessor<Plugin | undefined> {
-  const engine = getEngine()
-  const [plugin, setPlugin] = createSignal<Plugin | undefined>(
-    engine.plugins.get(pluginName)
-  )
-  
-  // 监听插件注册
-  createEffect(() => {
-    const unsubscribe = engine.events.on('plugin:registered', (data: any) => {
-      if (data.name === pluginName) {
-        setPlugin(engine.plugins.get(pluginName))
-      }
-    })
-    
-    onCleanup(unsubscribe)
-  })
-  
-  return plugin
+export function useEngine(): CoreEngine {
+  const engine = useContext(EngineContext)
+  if (!engine) {
+    throw new Error('Engine not found in context. Did you forget to wrap your app with EngineProvider?')
+  }
+  return engine
 }
 
 /**
- * 创建引擎状态信号
+ * 创建引擎状态 signal
  * 
- * @param path - 状态路径
- * @param initialValue - 初始值
- * @returns 状态的响应式信号和设置函数
+ * @param key - 状态键
+ * @param defaultValue - 默认值
+ * @returns Solid signal [getter, setter]
  * 
  * @example
  * ```tsx
+ * import { useEngineState } from '@ldesign/engine-solid'
+ * 
  * function Counter() {
- *   const [count, setCount] = useEngineState<number>('app.count', 0)
- *   
+ *   const [count, setCount] = useEngineState('count', 0)
  *   return (
- *     <div>
- *       <p>Count: {count()}</p>
- *       <button onClick={() => setCount(count() + 1)}>+1</button>
- *     </div>
+ *     <button onClick={() => setCount(count() + 1)}>
+ *       Count: {count()}
+ *     </button>
  *   )
  * }
  * ```
  */
-export function useEngineState<T>(
-  path: string,
-  initialValue?: T
-): [Accessor<T>, Setter<T>] {
-  const engine = getEngine()
-  const value = engine.state.getState(path) ?? initialValue
+export function useEngineState<T>(key: string, defaultValue: T): [() => T, (value: T) => void] {
+  const engine = useEngine()
   
-  const [state, setState] = createSignal<T>(value as T)
-  
+  // 初始化状态
+  if (!engine.state.has(key)) {
+    engine.state.set(key, defaultValue)
+  }
+
+  const [state, setState] = createSignal(engine.state.get(key) as T)
+
   // 监听引擎状态变化
   createEffect(() => {
-    const unwatch = engine.state.watch(path, (newValue) => {
-      setState(() => newValue as T)
+    const unwatch = engine.state.watch(key, (newValue: T) => {
+      setState(() => newValue)
     })
-    
-    onCleanup(unwatch)
+
+    onCleanup(() => {
+      unwatch()
+    })
   })
-  
-  // 包装 setState 以同步到引擎
-  const setEngineState: Setter<T> = (value) => {
-    const newValue = typeof value === 'function' 
-      ? (value as (prev: T) => T)(state())
-      : value
-    
-    engine.state.setState(path, newValue)
-    setState(() => newValue)
+
+  // 创建 setter,同步到引擎
+  const setEngineState = (value: T) => {
+    engine.state.set(key, value)
+    setState(() => value)
   }
-  
+
   return [state, setEngineState]
 }
 
 /**
- * 创建引擎配置信号
+ * 创建只读引擎状态 signal
  * 
- * @param key - 配置键
+ * @param key - 状态键
  * @param defaultValue - 默认值
- * @returns 配置的响应式信号
+ * @returns 只读的 Solid signal
  * 
  * @example
  * ```tsx
- * function MyComponent() {
- *   const apiUrl = useEngineConfig('apiUrl', 'https://api.example.com')
- *   
- *   return <div>API: {apiUrl()}</div>
+ * import { useEngineStateReadonly } from '@ldesign/engine-solid'
+ * 
+ * function ThemeDisplay() {
+ *   const theme = useEngineStateReadonly('theme', 'light')
+ *   return <div class={theme()}>Current theme: {theme()}</div>
  * }
  * ```
  */
-export function useEngineConfig<T>(
-  key: string,
-  defaultValue?: T
-): Accessor<T> {
-  const engine = getEngine()
-  const [config, setConfig] = createSignal<T>(
-    engine.config.get(key, defaultValue)
-  )
+export function useEngineStateReadonly<T>(key: string, defaultValue: T): () => T {
+  const engine = useEngine()
   
+  if (!engine.state.has(key)) {
+    engine.state.set(key, defaultValue)
+  }
+
+  const [state, setState] = createSignal(engine.state.get(key) as T)
+
   createEffect(() => {
-    const unwatch = engine.config.watch(key, (newValue) => {
-      setConfig(() => newValue as T)
+    const unwatch = engine.state.watch(key, (newValue: T) => {
+      setState(() => newValue)
     })
-    
-    onCleanup(unwatch)
+
+    onCleanup(() => {
+      unwatch()
+    })
   })
-  
-  return config
+
+  return state
+}
+
+/**
+ * 创建计算状态 memo
+ * 
+ * @param getter - 计算函数
+ * @returns Solid memo
+ * 
+ * @example
+ * ```tsx
+ * import { useEngineState, useComputedState } from '@ldesign/engine-solid'
+ * 
+ * function DoubledCounter() {
+ *   const [count] = useEngineState('count', 0)
+ *   const doubled = useComputedState(() => count() * 2)
+ *   return <div>Doubled: {doubled()}</div>
+ * }
+ * ```
+ */
+export function useComputedState<T>(getter: () => T): () => T {
+  return createMemo(getter)
 }
 
 /**
  * 监听引擎事件
  * 
- * @param eventName - 事件名称
- * @param handler - 事件处理器
+ * @param event - 事件名称
+ * @param handler - 事件处理函数
  * 
  * @example
  * ```tsx
- * function MyComponent() {
- *   useEngineEvent('theme:changed', (data) => {
- *     console.log('Theme changed to:', data.to)
+ * import { useEvent } from '@ldesign/engine-solid'
+ * 
+ * function LoginListener() {
+ *   useEvent('user:login', (user) => {
+ *     console.log('User logged in:', user)
  *   })
- *   
- *   return <div>Listening to theme changes</div>
+ *   return <div>Listening for login events...</div>
  * }
  * ```
  */
-export function useEngineEvent(
-  eventName: string,
-  handler: (data: any) => void
-): void {
-  const engine = getEngine()
-  
-  createEffect(() => {
-    const unsubscribe = engine.events.on(eventName, handler)
-    onCleanup(unsubscribe)
-  })
-}
+export function useEvent(event: string, handler: (data: any) => void): void {
+  const engine = useEngine()
 
-/**
- * 创建引擎事件信号
- * 
- * @param eventName - 事件名称
- * @returns 事件数据的响应式信号
- * 
- * @example
- * ```tsx
- * function MyComponent() {
- *   const themeChanged = useEngineEventSignal('theme:changed')
- *   
- *   return (
- *     <Show when={themeChanged()}>
- *       <p>Theme changed to: {themeChanged()?.to}</p>
- *     </Show>
- *   )
- * }
- * ```
- */
-export function useEngineEventSignal<T = any>(
-  eventName: string
-): Accessor<T | null> {
-  const engine = getEngine()
-  const [event, setEvent] = createSignal<T | null>(null)
-  
   createEffect(() => {
-    const unsubscribe = engine.events.on(eventName, (data: T) => {
-      setEvent(() => data)
+    const unsubscribe = engine.events.on(event, handler)
+
+    onCleanup(() => {
+      unsubscribe()
     })
-    
-    onCleanup(unsubscribe)
   })
-  
-  return event
 }
 
 /**
- * 获取引擎日志器
+ * 监听生命周期钩子
  * 
- * @returns 日志器实例
+ * @param hook - 钩子名称
+ * @param handler - 钩子处理函数
  * 
  * @example
  * ```tsx
- * function MyComponent() {
- *   const logger = useEngineLogger()
- *   
- *   onMount(() => {
- *     logger.info('Component mounted')
+ * import { useLifecycle } from '@ldesign/engine-solid'
+ * 
+ * function MountedLogger() {
+ *   useLifecycle('mounted', () => {
+ *     console.log('Component mounted!')
  *   })
- *   
- *   return <div>Check console</div>
+ *   return <div>Component</div>
  * }
  * ```
  */
-export function useEngineLogger() {
-  const engine = getEngine()
-  return engine.logger
+export function useLifecycle(hook: string, handler: (data?: any) => void | Promise<void>): void {
+  const engine = useEngine()
+
+  createEffect(() => {
+    const unsubscribe = engine.lifecycle.on(hook, handler)
+
+    onCleanup(() => {
+      unsubscribe()
+    })
+  })
 }
 
 /**
- * 创建引擎状态信号
+ * 获取插件实例
  * 
- * @returns 引擎状态的响应式信号
+ * @param name - 插件名称
+ * @returns 插件实例 signal
  * 
  * @example
  * ```tsx
- * function StatusComponent() {
- *   const status = useEngineStatus()
- *   
+ * import { usePlugin } from '@ldesign/engine-solid'
+ * 
+ * function I18nComponent() {
+ *   const i18n = usePlugin('i18n')
+ *   return <div>{i18n() ? 'Plugin loaded' : 'Loading...'}</div>
+ * }
+ * ```
+ */
+export function usePlugin(name: string): () => any | null {
+  const engine = useEngine()
+  const [plugin, setPlugin] = createSignal(engine.plugins.get(name) || null)
+
+  createEffect(() => {
+    setPlugin(() => engine.plugins.get(name) || null)
+  })
+
+  return plugin
+}
+
+/**
+ * 触发引擎事件
+ * 
+ * @param event - 事件名称
+ * @param data - 事件数据
+ * 
+ * @example
+ * ```tsx
+ * import { emitEngineEvent } from '@ldesign/engine-solid'
+ * 
+ * function LogoutButton() {
  *   return (
- *     <div>
- *       <p>Initialized: {status().initialized ? 'Yes' : 'No'}</p>
- *       <p>Plugins: {status().pluginCount}</p>
- *     </div>
+ *     <button onClick={() => emitEngineEvent('user:logout')}>
+ *       Logout
+ *     </button>
  *   )
  * }
  * ```
  */
-export function useEngineStatus(): Accessor<any> {
-  const engine = getEngine()
-  const [status, setStatus] = createSignal(engine.getStatus())
-  
-  createEffect(() => {
-    const interval = setInterval(() => {
-      setStatus(engine.getStatus())
-    }, 1000)
-    
-    onCleanup(() => clearInterval(interval))
-  })
-  
-  return status
+export function emitEngineEvent(event: string, data?: any): void {
+  const engine = useEngine()
+  engine.events.emit(event, data)
 }
+
+/**
+ * 触发异步引擎事件
+ * 
+ * @param event - 事件名称
+ * @param data - 事件数据
+ * @returns Promise
+ * 
+ * @example
+ * ```tsx
+ * import { emitEngineEventAsync } from '@ldesign/engine-solid'
+ * 
+ * function LoadDataButton() {
+ *   const handleClick = async () => {
+ *     await emitEngineEventAsync('data:load', { id: 123 })
+ *   }
+ *   return <button onClick={handleClick}>Load Data</button>
+ * }
+ * ```
+ */
+export async function emitEngineEventAsync(event: string, data?: any): Promise<void> {
+  const engine = useEngine()
+  await engine.events.emitAsync(event, data)
+}
+
+/**
+ * 执行中间件链
+ * 
+ * @param context - 中间件上下文
+ * @returns Promise
+ * 
+ * @example
+ * ```tsx
+ * import { executeMiddleware } from '@ldesign/engine-solid'
+ * 
+ * function ActionButton() {
+ *   const handleAction = async () => {
+ *     await executeMiddleware({ data: { action: 'test' } })
+ *   }
+ *   return <button onClick={handleAction}>Execute</button>
+ * }
+ * ```
+ */
+export async function executeMiddleware(context: any): Promise<void> {
+  const engine = useEngine()
+  await engine.middleware.execute(context)
+}
+

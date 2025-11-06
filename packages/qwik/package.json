@@ -1,67 +1,65 @@
 {
   "name": "@ldesign/engine-qwik",
-  "version": "0.2.0",
-  "description": "Qwik adapter for LDesign Engine",
+  "version": "0.3.0",
+  "description": "Qwik adapter for LDesign Engine - Provides Qwik-specific integration for the universal application engine",
+  "keywords": [
+    "qwik",
+    "engine",
+    "adapter",
+    "plugin",
+    "middleware",
+    "typescript"
+  ],
+  "author": "ldesign",
+  "license": "MIT",
   "type": "module",
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "sideEffects": false,
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
-    },
-    "./adapter": {
-      "types": "./dist/adapter/qwik-adapter.d.ts",
-      "import": "./dist/adapter/qwik-adapter.js",
-      "require": "./dist/adapter/qwik-adapter.cjs"
-    },
-    "./hooks": {
-      "types": "./dist/hooks/use-engine.d.ts",
-      "import": "./dist/hooks/use-engine.js",
-      "require": "./dist/hooks/use-engine.cjs"
+      "types": "./es/index.d.ts",
+      "import": "./es/index.js",
+      "require": "./lib/index.cjs"
     }
   },
+  "main": "./lib/index.cjs",
+  "module": "./es/index.js",
+  "types": "./es/index.d.ts",
+  "unpkg": "./dist/index.min.js",
+  "jsdelivr": "./dist/index.min.js",
   "files": [
-    "dist",
+    "README.md",
+    "LICENSE",
+    "package.json",
     "es",
     "lib",
-    "README.md"
+    "dist"
   ],
   "scripts": {
-    "build": "tsup",
-    "clean": "rimraf dist es lib",
-    "dev": "tsup --watch",
-    "type-check": "tsc --noEmit",
-    "test": "vitest"
+    "build": "ldesign-builder build",
+    "dev": "ldesign-builder build --watch",
+    "clean": "rimraf es lib dist",
+    "type-check": "tsc --noEmit"
   },
-  "keywords": [
-    "ldesign",
-    "engine",
-    "qwik",
-    "adapter",
-    "framework"
-  ],
-  "author": "LDesign Team",
-  "license": "MIT",
-  "peerDependencies": {
-    "@builder.io/qwik": "^1.0.0",
+  "dependencies": {
     "@ldesign/engine-core": "workspace:*"
   },
-  "devDependencies": {
-    "@builder.io/qwik": "^1.9.1",
-    "@ldesign/engine-core": "workspace:*",
-    "@types/node": "^20.0.0",
-    "rimraf": "^5.0.0",
-    "tsup": "^8.0.0",
-    "typescript": "^5.0.0",
-    "vitest": "^3.0.0"
+  "peerDependencies": {
+    "@builder.io/qwik": "^1.0.0"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/ldesign/engine.git",
-    "directory": "packages/qwik"
+  "devDependencies": {
+    "@ldesign/builder": "workspace:*",
+    "@builder.io/qwik": "^1.4.0",
+    "@ldesign/router": "workspace:*",
+    "@ldesign/router-qwik": "workspace:*",
+    "typescript": "^5.7.3"
+  },
+  "optionalDependencies": {
+    "@ldesign/router": "workspace:*",
+    "@ldesign/router-qwik": "workspace:*"
+  },
+  "peerDependenciesMeta": {
+    "@builder.io/qwik": {
+      "optional": false
+    }
   }
 }
-

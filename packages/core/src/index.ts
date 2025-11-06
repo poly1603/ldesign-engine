@@ -1,35 +1,30 @@
 /**
  * @ldesign/engine-core
- * 
- * Framework-agnostic core engine for building modern applications
+ *
+ * 框架无关的核心引擎包
  */
 
-// 核心引擎
-export { CoreEngineImpl, createCoreEngine } from './core-engine'
+// 导出类型
+export * from './types'
 
-// 适配器 (新增)
-export * from './adapters'
+// 导出核心引擎
+export * from './engine'
 
-// 管理器
+// 导出插件系统
 export * from './plugin'
+
+// 导出中间件系统
 export * from './middleware'
+
+// 导出生命周期系统
 export * from './lifecycle'
-export * from './events'
+
+// 导出事件系统
+export * from './event'
+
+// 导出状态管理系统
 export * from './state'
-export * from './cache'
-export * from './logger'
-export * from './config'
-export * from './di'
 
-// 工具函数
-export * from './utils'
-
-// 错误类型
-export * from './errors'
-
-// 类型导出
-export type * from './types'
-
-// 版本
-export const version = '0.2.0'
+// 引擎版本
+export const ENGINE_VERSION = '0.3.0'
 

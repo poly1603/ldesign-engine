@@ -1,7 +1,7 @@
 .app {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .header {
@@ -10,109 +10,267 @@
 }
 
 .header h1 {
-  font-size: 3rem;
+  font-size: 2.5rem;
   margin-bottom: 0.5rem;
   background: linear-gradient(135deg, #2c4f7c 0%, #00d4ff 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-.subtitle {
-  font-size: 1.2rem;
+.header p {
   color: #666;
+  font-size: 1.1rem;
 }
 
-.section {
-  margin-bottom: 2rem;
-  padding: 1.5rem;
-  background: #f8f9fa;
-  border-radius: 8px;
-}
-
-.section h2 {
-  margin-bottom: 1rem;
-  color: #2c4f7c;
+.main {
+  flex: 1;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 2rem;
 }
 
 .features {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1rem;
+  gap: 1.5rem;
+  margin-top: 2rem;
 }
 
-.feature-card {
+.feature {
   padding: 1.5rem;
-  background: white;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  background: linear-gradient(135deg, #2c4f7c15 0%, #00d4ff15 100%);
+  border: 1px solid #2c4f7c30;
 }
 
-.feature-card h3 {
+.feature h3 {
+  margin-top: 0;
   margin-bottom: 0.5rem;
-  color: #2c4f7c;
+  color: #333;
 }
 
-.feature-card button {
-  margin-top: 1rem;
-  padding: 0.5rem 1rem;
-  background: #2c4f7c;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background 0.3s;
-  font-weight: 600;
-}
-
-.feature-card button:hover {
-  background: #00d4ff;
-}
-
-.state-display {
-  background: white;
-  padding: 1rem;
-  border-radius: 8px;
-}
-
-.state-item {
-  padding: 0.5rem;
-  margin-bottom: 0.5rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.state-item button {
-  padding: 0.25rem 0.75rem;
-  background: #2c4f7c;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 600;
-}
-
-.log-container {
-  background: #1e1e1e;
-  color: #d4d4d4;
-  padding: 1rem;
-  border-radius: 8px;
-  max-height: 300px;
-  overflow-y: auto;
-  font-family: 'Courier New', monospace;
-  font-size: 0.9rem;
-}
-
-.log-item {
-  padding: 0.25rem 0;
-  border-bottom: 1px solid #333;
+.feature p {
+  margin: 0;
+  color: #666;
+  line-height: 1.6;
 }
 
 .footer {
   text-align: center;
-  margin-top: 3rem;
-  padding-top: 2rem;
-  border-top: 1px solid #ddd;
+  padding: 2rem;
   color: #666;
+  border-top: 1px solid #eee;
+  background: #f9fafb;
+}
+
+/* 路由相关样式 */
+.navigation {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 1rem 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.nav-brand h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.nav-links {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.nav-link {
+  color: white;
+  text-decoration: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.nav-link:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.nav-link.active {
+  background: rgba(255, 255, 255, 0.3);
+  font-weight: 600;
+}
+
+.router-view {
+  min-height: 400px;
+}
+
+.page {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page h2 {
+  color: #667eea;
+  margin-bottom: 1.5rem;
+}
+
+.card {
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.card h3 {
+  margin-top: 0;
+  color: #333;
+}
+
+.card ul {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+}
+
+.card li {
+  margin: 0.5rem 0;
+  color: #666;
+}
+
+.counter {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.counter button {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: #667eea;
+  color: white;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.counter button:hover {
+  background: #764ba2;
+  transform: scale(1.1);
+}
+
+.count {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #667eea;
+  min-width: 60px;
+  text-align: center;
+}
+
+.hint {
+  color: #999;
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+.btn-primary {
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  background: #764ba2;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.info-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.info-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #eee;
+}
+
+.info-table td:first-child {
+  width: 40%;
+  color: #666;
+}
+
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.user-avatar {
+  font-size: 4rem;
+}
+
+.user-info h3 {
+  margin: 0 0 0.5rem 0;
+  color: #333;
+}
+
+.user-role {
+  color: #667eea;
+  font-weight: 600;
+  margin: 0.25rem 0;
+}
+
+.user-email {
+  color: #999;
+  margin: 0.25rem 0;
+}
+
+.user-switcher {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.user-switcher button {
+  padding: 0.75rem 1.5rem;
+  border: 2px solid #667eea;
+  background: white;
+  color: #667eea;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+}
+
+.user-switcher button:hover {
+  background: #f0f4ff;
+  transform: translateY(-2px);
+}
+
+.user-switcher button.active {
+  background: #667eea;
+  color: white;
 }
 

@@ -1,245 +1,331 @@
 /**
- * Svelte Stores for @ldesign/engine
+ * Svelte Stores 集成
+ * 
+ * 提供与引擎集成的 Svelte stores
  */
 
-import { writable, readable, derived, get } from 'svelte/store'
-import type { Writable, Readable, Unsubscriber } from 'svelte/store'
-import type { CoreEngine, Plugin } from '@ldesign/engine-core'
-
-let engineInstance: CoreEngine | null = null
+import { writable, derived, get, type Readable, type Writable } from 'svelte/store'
+import { getContext, setContext, onDestroy } from 'svelte'
+import type { CoreEngine } from '@ldesign/engine-core'
 
 /**
- * 设置引擎实例
+ * 引擎上下文键
+ */
+const ENGINE_CONTEXT_KEY = Symbol('ldesign-engine')
+
+/**
+ * 设置引擎到 Svelte 上下文
  * 
  * @param engine - 引擎实例
  * 
  * @example
- * ```ts
- * import { createEngine } from '@ldesign/engine-core'
- * import { setEngine } from '@ldesign/engine-svelte'
- * 
- * const engine = createEngine({ ... })
- * await engine.initialize()
- * setEngine(engine)
+ * ```svelte
+ * <script>
+ *   import { setEngineContext } from '@ldesign/engine-svelte'
+ *   
+ *   setEngineContext(engine)
+ * </script>
  * ```
  */
-export function setEngine(engine: CoreEngine): void {
-  engineInstance = engine
-  engineStore.set(engine)
+export function setEngineContext(engine: CoreEngine): void {
+  setContext(ENGINE_CONTEXT_KEY, engine)
 }
 
 /**
- * 获取引擎实例
+ * 从 Svelte 上下文获取引擎
  * 
  * @returns 引擎实例
- * @throws 如果引擎未设置
+ * @throws 如果引擎未设置则抛出错误
+ * 
+ * @example
+ * ```svelte
+ * <script>
+ *   import { getEngineContext } from '@ldesign/engine-svelte'
+ *   
+ *   const engine = getEngineContext()
+ * </script>
+ * ```
  */
-export function getEngine(): CoreEngine {
-  if (!engineInstance) {
-    throw new Error('[getEngine] Engine not initialized. Call setEngine() first.')
+export function getEngineContext(): CoreEngine {
+  const engine = getContext<CoreEngine>(ENGINE_CONTEXT_KEY)
+  if (!engine) {
+    throw new Error('Engine not found in context. Did you forget to call setEngineContext?')
   }
-  return engineInstance
+  return engine
 }
 
 /**
- * 引擎 store
+ * 创建引擎状态 store
+ * 
+ * @param key - 状态键
+ * @param defaultValue - 默认值
+ * @returns 可写的 Svelte store
+ * 
+ * @example
+ * ```svelte
+ * <script>
+ *   import { createEngineState } from '@ldesign/engine-svelte'
+ *   
+ *   const count = createEngineState('count', 0)
+ * </script>
+ * 
+ * <button on:click={() => $count++}>
+ *   Count: {$count}
+ * </button>
+ * ```
  */
-export const engineStore = writable<CoreEngine | null>(null)
+export function createEngineState<T>(key: string, defaultValue: T): Writable<T> {
+  const engine = getEngineContext()
+  
+  // 初始化状态
+  if (!engine.state.has(key)) {
+    engine.state.set(key, defaultValue)
+  }
+
+  const store = writable(engine.state.get(key) as T)
+
+  // 监听引擎状态变化
+  const unwatch = engine.state.watch(key, (newValue: T) => {
+    store.set(newValue)
+  })
+
+  // 组件销毁时取消监听
+  onDestroy(() => {
+    unwatch()
+  })
+
+  // 重写 set 和 update 方法,同步到引擎
+  return {
+    subscribe: store.subscribe,
+    set: (value: T) => {
+      engine.state.set(key, value)
+      store.set(value)
+    },
+    update: (updater: (value: T) => T) => {
+      const currentValue = engine.state.get(key) as T
+      const newValue = updater(currentValue)
+      engine.state.set(key, newValue)
+      store.set(newValue)
+    },
+  }
+}
+
+/**
+ * 创建只读引擎状态 store
+ * 
+ * @param key - 状态键
+ * @param defaultValue - 默认值
+ * @returns 只读的 Svelte store
+ * 
+ * @example
+ * ```svelte
+ * <script>
+ *   import { createEngineStateReadonly } from '@ldesign/engine-svelte'
+ *   
+ *   const theme = createEngineStateReadonly('theme', 'light')
+ * </script>
+ * 
+ * <div class={$theme}>
+ *   Current theme: {$theme}
+ * </div>
+ * ```
+ */
+export function createEngineStateReadonly<T>(key: string, defaultValue: T): Readable<T> {
+  const engine = getEngineContext()
+  
+  if (!engine.state.has(key)) {
+    engine.state.set(key, defaultValue)
+  }
+
+  const store = writable(engine.state.get(key) as T)
+
+  const unwatch = engine.state.watch(key, (newValue: T) => {
+    store.set(newValue)
+  })
+
+  onDestroy(() => {
+    unwatch()
+  })
+
+  return {
+    subscribe: store.subscribe,
+  }
+}
+
+/**
+ * 创建计算状态 store
+ * 
+ * @param getter - 计算函数
+ * @returns 只读的 Svelte store
+ * 
+ * @example
+ * ```svelte
+ * <script>
+ *   import { createEngineState, createComputedState } from '@ldesign/engine-svelte'
+ *   
+ *   const count = createEngineState('count', 0)
+ *   const doubled = createComputedState(() => $count * 2)
+ * </script>
+ * 
+ * <div>
+ *   Count: {$count}, Doubled: {$doubled}
+ * </div>
+ * ```
+ */
+export function createComputedState<T>(getter: () => T): Readable<T> {
+  return derived({ subscribe: (fn: any) => {
+    const value = getter()
+    fn(value)
+    return () => {}
+  }}, ($value) => $value)
+}
+
+/**
+ * 创建事件监听器
+ * 
+ * @param event - 事件名称
+ * @param handler - 事件处理函数
+ * 
+ * @example
+ * ```svelte
+ * <script>
+ *   import { createEventListener } from '@ldesign/engine-svelte'
+ *   
+ *   createEventListener('user:login', (user) => {
+ *     console.log('User logged in:', user)
+ *   })
+ * </script>
+ * ```
+ */
+export function createEventListener(event: string, handler: (data: any) => void): void {
+  const engine = getEngineContext()
+  const unsubscribe = engine.events.on(event, handler)
+  
+  onDestroy(() => {
+    unsubscribe()
+  })
+}
+
+/**
+ * 创建生命周期钩子监听器
+ * 
+ * @param hook - 钩子名称
+ * @param handler - 钩子处理函数
+ * 
+ * @example
+ * ```svelte
+ * <script>
+ *   import { createLifecycleHook } from '@ldesign/engine-svelte'
+ *   
+ *   createLifecycleHook('mounted', () => {
+ *     console.log('Component mounted!')
+ *   })
+ * </script>
+ * ```
+ */
+export function createLifecycleHook(hook: string, handler: (data?: any) => void | Promise<void>): void {
+  const engine = getEngineContext()
+  const unsubscribe = engine.lifecycle.on(hook, handler)
+  
+  onDestroy(() => {
+    unsubscribe()
+  })
+}
 
 /**
  * 创建插件 store
  * 
- * @param pluginName - 插件名称
- * @returns 插件的可读 store
+ * @param name - 插件名称
+ * @returns 插件实例的 Readable store
  * 
  * @example
  * ```svelte
  * <script>
- * import { createPluginStore } from '@ldesign/engine-svelte'
- * 
- * const i18nPlugin = createPluginStore('i18n')
+ *   import { createPluginStore } from '@ldesign/engine-svelte'
+ *   
+ *   const i18nPlugin = createPluginStore('i18n')
  * </script>
  * 
  * {#if $i18nPlugin}
- *   <p>Plugin loaded: {$i18nPlugin.name}</p>
+ *   <div>Plugin loaded: {$i18nPlugin.name}</div>
  * {/if}
  * ```
  */
-export function createPluginStore(pluginName: string): Readable<Plugin | undefined> {
-  return readable<Plugin | undefined>(undefined, (set) => {
-    const engine = getEngine()
-    
-    // 初始值
-    set(engine.plugins.get(pluginName))
-    
-    // 监听插件注册
-    const unsubscribe = engine.events.on('plugin:registered', (data: any) => {
-      if (data.name === pluginName) {
-        set(engine.plugins.get(pluginName))
-      }
-    })
-    
-    return unsubscribe
-  })
-}
-
-/**
- * 创建引擎状态 store
- * 
- * @param path - 状态路径
- * @param initialValue - 初始值
- * @returns 可写的状态 store
- * 
- * @example
- * ```svelte
- * <script>
- * import { createEngineStateStore } from '@ldesign/engine-svelte'
- * 
- * const count = createEngineStateStore('app.count', 0)
- * 
- * function increment() {
- *   $count++
- * }
- * </script>
- * 
- * <p>Count: {$count}</p>
- * <button on:click={increment}>+1</button>
- * ```
- */
-export function createEngineStateStore<T>(
-  path: string,
-  initialValue?: T
-): Writable<T> {
-  const engine = getEngine()
-  const value = engine.state.getState(path) ?? initialValue
+export function createPluginStore(name: string): Readable<any | null> {
+  const engine = getEngineContext()
+  const store = writable(engine.plugins.get(name) || null)
   
-  const store = writable<T>(value)
-  
-  // 监听引擎状态变化
-  const unwatch = engine.state.watch(path, (newValue) => {
-    store.set(newValue as T)
-  })
-  
-  // 重写 set 方法以同步到引擎
-  const originalSet = store.set
-  store.set = (value: T) => {
-    engine.state.setState(path, value)
-    originalSet(value)
+  return {
+    subscribe: store.subscribe,
   }
-  
-  // 重写 update 方法
-  const originalUpdate = store.update
-  store.update = (updater: (value: T) => T) => {
-    const currentValue = get(store)
-    const newValue = updater(currentValue)
-    engine.state.setState(path, newValue)
-    originalSet(newValue)
-  }
-  
-  return store
 }
 
 /**
- * 创建引擎配置 store
+ * 触发引擎事件
  * 
- * @param key - 配置键
- * @param defaultValue - 默认值
- * @returns 配置的可读 store
+ * @param event - 事件名称
+ * @param data - 事件数据
  * 
  * @example
  * ```svelte
  * <script>
- * import { createEngineConfigStore } from '@ldesign/engine-svelte'
- * 
- * const apiUrl = createEngineConfigStore('apiUrl', 'https://api.example.com')
+ *   import { emitEngineEvent } from '@ldesign/engine-svelte'
  * </script>
  * 
- * <p>API: {$apiUrl}</p>
+ * <button on:click={() => emitEngineEvent('user:logout')}>
+ *   Logout
+ * </button>
  * ```
  */
-export function createEngineConfigStore<T>(
-  key: string,
-  defaultValue?: T
-): Readable<T> {
-  return readable<T>(defaultValue as T, (set) => {
-    const engine = getEngine()
-    
-    // 初始值
-    set(engine.config.get(key, defaultValue))
-    
-    // 监听配置变化
-    const unwatch = engine.config.watch(key, (newValue) => {
-      set(newValue as T)
-    })
-    
-    return unwatch
-  })
+export function emitEngineEvent(event: string, data?: any): void {
+  const engine = getEngineContext()
+  engine.events.emit(event, data)
 }
 
 /**
- * 创建引擎事件 store
+ * 触发异步引擎事件
  * 
- * @param eventName - 事件名称
- * @returns 事件数据的可读 store
+ * @param event - 事件名称
+ * @param data - 事件数据
+ * @returns Promise
  * 
  * @example
  * ```svelte
  * <script>
- * import { createEngineEventStore } from '@ldesign/engine-svelte'
- * 
- * const themeChanged = createEngineEventStore('theme:changed')
+ *   import { emitEngineEventAsync } from '@ldesign/engine-svelte'
+ *   
+ *   async function handleClick() {
+ *     await emitEngineEventAsync('data:load', { id: 123 })
+ *   }
  * </script>
  * 
- * {#if $themeChanged}
- *   <p>Theme changed to: {$themeChanged.to}</p>
- * {/if}
+ * <button on:click={handleClick}>Load Data</button>
  * ```
  */
-export function createEngineEventStore<T = any>(
-  eventName: string
-): Readable<T | null> {
-  return readable<T | null>(null, (set) => {
-    const engine = getEngine()
-    
-    const unsubscribe = engine.events.on(eventName, (data: T) => {
-      set(data)
-    })
-    
-    return unsubscribe
-  })
+export async function emitEngineEventAsync(event: string, data?: any): Promise<void> {
+  const engine = getEngineContext()
+  await engine.events.emitAsync(event, data)
 }
 
 /**
- * 创建引擎状态 store
+ * 执行中间件链
  * 
- * @returns 引擎状态的可读 store
+ * @param context - 中间件上下文
+ * @returns Promise
  * 
  * @example
  * ```svelte
  * <script>
- * import { createEngineStatusStore } from '@ldesign/engine-svelte'
- * 
- * const status = createEngineStatusStore()
+ *   import { executeMiddleware } from '@ldesign/engine-svelte'
+ *   
+ *   async function handleAction() {
+ *     await executeMiddleware({ data: { action: 'test' } })
+ *   }
  * </script>
- * 
- * <div>
- *   <p>Initialized: {$status.initialized ? 'Yes' : 'No'}</p>
- *   <p>Plugins: {$status.pluginCount}</p>
- * </div>
  * ```
  */
-export function createEngineStatusStore(): Readable<any> {
-  return readable({}, (set) => {
-    const engine = getEngine()
-    
-    // 初始值
-    set(engine.getStatus())
-    
-    // 定期更新
-    const interval = setInterval(() => {
-      set(engine.getStatus())
-    }, 1000)
-    
-    return () => clearInterval(interval)
-  })
+export async function executeMiddleware(context: any): Promise<void> {
+  const engine = getEngineContext()
+  await engine.middleware.execute(context)
 }
+

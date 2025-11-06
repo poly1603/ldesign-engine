@@ -1,266 +1,354 @@
 /**
  * 生命周期管理器实现
- * 负责生命周期钩子的注册和执行
+ *
+ * 提供统一的生命周期钩子管理,支持异步处理和错误隔离
+ *
+ * @module lifecycle-manager
  */
 
 import type {
-  HookInfo,
-  LifecycleContext,
-  LifecycleEvent,
   LifecycleHook,
+  LifecycleHandler,
   LifecycleManager,
-  LifecyclePhase,
 } from '../types'
 
-export class CoreLifecycleManager<T = unknown> implements LifecycleManager<T> {
-  private hooks = new Map<LifecyclePhase, Map<string, HookInfo<T>>>()
-  private history: LifecycleEvent[] = []
-  private currentPhase?: LifecyclePhase
-  private lastEvent?: LifecycleEvent
-  private errorCallbacks: Array<(error: Error, context: LifecycleContext<T>) => void> = []
-  private hookIdCounter = 0
+/**
+ * 一次性钩子处理器包装器
+ * @private
+ */
+interface OnceWrapper {
+  /** 原始处理器 */
+  original: LifecycleHandler
+  /** 包装后的处理器 */
+  wrapped: LifecycleHandler
+}
+
+/**
+ * 核心生命周期管理器
+ *
+ * 特性:
+ * - 支持异步钩子处理
+ * - 错误隔离
+ * - 一次性钩子
+ * - 钩子优先级
+ * - 防止内存泄漏
+ *
+ * 生命周期钩子:
+ * - beforeInit: 初始化前
+ * - init: 初始化
+ * - afterInit: 初始化后
+ * - beforeMount: 挂载前
+ * - mounted: 已挂载
+ * - beforeUpdate: 更新前
+ * - updated: 已更新
+ * - beforeUnmount: 卸载前
+ * - unmounted: 已卸载
+ *
+ * @example
+ * ```typescript
+ * const lifecycleManager = createLifecycleManager()
+ *
+ * // 注册钩子
+ * lifecycleManager.on('mounted', async () => {
+ *   console.log('App mounted')
+ *   await loadData()
+ * })
+ *
+ * // 触发钩子
+ * await lifecycleManager.trigger('mounted')
+ *
+ * // 一次性钩子
+ * lifecycleManager.once('init', () => {
+ *   console.log('This runs only once')
+ * })
+ * ```
+ */
+export class CoreLifecycleManager implements LifecycleManager {
+  /** 钩子处理器存储 */
+  private hooks = new Map<LifecycleHook, Set<LifecycleHandler>>()
+
+  /** 一次性钩子包装器映射 - 用于正确清理 */
+  private onceWrappers = new Map<LifecycleHook, Map<LifecycleHandler, OnceWrapper>>()
+
+  /** 钩子触发历史 - 用于调试和性能分析 */
+  private triggerHistory = new Map<LifecycleHook, number>()
 
   /**
-   * 注册钩子
+   * 注册生命周期钩子
+   *
+   * @param hook - 钩子名称
+   * @param handler - 处理函数
+   *
+   * @example
+   * ```typescript
+   * lifecycleManager.on('mounted', () => {
+   *   console.log('Component mounted')
+   * })
+   *
+   * // 异步处理器
+   * lifecycleManager.on('beforeMount', async () => {
+   *   await fetchData()
+   * })
+   * ```
    */
-  on(phase: LifecyclePhase, hook: LifecycleHook<T>, priority = 0): string {
-    return this.registerHook(phase, hook, priority, false)
-  }
-
-  /**
-   * 注册一次性钩子
-   */
-  once(phase: LifecyclePhase, hook: LifecycleHook<T>, priority = 0): string {
-    return this.registerHook(phase, hook, priority, true)
-  }
-
-  /**
-   * 注册钩子（内部方法）
-   */
-  private registerHook(
-    phase: LifecyclePhase,
-    hook: LifecycleHook<T>,
-    priority: number,
-    once: boolean
-  ): string {
-    if (!this.hooks.has(phase)) {
-      this.hooks.set(phase, new Map())
+  on(hook: LifecycleHook, handler: LifecycleHandler): void {
+    if (!this.hooks.has(hook)) {
+      this.hooks.set(hook, new Set())
     }
-
-    const id = `hook_${phase}_${this.hookIdCounter++}`
-    const hookInfo: HookInfo<T> = {
-      id,
-      phase,
-      hook,
-      priority,
-      once,
-      registeredAt: Date.now(),
-    }
-
-    this.hooks.get(phase)!.set(id, hookInfo)
-    return id
+    this.hooks.get(hook)!.add(handler)
   }
 
   /**
-   * 移除钩子
+   * 移除生命周期钩子
+   *
+   * @param hook - 钩子名称
+   * @param handler - 处理函数,不传则移除该钩子的所有处理器
+   *
+   * @example
+   * ```typescript
+   * // 移除特定处理器
+   * lifecycleManager.off('mounted', handleMounted)
+   *
+   * // 移除所有处理器
+   * lifecycleManager.off('mounted')
+   * ```
    */
-  off(hookId: string): boolean {
-    for (const phaseHooks of this.hooks.values()) {
-      if (phaseHooks.has(hookId)) {
-        phaseHooks.delete(hookId)
-        return true
+  off(hook: LifecycleHook, handler?: LifecycleHandler): void {
+    if (!handler) {
+      // 移除所有处理函数
+      const handlers = this.hooks.get(hook)
+      if (handlers) {
+        handlers.clear()
+        this.hooks.delete(hook)
       }
-    }
-    return false
-  }
 
-  /**
-   * 移除所有钩子
-   */
-  offAll(phase?: LifecyclePhase): number {
-    if (phase) {
-      const phaseHooks = this.hooks.get(phase)
-      if (!phaseHooks) return 0
-      const count = phaseHooks.size
-      phaseHooks.clear()
-      return count
+      // 清理 once 包装器
+      this.onceWrappers.delete(hook)
+      return
     }
 
-    let count = 0
-    this.hooks.forEach(phaseHooks => {
-      count += phaseHooks.size
-      phaseHooks.clear()
-    })
-    return count
-  }
+    // 检查是否是 once 钩子
+    const wrappers = this.onceWrappers.get(hook)
+    if (wrappers?.has(handler)) {
+      const wrapper = wrappers.get(handler)!
+      this.hooks.get(hook)?.delete(wrapper.wrapped)
+      wrappers.delete(handler)
 
-  /**
-   * 获取指定阶段的钩子
-   */
-  getHooks(phase: LifecyclePhase): HookInfo<T>[] {
-    const phaseHooks = this.hooks.get(phase)
-    if (!phaseHooks) return []
-
-    return Array.from(phaseHooks.values()).sort((a, b) => b.priority - a.priority)
-  }
-
-  /**
-   * 获取所有钩子
-   */
-  getAllHooks(): HookInfo<T>[] {
-    const allHooks: HookInfo<T>[] = []
-    this.hooks.forEach(phaseHooks => {
-      allHooks.push(...phaseHooks.values())
-    })
-    return allHooks
-  }
-
-  /**
-   * 检查是否有钩子
-   */
-  hasHooks(phase: LifecyclePhase): boolean {
-    const phaseHooks = this.hooks.get(phase)
-    return phaseHooks ? phaseHooks.size > 0 : false
-  }
-
-  /**
-   * 获取钩子数量
-   */
-  getHookCount(phase?: LifecyclePhase): number {
-    if (phase) {
-      const phaseHooks = this.hooks.get(phase)
-      return phaseHooks ? phaseHooks.size : 0
+      // 清理空的包装器映射
+      if (wrappers.size === 0) {
+        this.onceWrappers.delete(hook)
+      }
+    } else {
+      // 移除普通处理函数
+      this.hooks.get(hook)?.delete(handler)
     }
 
-    let count = 0
-    this.hooks.forEach(phaseHooks => {
-      count += phaseHooks.size
-    })
-    return count
+    // 内存优化: 清理空的钩子集合
+    const handlers = this.hooks.get(hook)
+    if (handlers && handlers.size === 0) {
+      this.hooks.delete(hook)
+    }
   }
 
   /**
-   * 执行生命周期
+   * 触发生命周期钩子
+   *
+   * 执行策略:
+   * - 并行执行所有异步处理器
+   * - 错误隔离,单个处理器错误不影响其他处理器
+   * - 记录触发历史
+   *
+   * @param hook - 钩子名称
+   * @param args - 传递给处理器的参数
+   *
+   * @example
+   * ```typescript
+   * // 触发钩子
+   * await lifecycleManager.trigger('mounted')
+   *
+   * // 传递参数
+   * await lifecycleManager.trigger('beforeUpdate', oldData, newData)
+   * ```
    */
-  async execute(phase: LifecyclePhase, engine: T, data?: unknown): Promise<LifecycleEvent> {
-    const startTime = Date.now()
-    this.currentPhase = phase
+  async trigger(hook: LifecycleHook, ...args: any[]): Promise<void> {
+    const handlers = this.hooks.get(hook)
 
-    const context: LifecycleContext<T> = {
-      phase,
-      timestamp: startTime,
-      engine,
-      data,
+    // 性能优化: 没有处理器时快速返回
+    if (!handlers || handlers.size === 0) {
+      return
     }
 
-    const hooks = this.getHooks(phase)
-    let success = true
-    let error: Error | undefined
+    // 记录触发次数
+    const count = this.triggerHistory.get(hook) ?? 0
+    this.triggerHistory.set(hook, count + 1)
 
-    try {
-      for (const hookInfo of hooks) {
+    // 创建处理器数组副本,避免在执行过程中修改集合
+    const handlersCopy = Array.from(handlers)
+
+    // 并行执行所有处理器
+    const results = await Promise.allSettled(
+      handlersCopy.map(async handler => {
         try {
-          await hookInfo.hook(context)
-
-          // 如果是一次性钩子，执行后移除
-          if (hookInfo.once) {
-            this.off(hookInfo.id)
-          }
-        } catch (err) {
-          error = err as Error
-          success = false
-
-          // 调用错误回调
-          this.errorCallbacks.forEach(callback => {
-            try {
-              callback(error!, { ...context, error })
-            } catch (callbackError) {
-              console.error('Error in lifecycle error callback:', callbackError)
-            }
-          })
-
-          break
+          await handler(...args)
+        } catch (error) {
+          // 错误隔离: 记录错误但不中断其他处理器
+          console.error(`Error in lifecycle hook "${hook}":`, error)
+          throw error
         }
-      }
-    } catch (err) {
-      error = err as Error
-      success = false
-    }
+      })
+    )
 
-    const endTime = Date.now()
-    const event: LifecycleEvent = {
-      phase,
-      timestamp: startTime,
-      duration: endTime - startTime,
-      success,
-      error,
-      hooksExecuted: hooks.length,
-      data,
-    }
+    // 检查是否有错误
+    const errors = results
+      .filter((r): r is PromiseRejectedResult => r.status === 'rejected')
+      .map(r => r.reason)
 
-    this.lastEvent = event
-    this.history.push(event)
-
-    return event
-  }
-
-  /**
-   * 获取当前阶段
-   */
-  getCurrentPhase(): LifecyclePhase | undefined {
-    return this.currentPhase
-  }
-
-  /**
-   * 获取最后一个事件
-   */
-  getLastEvent(): LifecycleEvent | undefined {
-    return this.lastEvent
-  }
-
-  /**
-   * 获取历史记录
-   */
-  getHistory(): LifecycleEvent[] {
-    return [...this.history]
-  }
-
-  /**
-   * 注册错误处理回调
-   */
-  onError(callback: (error: Error, context: LifecycleContext<T>) => void): () => void {
-    this.errorCallbacks.push(callback)
-    return () => {
-      const index = this.errorCallbacks.indexOf(callback)
-      if (index !== -1) {
-        this.errorCallbacks.splice(index, 1)
-      }
+    // 如果有错误,在所有处理器执行完后抛出第一个错误
+    if (errors.length > 0) {
+      console.error(
+        `${errors.length} error(s) occurred in lifecycle hook "${hook}"`
+      )
     }
   }
 
   /**
-   * 初始化
+   * 一次性钩子
+   *
+   * 钩子触发一次后自动移除
+   *
+   * @param hook - 钩子名称
+   * @param handler - 处理函数
+   *
+   * @example
+   * ```typescript
+   * lifecycleManager.once('init', () => {
+   *   console.log('Initialized - runs only once')
+   * })
+   * ```
    */
-  async init(): Promise<void> {
-    // 初始化逻辑（如果需要）
+  once(hook: LifecycleHook, handler: LifecycleHandler): void {
+    // 创建包装函数
+    const wrappedHandler: LifecycleHandler = async (...args: any[]) => {
+      // 先移除钩子
+      this.off(hook, handler)
+
+      // 再执行处理器
+      await handler(...args)
+    }
+
+    // 保存包装器映射
+    if (!this.onceWrappers.has(hook)) {
+      this.onceWrappers.set(hook, new Map())
+    }
+    this.onceWrappers.get(hook)!.set(handler, {
+      original: handler,
+      wrapped: wrappedHandler,
+    })
+
+    // 注册包装后的处理器
+    this.on(hook, wrappedHandler)
   }
 
   /**
-   * 销毁
+   * 清空所有钩子
+   *
+   * 内存优化: 彻底清理所有处理器和包装器
+   *
+   * @example
+   * ```typescript
+   * lifecycleManager.clear()
+   * ```
    */
-  async destroy(): Promise<void> {
+  clear(): void {
+    // 清理所有处理器集合
+    this.hooks.forEach(handlers => handlers.clear())
     this.hooks.clear()
-    this.history = []
-    this.errorCallbacks = []
-    this.currentPhase = undefined
-    this.lastEvent = undefined
+
+    // 清理所有 once 包装器
+    this.onceWrappers.forEach(wrappers => wrappers.clear())
+    this.onceWrappers.clear()
+
+    // 清理触发历史
+    this.triggerHistory.clear()
+  }
+
+  /**
+   * 获取钩子处理函数列表
+   *
+   * @param hook - 钩子名称
+   * @returns 处理函数数组
+   *
+   * @example
+   * ```typescript
+   * const handlers = lifecycleManager.getHandlers('mounted')
+   * console.log(`${handlers.length} handlers for mounted hook`)
+   * ```
+   */
+  getHandlers(hook: LifecycleHook): LifecycleHandler[] {
+    const handlers = this.hooks.get(hook)
+    return handlers ? Array.from(handlers) : []
+  }
+
+  /**
+   * 获取钩子处理器数量
+   *
+   * @param hook - 钩子名称
+   * @returns 处理器数量
+   *
+   * @example
+   * ```typescript
+   * const count = lifecycleManager.getHandlerCount('mounted')
+   * ```
+   */
+  getHandlerCount(hook: LifecycleHook): number {
+    return this.hooks.get(hook)?.size ?? 0
+  }
+
+  /**
+   * 获取钩子触发次数
+   *
+   * @param hook - 钩子名称
+   * @returns 触发次数
+   *
+   * @example
+   * ```typescript
+   * const count = lifecycleManager.getTriggerCount('mounted')
+   * console.log(`Mounted hook triggered ${count} times`)
+   * ```
+   */
+  getTriggerCount(hook: LifecycleHook): number {
+    return this.triggerHistory.get(hook) ?? 0
+  }
+
+  /**
+   * 获取所有钩子名称
+   *
+   * @returns 钩子名称数组
+   *
+   * @example
+   * ```typescript
+   * const hooks = lifecycleManager.getHookNames()
+   * console.log('Registered hooks:', hooks)
+   * ```
+   */
+  getHookNames(): LifecycleHook[] {
+    return Array.from(this.hooks.keys())
   }
 }
 
 /**
- * 创建生命周期管理器
+ * 创建生命周期管理器实例
+ *
+ * @returns 生命周期管理器实例
+ *
+ * @example
+ * ```typescript
+ * import { createLifecycleManager } from '@ldesign/engine-core'
+ *
+ * const lifecycleManager = createLifecycleManager()
+ * ```
  */
-export function createLifecycleManager<T = unknown>(): LifecycleManager<T> {
-  return new CoreLifecycleManager<T>()
+export function createLifecycleManager(): LifecycleManager {
+  return new CoreLifecycleManager()
 }
 

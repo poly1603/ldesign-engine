@@ -1,68 +1,121 @@
 /**
  * 中间件管理器实现
- * 负责中间件的注册、执行等
+ *
+ * 提供类似 Koa/Express 的中间件系统,支持洋葱模型
+ *
+ * @module middleware-manager
  */
 
 import type {
   Middleware,
   MiddlewareContext,
   MiddlewareManager,
-  MiddlewareNext,
 } from '../types'
 
 /**
- * 预编译的中间件管道
+ * 核心中间件管理器
+ *
+ * 特性:
+ * - 洋葱模型中间件链
+ * - 优先级排序
+ * - 错误处理
+ * - 中间件取消
+ * - 性能优化
+ *
+ * @example
+ * ```typescript
+ * const middlewareManager = createMiddlewareManager()
+ *
+ * // 注册中间件
+ * middlewareManager.use({
+ *   name: 'logger',
+ *   priority: 100,
+ *   async execute(ctx, next) {
+ *     console.log('Before:', ctx.data)
+ *     await next()
+ *     console.log('After:', ctx.data)
+ *   }
+ * })
+ *
+ * // 执行中间件链
+ * await middlewareManager.execute({
+ *   data: { message: 'Hello' },
+ *   cancelled: false
+ * })
+ * ```
  */
-type CompiledPipeline = (context: MiddlewareContext) => Promise<void>
-
-/**
- * 管道缓存项
- */
-interface PipelineCacheEntry {
-  /** 中间件列表的哈希值 */
-  hash: string
-  /** 预编译的管道函数 */
-  pipeline: CompiledPipeline
-  /** 缓存时间戳 */
-  timestamp: number
-  /** 命中次数 */
-  hitCount: number
-}
-
 export class CoreMiddlewareManager implements MiddlewareManager {
+  /** 中间件存储 - 使用 Map 保证插入顺序 */
   private middlewares = new Map<string, Middleware>()
 
-  // 管道预编译缓存
-  private pipelineCache: PipelineCacheEntry | null = null
-  private cacheStats = {
-    hits: 0,
-    misses: 0,
-    invalidations: 0,
-  }
+  /** 排序后的中间件缓存 - 性能优化 */
+  private sortedCache: Middleware[] | null = null
 
   /**
    * 注册中间件
+   *
+   * 性能优化: 注册时清除排序缓存
+   *
+   * @param middleware - 中间件对象
+   *
+   * @example
+   * ```typescript
+   * middlewareManager.use({
+   *   name: 'auth',
+   *   priority: 90,
+   *   async execute(ctx, next) {
+   *     if (!ctx.user) {
+   *       ctx.cancelled = true
+   *       return
+   *     }
+   *     await next()
+   *   }
+   * })
+   * ```
    */
   use(middleware: Middleware): void {
     if (this.middlewares.has(middleware.name)) {
-      throw new Error(`Middleware "${middleware.name}" is already registered`)
+      console.warn(`Middleware "${middleware.name}" already registered, replacing...`)
     }
+
     this.middlewares.set(middleware.name, middleware)
-    // 使缓存失效
-    this.invalidateCache()
+
+    // 清除缓存,下次执行时重新排序
+    this.sortedCache = null
   }
 
   /**
    * 移除中间件
+   *
+   * @param name - 中间件名称
+   * @returns 是否移除成功
+   *
+   * @example
+   * ```typescript
+   * middlewareManager.remove('auth')
+   * ```
    */
-  remove(name: string): void {
-    this.middlewares.delete(name)
-    // 使缓存失效
-    this.invalidateCache()
+  remove(name: string): boolean {
+    const result = this.middlewares.delete(name)
+
+    if (result) {
+      // 清除缓存
+      this.sortedCache = null
+    }
+
+    return result
   }
 
   /**
    * 获取中间件
+   *
+   * @param name - 中间件名称
+   * @returns 中间件对象
+   *
+   * @example
+   * ```typescript
+   * const authMiddleware = middlewareManager.get('auth')
+   * ```
    */
   get(name: string): Middleware | undefined {
     return this.middlewares.get(name)
@@ -70,165 +123,189 @@ export class CoreMiddlewareManager implements MiddlewareManager {
 
   /**
    * 获取所有中间件
+   *
+   * @returns 中间件数组
+   *
+   * @example
+   * ```typescript
+   * const all = middlewareManager.getAll()
+   * console.log('Middleware count:', all.length)
+   * ```
    */
   getAll(): Middleware[] {
-    return Array.from(this.middlewares.values()).sort((a, b) => {
-      const priorityA = a.priority ?? 0
-      const priorityB = b.priority ?? 0
-      return priorityB - priorityA // 降序排列
-    })
+    return Array.from(this.middlewares.values())
   }
 
   /**
-   * 执行中间件管道或特定中间件
+   * 执行中间件链
+   *
+   * 实现洋葱模型:
+   * 1. 按优先级从高到低执行中间件
+   * 2. 每个中间件可以调用 next() 继续执行下一个
+   * 3. next() 之后的代码在后续中间件执行完后执行
+   *
+   * 性能优化:
+   * - 缓存排序后的中间件列表
+   * - 支持中间件取消
+   * - 错误隔离
+   *
+   * @param context - 中间件上下文
+   *
+   * @example
+   * ```typescript
+   * const context = {
+   *   data: { userId: 1 },
+   *   cancelled: false
+   * }
+   *
+   * await middlewareManager.execute(context)
+   *
+   * if (!context.cancelled) {
+   *   console.log('All middleware executed successfully')
+   * }
+   * ```
    */
-  async execute(
-    contextOrName: MiddlewareContext | string,
-    maybeContext?: MiddlewareContext
-  ): Promise<void | unknown> {
-    // 重载：execute(context: MiddlewareContext)
-    if (typeof contextOrName !== 'string') {
-      const context = contextOrName
-      // 使用预编译的管道
-      const pipeline = this.getCompiledPipeline()
-      await pipeline(context)
+  async execute<T = any>(context: MiddlewareContext<T>): Promise<void> {
+    // 性能优化: 使用缓存的排序结果
+    if (!this.sortedCache) {
+      this.sortedCache = this.getSortedMiddlewares()
+    }
+
+    const sortedMiddlewares = this.sortedCache
+
+    // 性能优化: 没有中间件时快速返回
+    if (sortedMiddlewares.length === 0) {
       return
     }
 
-    // 重载：execute(name: string, context: MiddlewareContext)
-    const name = contextOrName
-    const context = maybeContext!
-    const middleware = this.middlewares.get(name)
+    let index = 0
 
-    if (!middleware) {
-      throw new Error(`Middleware "${name}" not found`)
-    }
+    /**
+     * 调度函数 - 执行下一个中间件
+     *
+     * 洋葱模型实现:
+     * - 每次调用 next() 执行下一个中间件
+     * - 中间件可以在 next() 前后执行代码
+     * - 支持异步操作
+     */
+    const dispatch = async (): Promise<void> => {
+      // 检查是否已取消
+      if (context.cancelled) {
+        return
+      }
 
-    try {
-      await middleware.handler(context, async () => { })
-    } catch (error) {
-      context.error = error as Error
-      throw error
-    }
-  }
+      // 检查是否已执行完所有中间件
+      if (index >= sortedMiddlewares.length) {
+        return
+      }
 
-  /**
-   * 计算中间件列表的哈希值
-   */
-  private computeMiddlewareHash(): string {
-    const middlewares = this.getAll()
-    return middlewares.map(m => `${m.name}:${m.priority ?? 0}`).join('|')
-  }
+      const middleware = sortedMiddlewares[index++]
 
-  /**
-   * 编译中间件管道
-   */
-  private compilePipeline(middlewares: Middleware[]): CompiledPipeline {
-    // 预编译：创建一个闭包,避免每次执行时重新排序和创建 next 函数
-    return async (context: MiddlewareContext) => {
-      let index = 0
-      const next: MiddlewareNext = async () => {
-        if (index >= middlewares.length) return
-
-        const middleware = middlewares[index++]
-        try {
-          await middleware.handler(context, next)
-        } catch (error) {
-          context.error = error as Error
+      try {
+        // 执行中间件,传入 dispatch 作为 next 函数
+        await middleware.execute(context, dispatch)
+      } catch (error) {
+        // 错误处理: 优先使用中间件自己的错误处理器
+        if (middleware.onError) {
+          try {
+            await middleware.onError(error as Error, context)
+          } catch (handlerError) {
+            // 错误处理器本身出错,向上抛出
+            console.error(
+              `Error in middleware "${middleware.name}" error handler:`,
+              handlerError
+            )
+            throw handlerError
+          }
+        } else {
+          // 没有错误处理器,向上抛出
           throw error
         }
       }
-
-      await next()
     }
+
+    // 开始执行中间件链
+    await dispatch()
   }
 
   /**
-   * 获取预编译的管道
+   * 清空所有中间件
+   *
+   * @example
+   * ```typescript
+   * middlewareManager.clear()
+   * ```
    */
-  private getCompiledPipeline(): CompiledPipeline {
-    const currentHash = this.computeMiddlewareHash()
-
-    // 检查缓存是否有效
-    if (this.pipelineCache && this.pipelineCache.hash === currentHash) {
-      this.cacheStats.hits++
-      this.pipelineCache.hitCount++
-      return this.pipelineCache.pipeline
-    }
-
-    // 缓存未命中,编译新管道
-    this.cacheStats.misses++
-    const middlewares = this.getAll()
-    const pipeline = this.compilePipeline(middlewares)
-
-    // 更新缓存
-    this.pipelineCache = {
-      hash: currentHash,
-      pipeline,
-      timestamp: Date.now(),
-      hitCount: 0,
-    }
-
-    return pipeline
-  }
-
-  /**
-   * 使缓存失效
-   */
-  private invalidateCache(): void {
-    if (this.pipelineCache) {
-      this.cacheStats.invalidations++
-      this.pipelineCache = null
-    }
-  }
-
-  /**
-   * 获取缓存统计信息
-   */
-  getCacheStats(): {
-    hits: number
-    misses: number
-    invalidations: number
-    hitRate: number
-    currentCache: {
-      exists: boolean
-      timestamp?: number
-      hitCount?: number
-      middlewareCount?: number
-    }
-  } {
-    const totalAccess = this.cacheStats.hits + this.cacheStats.misses
-    return {
-      hits: this.cacheStats.hits,
-      misses: this.cacheStats.misses,
-      invalidations: this.cacheStats.invalidations,
-      hitRate: totalAccess > 0 ? this.cacheStats.hits / totalAccess : 0,
-      currentCache: {
-        exists: this.pipelineCache !== null,
-        timestamp: this.pipelineCache?.timestamp,
-        hitCount: this.pipelineCache?.hitCount,
-        middlewareCount: this.middlewares.size,
-      },
-    }
-  }
-
-  /**
-   * 初始化
-   */
-  async init(): Promise<void> {
-    // 初始化逻辑（如果需要）
-  }
-
-  /**
-   * 销毁
-   */
-  async destroy(): Promise<void> {
+  clear(): void {
     this.middlewares.clear()
+    this.sortedCache = null
+  }
+
+  /**
+   * 获取中间件数量
+   *
+   * @returns 中间件数量
+   *
+   * @example
+   * ```typescript
+   * const count = middlewareManager.size()
+   * console.log(`${count} middleware registered`)
+   * ```
+   */
+  size(): number {
+    return this.middlewares.size
+  }
+
+  /**
+   * 检查中间件是否存在
+   *
+   * @param name - 中间件名称
+   * @returns 是否存在
+   *
+   * @example
+   * ```typescript
+   * if (middlewareManager.has('auth')) {
+   *   console.log('Auth middleware is registered')
+   * }
+   * ```
+   */
+  has(name: string): boolean {
+    return this.middlewares.has(name)
+  }
+
+  /**
+   * 获取排序后的中间件列表 (内部方法)
+   *
+   * 排序规则:
+   * - 按 priority 降序排列(数值越大优先级越高)
+   * - priority 相同时保持注册顺序
+   *
+   * @returns 排序后的中间件数组
+   * @private
+   */
+  private getSortedMiddlewares(): Middleware[] {
+    const middlewares = this.getAll()
+
+    // 按优先级排序(降序)
+    return middlewares.sort((a, b) => {
+      const priorityA = a.priority ?? 0
+      const priorityB = b.priority ?? 0
+      return priorityB - priorityA
+    })
   }
 }
 
 /**
- * 创建中间件管理器
+ * 创建中间件管理器实例
+ *
+ * @returns 中间件管理器实例
+ *
+ * @example
+ * ```typescript
+ * import { createMiddlewareManager } from '@ldesign/engine-core'
+ *
+ * const middlewareManager = createMiddlewareManager()
+ * ```
  */
 export function createMiddlewareManager(): MiddlewareManager {
   return new CoreMiddlewareManager()

@@ -1,23 +1,14 @@
 /**
- * @ldesign/engine-qwik
- *
- * Qwik adapter for LDesign Engine
- *
- * @packageDocumentation
+ * Qwik 框架适配器导出
  */
 
-// 引擎应用导出
-export * from './engine-app'
+export { QwikAdapter, createQwikAdapter } from './adapter'
+export { createEngineApp, createQwikEngineApp, unmountQwikEngineApp } from './engine-app'
+export type { QwikEngineApp, QwikEngineAppOptions } from './engine-app'
 
-// 导出适配器
-export * from './adapter/qwik-adapter'
+// 导出辅助函数
+export { getEngine } from './helpers'
 
-// 导出 Hooks
-export * from './hooks/use-engine'
-
-// 导出类型
-export * from './types'
-
-// 版本
-export const version = '0.2.0'
+// 重新导出核心功能
+export * from '@ldesign/engine-core'
 

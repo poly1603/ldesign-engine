@@ -1,173 +1,287 @@
 /**
- * Qwik 引擎应用创建函数
+ * Qwik 引擎应用
  */
 
-import { CoreEngineImpl } from '@ldesign/engine-core'
-import type { QwikEngine, QwikEngineAppOptions } from './types'
+import type {
+  CoreEngineConfig,
+  Plugin,
+  Middleware,
+  CoreEngine,
+} from '@ldesign/engine-core'
+import { createCoreEngine } from '@ldesign/engine-core'
+import { createQwikAdapter } from './adapter'
 
 /**
- * Qwik 引擎实现
+ * 路由配置接口
  */
-export class QwikEngineImpl extends CoreEngineImpl implements QwikEngine {
-  private mounted = false
+export interface RouterConfig {
+  mode?: 'history' | 'hash' | 'memory'
+  base?: string
+  routes: RouteConfig[]
+  preset?: 'spa' | 'mpa' | 'mobile' | 'desktop' | 'admin' | 'blog'
+  scrollBehavior?: (to: any, from: any, savedPosition: any) => any
+  linkActiveClass?: string
+  linkExactActiveClass?: string
+  preload?: boolean | PreloadConfig
+  cache?: boolean | CacheConfig
+  animation?: boolean | AnimationConfig
+  performance?: PerformanceConfig
+  development?: DevelopmentConfig
+  security?: SecurityConfig
+}
 
-  /**
-   * 挂载应用
-   * 
-   * 注意: Qwik 使用声明式挂载，通常不需要手动挂载
-   * 组件通过 JSX 自动渲染
-   */
-  async mount(mountElement?: string | Element): Promise<void> {
-    if (this.mounted) {
-      throw new Error('App already mounted')
-    }
+export interface RouteConfig {
+  path: string
+  component?: any
+  children?: RouteConfig[]
+  meta?: Record<string, any>
+  [key: string]: any
+}
 
-    // 执行 beforeMount 生命周期
-    await this.lifecycle.execute('beforeMount', this)
+export interface PreloadConfig {
+  enabled: boolean
+  delay?: number
+  [key: string]: any
+}
 
-    try {
-      // Qwik 的挂载是声明式的，这里主要执行生命周期
-      this.mounted = true
+export interface CacheConfig {
+  enabled: boolean
+  maxAge?: number
+  [key: string]: any
+}
 
-      // 执行 mount 生命周期
-      await this.lifecycle.execute('mount', this)
+export interface AnimationConfig {
+  enabled: boolean
+  duration?: number
+  [key: string]: any
+}
 
-      // 执行 afterMount 生命周期
-      await this.lifecycle.execute('afterMount', this)
+export interface PerformanceConfig {
+  [key: string]: any
+}
 
-      this.logger.info('Qwik app mounted')
-    } catch (error) {
-      this.logger.error('Failed to mount Qwik app:', error)
-      await this.lifecycle.execute('error', this, { error })
-      throw error
-    }
-  }
+export interface DevelopmentConfig {
+  [key: string]: any
+}
 
-  /**
-   * 卸载应用
-   */
-  async unmount(): Promise<void> {
-    if (!this.mounted) {
-      this.logger.warn('No Qwik app to unmount')
-      return
-    }
+export interface SecurityConfig {
+  [key: string]: any
+}
 
-    // 执行 beforeUnmount 生命周期
-    await this.lifecycle.execute('beforeUnmount', this)
+/**
+ * Qwik 引擎应用类型
+ */
+export interface QwikEngineApp extends CoreEngine {
+  app: any
+  adapter: ReturnType<typeof createQwikAdapter>
+}
 
-    try {
-      this.mounted = false
-
-      // 执行 unmount 生命周期
-      await this.lifecycle.execute('unmount', this)
-
-      // 执行 afterUnmount 生命周期
-      await this.lifecycle.execute('afterUnmount', this)
-
-      this.logger.info('Qwik app unmounted')
-    } catch (error) {
-      this.logger.error('Failed to unmount Qwik app:', error)
-      throw error
-    }
-  }
-
-  /**
-   * 序列化状态 (用于 SSR)
-   */
-  serializeState(): string {
-    try {
-      const state = this.state.getState()
-      return JSON.stringify(state)
-    } catch (error) {
-      this.logger.error('Failed to serialize state:', error)
-      return '{}'
-    }
-  }
-
-  /**
-   * 反序列化状态 (用于水合)
-   */
-  deserializeState(serialized: string): void {
-    try {
-      const state = JSON.parse(serialized)
-      Object.entries(state).forEach(([key, value]) => {
-        this.state.set(key, value)
-      })
-      this.logger.debug('State deserialized successfully')
-    } catch (error) {
-      this.logger.error('Failed to deserialize state:', error)
-    }
-  }
+/**
+ * Qwik 引擎应用选项
+ */
+export interface QwikEngineAppOptions {
+  /** 根组件 */
+  rootComponent: any
+  /** 挂载元素 */
+  mountElement?: string | Element
+  /** 引擎配置 */
+  config?: CoreEngineConfig
+  /** 路由配置 */
+  router?: RouterConfig
+  /** 插件列表 */
+  plugins?: Plugin[]
+  /** 中间件列表 */
+  middleware?: Middleware[]
+  /** 准备就绪回调 */
+  onReady?: (engine: QwikEngineApp) => void | Promise<void>
+  /** 挂载完成回调 */
+  onMounted?: (engine: QwikEngineApp) => void | Promise<void>
+  /** 错误处理回调 */
+  onError?: (error: Error, context: string) => void
 }
 
 /**
  * 创建 Qwik 引擎应用
+ * 
+ * @param options - 应用选项
+ * @returns Qwik 引擎应用实例
+ * 
+ * @example
+ * ```typescript
+ * import { createEngineApp } from '@ldesign/engine-qwik'
+ * import App from './App'
+ * 
+ * createEngineApp({
+ *   rootComponent: App,
+ *   mountElement: '#app',
+ *   config: {
+ *     name: 'My App',
+ *     debug: true,
+ *   },
+ *   plugins: [loggerPlugin, themePlugin],
+ *   middleware: [authMiddleware],
+ *   onReady: async (engine) => {
+ *     console.log('Engine ready!')
+ *   },
+ * })
+ * ```
  */
 export async function createEngineApp(
   options: QwikEngineAppOptions
-): Promise<QwikEngine> {
+): Promise<QwikEngineApp> {
   const {
-    mountElement,
+    rootComponent,
+    mountElement = '#app',
     config = {},
+    router: routerConfig,
     plugins = [],
     middleware = [],
-    features = {},
     onReady,
     onMounted,
-    onError = (error, context) => console.error(`[QwikEngine] Error in ${context}:`, error),
+    onError,
   } = options
 
   try {
-    // 创建引擎实例
-    const engine = new QwikEngineImpl(config)
+    // 创建适配器
+    const adapter = createQwikAdapter()
 
-    // 初始化引擎
-    await engine.init()
+    // 创建核心引擎
+    const coreEngine = createCoreEngine({
+      ...config,
+      adapter,
+    })
+
+    // 如果配置了路由，动态加载路由插件
+    if (routerConfig) {
+      try {
+        const { createRouterEnginePlugin } = await import('@ldesign/router-qwik')
+        const routerPlugin = createRouterEnginePlugin({
+          name: 'router',
+          version: '1.0.0',
+          ...routerConfig,
+        })
+        plugins.unshift(routerPlugin)
+
+        if (config.debug) {
+          console.log('[Engine] Router plugin created successfully')
+        }
+      } catch (error) {
+        console.warn(
+          'Failed to load @ldesign/router-qwik. Make sure it is installed if you want to use routing features.',
+          error
+        )
+      }
+    }
 
     // 注册中间件
-    for (const m of middleware) {
-      try {
-        engine.middleware.use(m)
-      } catch (error) {
-        onError(error as Error, `middleware registration: ${m.name}`)
-      }
+    for (const mw of middleware) {
+      coreEngine.middleware.use(mw)
     }
 
     // 注册插件
     for (const plugin of plugins) {
-      try {
-        await engine.use(plugin)
-      } catch (error) {
-        onError(error as Error, `plugin installation: ${plugin.name}`)
-      }
+      await coreEngine.use(plugin)
     }
 
-    // 触发就绪回调
+    // 初始化引擎
+    await coreEngine.init()
+
+    // 创建 Qwik 应用（如果提供了 rootComponent）
+    const app = rootComponent ? adapter.createApp(rootComponent) : null
+
+    // 注册引擎到 Qwik（如果有 app）
+    if (app) {
+      adapter.registerEngine(app, coreEngine)
+    }
+
+    // 创建引擎应用对象
+    const engineApp: QwikEngineApp = {
+      ...coreEngine,
+      app,
+      adapter,
+    }
+
+    // 触发准备就绪回调
     if (onReady) {
-      try {
-        await onReady(engine)
-      } catch (error) {
-        onError(error as Error, 'onReady callback')
-      }
+      await onReady(engineApp)
     }
 
-    // 自动挂载（如果提供了挂载元素）
-    if (mountElement !== undefined) {
-      await engine.mount(mountElement)
+    // 触发生命周期事件
+    await coreEngine.lifecycle.trigger('beforeMount')
 
-      // 触发挂载完成回调
-      if (onMounted) {
-        try {
-          await onMounted(engine)
-        } catch (error) {
-          onError(error as Error, 'onMounted callback')
-        }
-      }
+    // 挂载应用（如果提供了 rootComponent）
+    if (rootComponent) {
+      await adapter.mount(app, mountElement)
     }
 
-    return engine
+    // 触发生命周期事件
+    await coreEngine.lifecycle.trigger('mounted')
+
+    // 触发挂载完成回调
+    if (onMounted) {
+      await onMounted(engineApp)
+    }
+
+    return engineApp
   } catch (error) {
-    onError(error as Error, 'engine initialization')
+    if (onError) {
+      onError(error as Error, 'createEngineApp')
+    }
+    console.error('Failed to create Qwik engine app:', error)
+    throw error
+  }
+}
+
+/**
+ * 创建 Qwik 引擎应用（旧版 API，已废弃）
+ * @deprecated 使用 createEngineApp 代替
+ */
+export async function createQwikEngineApp(
+  rootComponent: any,
+  config: CoreEngineConfig = {},
+  options: {
+    mountElement?: string | Element
+    middleware?: Middleware[]
+    plugins?: Plugin[]
+    onReady?: (app: QwikEngineApp) => void | Promise<void>
+    onMounted?: (app: QwikEngineApp) => void | Promise<void>
+  } = {},
+): Promise<QwikEngineApp> {
+  return createEngineApp({
+    rootComponent,
+    mountElement: options.mountElement,
+    config,
+    plugins: options.plugins,
+    middleware: options.middleware,
+    onReady: options.onReady,
+    onMounted: options.onMounted,
+  })
+}
+
+/**
+ * 卸载 Qwik 引擎应用
+ */
+export async function unmountQwikEngineApp(
+  engineApp: QwikEngineApp,
+  mountElement?: string | Element,
+): Promise<void> {
+  try {
+    const { adapter, lifecycle } = engineApp
+    const element = mountElement || '#app'
+
+    // 触发卸载前生命周期
+    await lifecycle.trigger('beforeUnmount')
+
+    // 卸载应用
+    await adapter.unmount(engineApp.app, element)
+
+    // 触发卸载后生命周期
+    await lifecycle.trigger('unmounted')
+
+    // 销毁引擎
+    await engineApp.destroy()
+  } catch (error) {
+    console.error('Failed to unmount Qwik engine app:', error)
     throw error
   }
 }

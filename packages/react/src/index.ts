@@ -1,49 +1,41 @@
 /**
  * @ldesign/engine-react
- *
- * React adapter for @ldesign/engine-core
+ * 
+ * React 适配器包 - 为 React 应用提供核心引擎集成
+ * 
+ * @example
+ * ```typescript
+ * import { createEngineApp, useEngine, useEngineState } from '@ldesign/engine-react'
+ * import App from './App'
+ * 
+ * // 创建引擎应用
+ * const engine = await createEngineApp({
+ *   rootComponent: App,
+ *   mountElement: '#app',
+ *   config: { name: 'My App', debug: true }
+ * })
+ * 
+ * // 在组件中使用
+ * function MyComponent() {
+ *   const engine = useEngine()
+ *   const count = useEngineState('count', 0)
+ *   
+ *   return <div>Count: {count}</div>
+ * }
+ * ```
+ * 
+ * @module @ldesign/engine-react
  */
 
-// 核心导出
-export { ReactEngineImpl, createEngineApp } from './engine-app'
-
-// 适配器导出 (新增)
+// 导出适配器
 export * from './adapter'
 
-// 类型导出
-export type * from './types'
+// 导出引擎应用创建函数
+export * from './engine-app'
 
-// Context & Provider
-export { EngineProvider, EngineContext } from './context'
-export type { EngineProviderProps } from './context'
-
-// Hooks
+// 导出 React hooks
 export * from './hooks'
-export {
-  useEngine,
-  usePlugin,
-  useEngineEvent,
-  useEngineState,
-  useEngineConfig,
-  useEngineLogger,
-  useEngineStatus
-} from './hooks/use-engine'
 
-// Components
-export * from './components'
-
-// Re-export core types
-export type {
-  CoreEngine,
-  Plugin,
-  PluginContext,
-  EngineConfig,
-  Logger,
-  EventBus,
-  StateManager,
-  ConfigManager
-} from '@ldesign/engine-core'
-
-// 版本
-export const version = '0.2.0'
+// 重新导出核心功能
+export * from '@ldesign/engine-core'
 

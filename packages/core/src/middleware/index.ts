@@ -3,5 +3,5 @@
  */
 
 export * from './middleware-manager'
-export type * from '../types/middleware'
+export * from './define-middleware'
 

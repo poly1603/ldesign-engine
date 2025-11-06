@@ -1,50 +1,45 @@
 /**
  * @ldesign/engine-solid
  * 
- * Solid.js adapter for @ldesign/engine-core
+ * Solid.js adapter for LDesign Engine
+ * 
+ * @packageDocumentation
  */
 
-// 核心导出
-export { SolidEngineImpl, createEngineApp } from './engine-app'
+// 导出适配器
+export { SolidAdapter, createSolidAdapter } from './adapter'
 
-// 适配器导出
-export * from './adapter'
+// 导出应用创建工具
+export { createEngineApp, createEngineAppSync } from './engine-app'
+export type { SolidEngineAppConfig } from './engine-app'
 
-// Signals
+// 导出 Solid signals 集成
 export {
-  setEngine,
-  getEngine,
+  EngineContext,
   useEngine,
-  usePlugin,
   useEngineState,
-  useEngineConfig,
-  useEngineEvent,
-  useEngineEventSignal,
-  useEngineLogger,
-  useEngineStatus
+  useEngineStateReadonly,
+  useComputedState,
+  useEvent,
+  useLifecycle,
+  usePlugin,
+  emitEngineEvent,
+  emitEngineEventAsync,
+  executeMiddleware,
 } from './signals'
 
-// Hooks 导出
-export * from './hooks'
-
-// 组件导出
-export * from './components'
-
-// 类型导出
-export type * from './types'
-
-// Re-export core types
+// 重新导出核心类型
 export type {
   CoreEngine,
+  EngineConfig,
   Plugin,
   PluginContext,
-  EngineConfig,
-  Logger,
-  EventBus,
-  StateManager,
-  ConfigManager
+  Middleware,
+  MiddlewareContext,
+  FrameworkAdapter,
+  FrameworkInfo,
+  StateAdapter,
+  EventAdapter,
+  Unsubscribe,
 } from '@ldesign/engine-core'
-
-// 版本
-export const version = '0.2.0'
 

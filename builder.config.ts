@@ -20,6 +20,9 @@ export default defineConfig({
     '@ldesign/engine-angular',
     '@ldesign/engine-solid',
     '@ldesign/engine-svelte',
+    '@ldesign/engine-lit',
+    '@ldesign/engine-preact',
+    '@ldesign/engine-qwik',
     // 外部化 peer dependencies
     'vue',
     'react',
@@ -28,6 +31,9 @@ export default defineConfig({
     '@angular/common',
     'solid-js',
     'svelte',
+    'lit',
+    'preact',
+    '@builder.io/qwik',
   ],
   dts: {
     enabled: true,

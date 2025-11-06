@@ -1,45 +1,36 @@
 /**
  * @ldesign/engine-svelte
  * 
- * Svelte adapter for @ldesign/engine-core
+ * Svelte adapter for LDesign Engine
+ * 
+ * @packageDocumentation
  */
 
-// 核心导出
-export { SvelteEngineImpl, createEngineApp, ENGINE_CONTEXT_KEY } from './engine-app'
+// 导出适配器
+export { SvelteAdapter, createSvelteAdapter } from './adapter'
 
-// 适配器导出
-export * from './adapter'
+// 导出应用创建工具
+export { createEngineApp, createEngineAppSync } from './engine-app'
+export type { SvelteEngineAppConfig } from './engine-app'
 
-// Stores
+// 导出 Svelte stores 集成
 export {
-  setEngine,
-  getEngine,
-  engineStore,
+  setEngineContext,
+  getEngineContext,
+  createEngineState,
+  createEngineStateReadonly,
+  createComputedState,
+  createEventListener,
+  createLifecycleHook,
   createPluginStore,
-  createEngineStateStore,
-  createEngineConfigStore,
-  createEngineEventStore,
-  createEngineStatusStore
+  emitEngineEvent,
+  emitEngineEventAsync,
+  executeMiddleware,
 } from './stores'
 
-// 组件导出
-export * from './components'
+// 导出辅助函数
+export { getEngine } from './helpers'
 
-// 类型导出
-export type * from './types'
-
-// Re-export core types
-export type {
-  CoreEngine,
-  Plugin,
-  PluginContext,
-  EngineConfig,
-  Logger,
-  EventBus,
-  StateManager,
-  ConfigManager
-} from '@ldesign/engine-core'
-
-// 版本
-export const version = '0.2.0'
+// 重新导出核心功能
+export * from '@ldesign/engine-core'
 

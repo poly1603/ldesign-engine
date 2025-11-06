@@ -3,5 +3,4 @@
  */
 
 export * from './lifecycle-manager'
-export type * from '../types/lifecycle'
 
