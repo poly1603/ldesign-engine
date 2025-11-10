@@ -1,5 +1,6 @@
 import { createSignal } from 'solid-js'
 import { useEngine, useEngineState } from '@ldesign/engine-solid'
+import ConfigPanel from '../components/ConfigPanel'
 
 export default function Home() {
   const engine = useEngine()
@@ -17,6 +18,9 @@ export default function Home() {
     <div class="page">
       <h2>🏠 首页</h2>
       <p>欢迎使用 Solid + LDesign Engine + Router 示例应用！</p>
+
+      {/* 配置面板 */}
+      <ConfigPanel />
 
       <div class="card">
         <h3>计数器演示</h3>

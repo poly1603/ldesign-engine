@@ -5,6 +5,9 @@
       <p>基于 Vue 2 的现代化引擎框架</p>
     </div>
 
+    <!-- 配置面板 -->
+    <ConfigPanel />
+
     <div class="counter">
       <h2>计数器演示</h2>
       <div class="counter-display">{{ count }}</div>
@@ -38,9 +41,11 @@
 
 <script>
 import { getEngine } from '@ldesign/engine-vue2'
+import ConfigPanel from '../components/ConfigPanel.vue'
 
 export default {
   name: 'Home',
+  components: { ConfigPanel },
   data() {
     return {
       count: 0,
@@ -50,7 +55,7 @@ export default {
   created() {
     const engine = getEngine()
     this.count = engine.state.get('count') || 0
-    this.unsubscribe = engine.state.subscribe('count', (value) => {
+    this.unsubscribe = engine.state.watch('count', (value) => {
       this.count = value
     })
   },

@@ -1,6 +1,8 @@
 import { h } from 'preact'
 import { useState } from 'preact/hooks'
 import { useEngine } from '@ldesign/engine-preact'
+import ConfigPanel from '../components/ConfigPanel'
+
 
 export default function Home() {
   const engine = useEngine()
@@ -17,6 +19,8 @@ export default function Home() {
   return (
     <div class="page">
       <h2>🏠 首页</h2>
+      <ConfigPanel />
+
       <p>欢迎使用 Preact + LDesign Engine + Router 示例应用！</p>
 
       <div class="card">

@@ -19,6 +19,26 @@
       "types": "./es/index.d.ts",
       "import": "./es/index.js",
       "require": "./lib/index.cjs"
+    },
+    "./adapters/*": {
+      "types": "./es/adapters/*.d.ts",
+      "import": "./es/adapters/*.js",
+      "require": "./lib/adapters/*.cjs"
+    },
+    "./composables": {
+      "types": "./es/composables/index.d.ts",
+      "import": "./es/composables/index.js",
+      "require": "./lib/composables/index.cjs"
+    },
+    "./composables/*": {
+      "types": "./es/composables/*.d.ts",
+      "import": "./es/composables/*.js",
+      "require": "./lib/composables/*.cjs"
+    },
+    "./core/*": {
+      "types": "./es/core/*.d.ts",
+      "import": "./es/core/*.js",
+      "require": "./lib/core/*.cjs"
     }
   },
   "main": "./lib/index.cjs",

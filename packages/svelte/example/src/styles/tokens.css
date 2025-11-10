@@ -1,5 +1,5 @@
-/* @import '/themes/color.css'; */
-/* @import '/themes/size.css'; */
+@import '/themes/color.css';
+@import '/themes/size.css';
 
 :root {
   --demo-app-max-width: min(100%, var(--size-container-xl));

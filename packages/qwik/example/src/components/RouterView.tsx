@@ -29,7 +29,28 @@ export default component$(() => {
       return () => unsubscribe()
     } catch (error) {
       console.warn('Engine not ready yet:', error)
-      loading.value = false
+      const onReady = () => {
+        try {
+          const engine = getEngine()
+          const route = engine.router?.getCurrentRoute()
+          if (route?.value?.component) {
+            CurrentComponent.value = route.value.component
+            loading.value = false
+          }
+          const unsubscribe = engine.events.on('router:navigated', () => {
+            try {
+              const engine = getEngine()
+              const route = engine.router?.getCurrentRoute()
+              if (route?.value?.component) {
+                CurrentComponent.value = route.value.component
+                loading.value = false
+              }
+            } catch {}
+          })
+          // 注意: 这里无法返回清理函数给 useVisibleTask$，简单处理即可
+        } catch {}
+      }
+      window.addEventListener('ldesign:engine-ready', onReady, { once: true })
     }
   })
 

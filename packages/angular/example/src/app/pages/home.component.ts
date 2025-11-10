@@ -3,15 +3,18 @@
  */
 import { Component, OnInit, inject } from '@angular/core'
 import { CommonModule } from '@angular/common'
+import { ConfigPanelComponent } from '../components/config-panel.component'
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ConfigPanelComponent],
   template: `
     <div class="page">
       <h2>🏠 首页</h2>
       <p>欢迎使用 Angular + LDesign Engine + Router 示例应用！</p>
+
+      <app-config-panel></app-config-panel>
 
       <div class="card">
         <h3>计数器演示</h3>
@@ -137,7 +140,7 @@ export class HomeComponent implements OnInit {
       this.count = engine.state.get('count') || 0
 
       // 监听状态变化
-      engine.state.subscribe('count', (value: number) => {
+      engine.state.watch('count', (value: number) => {
         this.count = value
       })
     }

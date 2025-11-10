@@ -3,14 +3,14 @@
   import { getEngine } from '@ldesign/engine-svelte'
 
   const engine = getEngine()
-  let currentPath = '/'
+  let currentPath = $state('/')
   let unsubscribe: (() => void) | undefined
 
   onMount(() => {
     if (engine.router) {
       const route = engine.router.getCurrentRoute()
       currentPath = route.value?.path || '/'
-      
+
       unsubscribe = engine.events.on('router:navigated', () => {
         if (engine.router) {
           const route = engine.router.getCurrentRoute()
@@ -32,6 +32,9 @@
   }
 
   function isActive(path: string): boolean {
+    if (path === '/') {
+      return currentPath === '/'
+    }
     return currentPath === path || currentPath.startsWith(path + '/')
   }
 </script>

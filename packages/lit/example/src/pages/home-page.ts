@@ -1,6 +1,7 @@
 import { LitElement, html, css } from 'lit'
 import { customElement, state } from 'lit/decorators.js'
 import { getEngine } from '@ldesign/engine-lit'
+import '../components/config-panel'
 
 @customElement('home-page')
 export class HomePage extends LitElement {
@@ -110,7 +111,7 @@ export class HomePage extends LitElement {
   connectedCallback() {
     super.connectedCallback()
     this.count = this.engine.state.get('count') || 0
-    this.unsubscribe = this.engine.state.subscribe('count', (value: number) => {
+    this.unsubscribe = this.engine.state.watch('count', (value: number) => {
       this.count = value
     })
   }
@@ -147,6 +148,8 @@ export class HomePage extends LitElement {
           <h1>🏠 欢迎使用 LDesign Engine</h1>
           <p>基于 Lit 的现代化引擎框架</p>
         </div>
+
+        <config-panel></config-panel>
 
         <div class="counter">
           <h2>计数器演示</h2>

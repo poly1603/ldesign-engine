@@ -1,5 +1,6 @@
 import React from 'react'
 import { useEngine, useEngineState } from '@ldesign/engine-react'
+import ConfigPanel from '../components/ConfigPanel'
 
 function Home() {
   const engine = useEngine()
@@ -17,6 +18,9 @@ function Home() {
     <div className="page">
       <h2>🏠 首页</h2>
       <p>欢迎使用 React + LDesign Engine + Router 示例应用！</p>
+
+      {/* 配置面板 */}
+      <ConfigPanel />
 
       <div className="card">
         <h3>计数器演示</h3>

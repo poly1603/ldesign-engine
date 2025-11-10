@@ -1,7 +1,7 @@
 /**
  * @ldesign/engine-react
  * 
- * React 适配器包 - 为 React 应用提供核心引擎集成
+ * React 适配器包 - �?React 应用提供核心引擎集成
  * 
  * @example
  * ```typescript
@@ -27,11 +27,10 @@
  * @module @ldesign/engine-react
  */
 
-// 导出适配器
-export * from './adapter'
+// 导出适配�?export * from './adapters/react-adapter'
 
 // 导出引擎应用创建函数
-export * from './engine-app'
+export * from './core/engine-app'
 
 // 导出 React hooks
 export * from './hooks'

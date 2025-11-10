@@ -48,21 +48,21 @@ export default component$(() => {
         </div>
         <div class="nav-links">
           <a
-            href="/"
+            href="#/"
             class={isActive('/') && !isActive('/user') && !isActive('/about') ? 'nav-link active' : 'nav-link'}
             onClick$={(e) => navigate('/', e)}
           >
             🏠 首页
           </a>
           <a
-            href="/about"
+            href="#/about"
             class={isActive('/about') ? 'nav-link active' : 'nav-link'}
             onClick$={(e) => navigate('/about', e)}
           >
             ℹ️ 关于
           </a>
           <a
-            href="/user/1"
+            href="#/user/1"
             class={isActive('/user') ? 'nav-link active' : 'nav-link'}
             onClick$={(e) => navigate('/user/1', e)}
           >

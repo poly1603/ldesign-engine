@@ -91,6 +91,11 @@ createEngineApp({
   onReady: async (engine: AngularEngineApp) => {
     console.log('✅ 引擎准备就绪!', engine)
 
+    // 设置全局以便组件可获取
+    ;(window as any).__ldesignEngine = engine
+    ;(window as any).__ENGINE__ = engine
+    window.dispatchEvent(new CustomEvent('ldesign:engine-ready'))
+
     // 设置初始状态
     engine.state.set('count', 0)
     engine.state.set('user', { name: 'Angular 用户', role: 'admin' })

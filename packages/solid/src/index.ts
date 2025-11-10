@@ -6,12 +6,11 @@
  * @packageDocumentation
  */
 
-// 导出适配器
-export { SolidAdapter, createSolidAdapter } from './adapter'
+// 导出适配�?export { SolidAdapter, createSolidAdapter } from './adapters/solid-adapter'
 
 // 导出应用创建工具
-export { createEngineApp, createEngineAppSync } from './engine-app'
-export type { SolidEngineAppConfig } from './engine-app'
+export { createEngineApp, createEngineAppSync } from './core/engine-app'
+export type { SolidEngineAppConfig } from './core/engine-app'
 
 // 导出 Solid signals 集成
 export {

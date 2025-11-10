@@ -22,6 +22,26 @@
       "types": "./es/index.d.ts",
       "import": "./es/index.js",
       "require": "./lib/index.cjs"
+    },
+    "./adapters/*": {
+      "types": "./es/adapters/*.d.ts",
+      "import": "./es/adapters/*.js",
+      "require": "./lib/adapters/*.cjs"
+    },
+    "./core/*": {
+      "types": "./es/core/*.d.ts",
+      "import": "./es/core/*.js",
+      "require": "./lib/core/*.cjs"
+    },
+    "./signals": {
+      "types": "./es/signals/index.d.ts",
+      "import": "./es/signals/index.js",
+      "require": "./lib/signals/index.cjs"
+    },
+    "./signals/*": {
+      "types": "./es/signals/*.d.ts",
+      "import": "./es/signals/*.js",
+      "require": "./lib/signals/*.cjs"
     }
   },
   "main": "./lib/index.cjs",

@@ -1,5 +1,7 @@
-import { component$, useSignal, useVisibleTask$ } from '@builder.io/qwik'
+import { component$, useSignal, useVisibleTask$, $ } from '@builder.io/qwik'
 import { getEngine } from '@ldesign/engine-qwik'
+
+import ConfigPanel from '../components/ConfigPanel'
 
 export default component$(() => {
   const count = useSignal(0)
@@ -7,7 +9,7 @@ export default component$(() => {
 
   useVisibleTask$(() => {
     count.value = engine.state.get('count') || 0
-    const unsubscribe = engine.state.subscribe('count', (value: number) => {
+    const unsubscribe = engine.state.watch('count', (value: number) => {
       count.value = value
     })
     return () => unsubscribe()
@@ -37,6 +39,8 @@ export default component$(() => {
         <h1>🏠 欢迎使用 LDesign Engine</h1>
         <p>基于 Qwik 的现代化引擎框架</p>
       </div>
+
+      <ConfigPanel />
 
       <div class="counter">
         <h2>计数器演示</h2>

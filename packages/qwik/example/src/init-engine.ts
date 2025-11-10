@@ -85,7 +85,12 @@ export async function initEngine() {
 
         // 触发欢迎事件
         engine.events.emit('app:welcome', { message: '欢迎使用 Qwik Engine!' })
+
+        // 通知 UI：引擎已就绪
+        ;(window as any).__ldesignEngine = engine
+        window.dispatchEvent(new CustomEvent('ldesign:engine-ready'))
       },
+
       onMounted: async (engine: QwikEngineApp) => {
         console.log('✅ 应用已挂载!', engine)
       },

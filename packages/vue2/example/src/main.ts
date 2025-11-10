@@ -64,7 +64,7 @@ createEngineApp({
     debug: true,
   },
   router: {
-    mode: 'history',
+    mode: 'hash',
     base: '/',
     routes: [
       { path: '/', component: Home },

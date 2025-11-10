@@ -3,7 +3,7 @@
   import { getEngine } from '@ldesign/engine-svelte'
 
   const engine = getEngine()
-  let CurrentComponent: any = null
+  let CurrentComponent = $state<any>(null)
   let unsubscribe: (() => void) | undefined
 
   onMount(() => {
@@ -15,6 +15,7 @@
     const updateComponent = () => {
       if (engine.router) {
         const route = engine.router.getCurrentRoute()
+        console.log('Current route:', route)
         if (route.value?.component) {
           CurrentComponent = route.value.component
         }

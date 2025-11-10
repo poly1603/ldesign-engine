@@ -1,7 +1,7 @@
 /**
  * Angular Engine 示例 - 路由视图组件
  */
-import { Component, OnInit, OnDestroy, ViewContainerRef, ComponentRef, Type } from '@angular/core'
+import { Component, OnInit, OnDestroy, ViewContainerRef, ComponentRef, Type, inject } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { HomeComponent } from '../pages/home.component'
 import { AboutComponent } from '../pages/about.component'
@@ -50,6 +50,7 @@ export class RouterViewComponent implements OnInit, OnDestroy {
   currentComponent: Type<any> | null = null
   private componentRef?: ComponentRef<any>
   private unsubscribe?: () => void
+  private viewContainerRef = inject(ViewContainerRef)
 
   routes: RouteConfig[] = [
     { path: '/', component: HomeComponent },
@@ -57,14 +58,12 @@ export class RouterViewComponent implements OnInit, OnDestroy {
     { path: '/user/:id', component: UserComponent },
   ]
 
-  constructor(private viewContainerRef: ViewContainerRef) {}
-
   ngOnInit() {
     if (typeof window !== 'undefined' && (window as any).__ENGINE__) {
       const engine = (window as any).__ENGINE__
       if (engine.router) {
         this.updateRoute()
-        
+
         // 监听路由变化
         this.unsubscribe = engine.events.on('router:navigated', () => {
           this.updateRoute()

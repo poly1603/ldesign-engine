@@ -11,8 +11,5 @@ export default defineConfig({
       minify: true,
     },
   },
-  build: {
-    target: 'es2020',
-  },
 })
 

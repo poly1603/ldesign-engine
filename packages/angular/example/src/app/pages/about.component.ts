@@ -18,8 +18,8 @@ import { CommonModule } from '@angular/common'
         <p>本应用采用以下技术栈构建：</p>
         <ul>
           <li><strong>Angular 18+</strong> - 现代化的前端框架</li>
-          <li><strong>@ldesign/engine-angular</strong> - 引擎核心</li>
-          <li><strong>@ldesign/router</strong> - 统一路由系统</li>
+          <li><strong>&#64;ldesign/engine-angular</strong> - 引擎核心</li>
+          <li><strong>&#64;ldesign/router</strong> - 统一路由系统</li>
           <li><strong>TypeScript</strong> - 类型安全</li>
         </ul>
       </div>

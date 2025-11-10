@@ -20,6 +20,21 @@
       "types": "./es/index.d.ts",
       "import": "./es/index.js",
       "require": "./lib/index.cjs"
+    },
+    "./adapters/*": {
+      "types": "./es/adapters/*.d.ts",
+      "import": "./es/adapters/*.js",
+      "require": "./lib/adapters/*.cjs"
+    },
+    "./core/*": {
+      "types": "./es/core/*.d.ts",
+      "import": "./es/core/*.js",
+      "require": "./lib/core/*.cjs"
+    },
+    "./utils/*": {
+      "types": "./es/utils/*.d.ts",
+      "import": "./es/utils/*.js",
+      "require": "./lib/utils/*.cjs"
     }
   },
   "main": "./lib/index.cjs",

@@ -6,12 +6,11 @@
  * @packageDocumentation
  */
 
-// 导出适配器
-export { SvelteAdapter, createSvelteAdapter } from './adapter'
+// 导出适配�?export { SvelteAdapter, createSvelteAdapter } from './adapters/svelte-adapter'
 
 // 导出应用创建工具
-export { createEngineApp, createEngineAppSync } from './engine-app'
-export type { SvelteEngineAppConfig } from './engine-app'
+export { createEngineApp, createEngineAppSync } from './core/engine-app'
+export type { SvelteEngineAppConfig } from './core/engine-app'
 
 // 导出 Svelte stores 集成
 export {
@@ -29,7 +28,7 @@ export {
 } from './stores'
 
 // 导出辅助函数
-export { getEngine } from './helpers'
+export { getEngine } from './utils/helpers'
 
 // 重新导出核心功能
 export * from '@ldesign/engine-core'
