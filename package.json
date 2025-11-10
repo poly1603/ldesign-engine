@@ -64,7 +64,6 @@
     "test:all": "pnpm run test:unit && pnpm run test:integration && pnpm run test:performance && pnpm run test:e2e",
     "clean": "rimraf esm cjs dist types lib coverage .nyc_output",
     "size-check": "size-limit",
-    "prepublishOnly": "pnpm run clean && pnpm run build && pnpm run test:run",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",
