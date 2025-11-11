@@ -1,13 +1,10 @@
 import { defineConfig } from '@ldesign/builder'
 
 export default defineConfig({
-  // 使用 esbuild 以更好地保留外部依赖的模块标识（不改写为物理路径）
-  bundler: 'esbuild',
+  // 统一使用默认打包器（rollup），兼容性更好
   output: {
-    esm: {
-      // esbuild 下不需要 preserveStructure，按文件输出即可
-    },
-    cjs: {},
+    esm: true,
+    cjs: true,
     umd: {
       enabled: true,
       name: 'LDesignEngineAngular',
@@ -25,4 +22,3 @@ export default defineConfig({
     )
   },
 })
-

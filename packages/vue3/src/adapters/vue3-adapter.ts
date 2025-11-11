@@ -136,6 +136,7 @@ export class Vue3Adapter implements FrameworkAdapter<App, Component> {
 
   async mount(app: App, mountElement: string | Element): Promise<void> {
     app.mount(mountElement)
+    // 提示：此处无法直接访问 engine，如需在挂载后发事件，请在 registerEngine 中注册 getApp 并由外部触发
   }
 
   async unmount(app: App): Promise<void> {
@@ -148,6 +149,14 @@ export class Vue3Adapter implements FrameworkAdapter<App, Component> {
 
     // 注册为全局属性
     app.config.globalProperties.$engine = engine
+
+      // 暴露 getApp，使插件可在 app 创建后进行安装（例如路由/HTTP 等插件）
+      ; (engine as any).getApp = () => app
+
+    // 发送 app:created 事件，通知等待该事件的插件执行安装逻辑
+    try {
+      engine.events?.emit?.('app:created')
+    } catch { }
   }
 
   createStateAdapter(): StateAdapter {
