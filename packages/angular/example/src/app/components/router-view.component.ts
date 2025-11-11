@@ -50,7 +50,9 @@ export class RouterViewComponent implements OnInit, OnDestroy {
   currentComponent: Type<any> | null = null
   private componentRef?: ComponentRef<any>
   private unsubscribe?: () => void
+  private unsubscribeInstalled?: () => void
   private viewContainerRef = inject(ViewContainerRef)
+  private _hashChangeHandler = () => this.updateRoute()
 
   routes: RouteConfig[] = [
     { path: '/', component: HomeComponent },
@@ -59,16 +61,46 @@ export class RouterViewComponent implements OnInit, OnDestroy {
   ]
 
   ngOnInit() {
-    if (typeof window !== 'undefined' && (window as any).__ENGINE__) {
-      const engine = (window as any).__ENGINE__
-      if (engine.router) {
-        this.updateRoute()
+    // 等待引擎准备就绪
+    this.waitForEngine()
+  }
 
-        // 监听路由变化
-        this.unsubscribe = engine.events.on('router:navigated', () => {
-          this.updateRoute()
-        })
+  /**
+   * 等待引擎准备就绪
+   */
+  private waitForEngine() {
+    if (typeof window === 'undefined') return
+
+    const setupWithEngine = (engine: any) => {
+      // 总是监听 router 安装事件（即使当前还没有 router）
+      this.unsubscribeInstalled = engine.events?.on?.('router:installed', () => this.updateRoute())
+
+      // 监听浏览器 hash 变化（手动修改地址或前进/后退）
+      window.addEventListener('hashchange', this._hashChangeHandler)
+
+      if (engine.router) {
+        // 已有路由器：监听导航并立即刷新一次
+        this.unsubscribe = engine.events?.on?.('router:navigated', () => this.updateRoute())
+        this.updateRoute()
+      } else {
+        // 尚未安装路由器：短暂延迟后再尝试刷新
+        setTimeout(() => this.updateRoute(), 0)
       }
+    }
+
+    const engine = (window as any).__ENGINE__
+    if (engine) {
+      setupWithEngine(engine)
+    } else {
+      // 如果引擎还没准备好，等待 engine-ready 事件
+      const handleEngineReady = () => {
+        const eng = (window as any).__ENGINE__
+        if (eng) {
+          setupWithEngine(eng)
+          window.removeEventListener('ldesign:engine-ready', handleEngineReady)
+        }
+      }
+      window.addEventListener('ldesign:engine-ready', handleEngineReady)
     }
   }
 
@@ -76,6 +108,10 @@ export class RouterViewComponent implements OnInit, OnDestroy {
     if (this.unsubscribe) {
       this.unsubscribe()
     }
+    if (this.unsubscribeInstalled) {
+      this.unsubscribeInstalled()
+    }
+    window.removeEventListener('hashchange', this._hashChangeHandler)
     if (this.componentRef) {
       this.componentRef.destroy()
     }

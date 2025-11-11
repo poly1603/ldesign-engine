@@ -30,7 +30,7 @@
 
   <div class="card">
     <h3>🎪 事件系统演示</h3>
-    <button on:click={handleTestEvent} class="btn-primary">
+    <button onclick={handleTestEvent} class="btn-primary">
       触发测试事件
     </button>
     <p class="hint">打开控制台查看事件日志</p>

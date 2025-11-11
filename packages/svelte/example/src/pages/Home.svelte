@@ -4,7 +4,7 @@
   import ConfigPanel from '../components/ConfigPanel.svelte'
 
   const engine = getEngine()
-  let count = 0
+  let count = $state(0)
   let unsubscribe: (() => void) | undefined
 
   onMount(() => {
@@ -37,9 +37,9 @@
   <div class="card">
     <h3>计数器演示</h3>
     <div class="counter">
-      <button on:click={decrement}>-</button>
+      <button onclick={decrement}>-</button>
       <span class="count">{count}</span>
-      <button on:click={increment}>+</button>
+      <button onclick={increment}>+</button>
     </div>
     <p class="hint">这个计数器使用 Engine 的状态管理</p>
   </div>

@@ -7,8 +7,15 @@ import { AppComponent } from './app/app.component'
 import { HomeComponent } from './app/pages/home.component'
 import { AboutComponent } from './app/pages/about.component'
 import { UserComponent } from './app/pages/user.component'
-import { createEngineApp } from '@ldesign/engine-angular'
-import type { AngularEngineApp } from '@ldesign/engine-angular'
+// 直接使用源码以避免某些打包路径问题
+import { createEngineApp } from '../../src/index'
+import type { AngularEngineApp } from '../../src/core/engine-app'
+
+// 手动导入路由器插件,避免动态导入时的 Angular 内部 API 问题
+// 直接从源码导入,避免 package.json exports 的问题
+import { createRouterEnginePlugin } from '../../../../../router/packages/angular/src/engine-plugin'
+
+console.log('🔥 [Angular Example] main.ts 开始执行')
 
 // 定义示例插件
 const loggerPlugin = {
@@ -56,45 +63,50 @@ const loggingMiddleware = {
   },
 }
 
-// 创建引擎应用（带路由配置）
+// 手动创建路由器插件,避免动态导入时的问题
+const routerPlugin = createRouterEnginePlugin({
+  name: 'router',
+  version: '1.0.0',
+  mode: 'hash', // 使用 hash 模式以便在静态服务器上运行
+  base: '/',
+  preset: 'spa', // 使用 SPA 预设配置
+  routes: [
+    {
+      path: '/',
+      component: HomeComponent,
+      meta: { title: '首页' },
+    },
+    {
+      path: '/about',
+      component: AboutComponent,
+      meta: { title: '关于' },
+    },
+    {
+      path: '/user/:id',
+      component: UserComponent,
+      meta: { title: '用户详情' },
+    },
+  ],
+  debug: true,
+})
+
+// 创建引擎应用（不使用 router 配置,而是手动添加路由器插件）
 createEngineApp({
   rootComponent: AppComponent,
   config: {
     name: 'Angular Engine Demo with Router',
     debug: true,
   },
-  // 路由配置
-  router: {
-    mode: 'hash', // 使用 hash 模式以便在静态服务器上运行
-    base: '/',
-    preset: 'spa', // 使用 SPA 预设配置
-    routes: [
-      {
-        path: '/',
-        component: HomeComponent,
-        meta: { title: '首页' },
-      },
-      {
-        path: '/about',
-        component: AboutComponent,
-        meta: { title: '关于' },
-      },
-      {
-        path: '/user/:id',
-        component: UserComponent,
-        meta: { title: '用户详情' },
-      },
-    ],
-  },
-  plugins: [loggerPlugin, themePlugin],
+  // 将路由器插件添加到插件列表的最前面
+  plugins: [routerPlugin, loggerPlugin, themePlugin],
   middleware: [authMiddleware, loggingMiddleware],
   onReady: async (engine: AngularEngineApp) => {
     console.log('✅ 引擎准备就绪!', engine)
 
-    // 设置全局以便组件可获取
-    ;(window as any).__ldesignEngine = engine
-    ;(window as any).__ENGINE__ = engine
-    window.dispatchEvent(new CustomEvent('ldesign:engine-ready'))
+      // 🔥 重要: 在 Angular 应用启动前就设置全局引擎
+      // 这样组件在初始化时就能访问到引擎
+      ; (window as any).__ldesignEngine = engine
+      ; (window as any).__ENGINE__ = engine
 
     // 设置初始状态
     engine.state.set('count', 0)
@@ -107,6 +119,11 @@ createEngineApp({
     if (engine.router) {
       console.log('🛣️ 路由器已就绪')
       console.log('当前路由:', engine.router.getCurrentRoute())
+
+      // 触发初始路由事件,确保组件能正确渲染
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('ldesign:engine-ready'))
+      }, 0)
     }
   },
   onMounted: async (engine: AngularEngineApp) => {
@@ -115,5 +132,6 @@ createEngineApp({
   onError: (error: Error, context: string) => {
     console.error('❌ 错误:', error, '上下文:', context)
   },
+}).then((engine) => {
+  console.log('🎉 引擎应用创建完成', engine)
 })
-

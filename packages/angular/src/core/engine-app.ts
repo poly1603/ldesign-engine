@@ -199,13 +199,12 @@ export async function createEngineApp(
     const engineService = new EngineService()
     engineService.setEngine(coreEngine)
 
-    // 创建引擎应用对象
-    const engineApp: AngularEngineApp = {
-      ...coreEngine,
+    // 创建引擎应用对象（保留 coreEngine 引用，避免属性丢失，如 router）
+    const engineApp: AngularEngineApp = Object.assign(coreEngine as any, {
       appRef: null as any,
       adapter,
       engineService,
-    }
+    })
 
     // 触发准备就绪回调
     if (onReady) {

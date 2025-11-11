@@ -22,11 +22,11 @@
     "zone.js": "^0.15.1"
   },
   "devDependencies": {
-    "@analogjs/vite-plugin-angular": "^2.0.3",
+    "@analogjs/vite-plugin-angular": "2.0.0-alpha.27",
     "@angular/compiler": "^19.2.15",
     "@angular/compiler-cli": "^19.2.15",
     "@ldesign/launcher": "workspace:*",
-    "typescript": "^5.7.3"
+    "typescript": "~5.7.2"
   }
 
 }

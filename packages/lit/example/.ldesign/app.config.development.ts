@@ -24,7 +24,7 @@ export default {
   },
 
   theme: {
-    primaryColor: '#324fff',
+    primaryColor: '#ff6600',
     mode: 'light'
   },
 

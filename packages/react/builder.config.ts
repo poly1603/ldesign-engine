@@ -2,13 +2,16 @@ import { defineConfig } from '@ldesign/builder'
 
 export default defineConfig({
   output: {
-    esm: true,
-    cjs: true,
+    esm: {
+      dir: 'es'
+    },
+    cjs: {
+      dir: 'lib'
+    },
     umd: {
-      enabled: true,
+      dir: 'dist',
       name: 'LDesignEngineReact',
-      input: 'src/index.ts',
-      minify: true,
+      input: 'src/index.ts'
     },
   },
 })

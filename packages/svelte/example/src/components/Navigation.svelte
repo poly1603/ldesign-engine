@@ -44,25 +44,25 @@
     <h1>🚀 Svelte + LDesign Engine</h1>
   </div>
   <div class="nav-links">
-    <a 
-      href="/" 
-      on:click={(e) => navigate('/', e)} 
+    <a
+      href="/"
+      onclick={(e) => navigate('/', e)}
       class="nav-link"
       class:active={isActive('/')}
     >
       🏠 首页
     </a>
-    <a 
-      href="/about" 
-      on:click={(e) => navigate('/about', e)}
+    <a
+      href="/about"
+      onclick={(e) => navigate('/about', e)}
       class="nav-link"
       class:active={isActive('/about')}
     >
       ℹ️ 关于
     </a>
-    <a 
-      href="/user/1" 
-      on:click={(e) => navigate('/user/1', e)}
+    <a
+      href="/user/1"
+      onclick={(e) => navigate('/user/1', e)}
       class="nav-link"
       class:active={isActive('/user')}
     >

@@ -3,15 +3,15 @@
   import { getEngine } from '@ldesign/engine-svelte'
 
   const engine = getEngine()
-  
+
   const mockUsers: Record<string, any> = {
     '1': { id: '1', name: 'Alice', role: 'Admin', email: 'alice@example.com', avatar: '👩' },
     '2': { id: '2', name: 'Bob', role: 'User', email: 'bob@example.com', avatar: '👨' },
     '3': { id: '3', name: 'Charlie', role: 'Developer', email: 'charlie@example.com', avatar: '👨‍💻' },
   }
 
-  let userId = '1'
-  let user = mockUsers['1']
+  let userId = $state('1')
+  let user = $state(mockUsers['1'])
   let unsubscribe: (() => void) | undefined
 
   onMount(() => {
@@ -19,7 +19,7 @@
       const route = engine.router.getCurrentRoute()
       userId = route.value?.params?.id || '1'
       user = mockUsers[userId] || mockUsers['1']
-      
+
       unsubscribe = engine.events.on('router:navigated', () => {
         if (engine.router) {
           const route = engine.router.getCurrentRoute()
@@ -64,7 +64,7 @@
     <div class="user-switcher">
       {#each Object.values(mockUsers) as u}
         <button
-          on:click={() => handleUserChange(u.id)}
+          onclick={() => handleUserChange(u.id)}
           class:active={userId === u.id}
         >
           {u.avatar} {u.name}

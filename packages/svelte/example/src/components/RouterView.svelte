@@ -33,7 +33,7 @@
 
 <div class="router-view">
   {#if CurrentComponent}
-    <svelte:component this={CurrentComponent} />
+    <CurrentComponent />
   {:else}
     <div>Loading...</div>
   {/if}

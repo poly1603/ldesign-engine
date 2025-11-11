@@ -19,7 +19,7 @@ export default function RouterView({ routes }: RouterViewProps) {
   useEffect(() => {
     const updateRoute = () => {
       if (!engine.router) {
-        console.warn('Router not available in engine')
+        // 路由器尚未就绪，等待安装事件或全局就绪事件
         return
       }
 
@@ -43,11 +43,33 @@ export default function RouterView({ routes }: RouterViewProps) {
       }
     }
 
+    // 1) 首次尝试更新（如果路由器已可用则立即生效）
     updateRoute()
-    const unsubscribe = engine.events.on('router:navigated', updateRoute)
+
+    // 2) 监听引擎路由安装完成事件，确保路由器就绪后立即刷新
+    const offInstalled = engine.events.on?.('router:installed', updateRoute)
+
+    // 3) 监听正常的导航事件
+    const offNavigated = engine.events.on?.('router:navigated', updateRoute)
+
+    // 4) 监听浏览器 hash 变化（用户直接修改地址或前进/后退但未触发事件时）
+    const onHashChange = () => updateRoute()
+    window.addEventListener('hashchange', onHashChange)
+
+    // 5) 兜底：若路由器稍晚注入，短暂轮询一次以避免首屏 404
+    let tries = 0
+    const timer = setInterval(() => {
+      if (engine.router || tries++ > 20) {
+        clearInterval(timer)
+        updateRoute()
+      }
+    }, 50)
 
     return () => {
-      if (unsubscribe) unsubscribe()
+      if (offInstalled) offInstalled()
+      if (offNavigated) offNavigated()
+      window.removeEventListener('hashchange', onHashChange)
+      clearInterval(timer)
     }
   }, [engine, routes])
 
