@@ -20,6 +20,26 @@
       "import": "./es/index.js",
       "require": "./lib/index.cjs"
     },
+    "./config": {
+      "types": "./es/config/index.d.ts",
+      "import": "./es/config/index.js",
+      "require": "./lib/config/index.cjs"
+    },
+    "./config/*": {
+      "types": "./es/config/*.d.ts",
+      "import": "./es/config/*.js",
+      "require": "./lib/config/*.cjs"
+    },
+    "./container": {
+      "types": "./es/container/index.d.ts",
+      "import": "./es/container/index.js",
+      "require": "./lib/container/index.cjs"
+    },
+    "./container/*": {
+      "types": "./es/container/*.d.ts",
+      "import": "./es/container/*.js",
+      "require": "./lib/container/*.cjs"
+    },
     "./engine": {
       "types": "./es/engine/index.d.ts",
       "import": "./es/engine/index.js",

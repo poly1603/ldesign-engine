@@ -25,6 +25,12 @@ export * from './event'
 // 导出状态管理系统
 export * from './state'
 
+// 导出依赖注入容器
+export * from './container'
+
+// 导出配置管理
+export * from './config'
+
 // 引擎版本
 export const ENGINE_VERSION = '0.3.0'
 

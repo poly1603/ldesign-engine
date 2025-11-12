@@ -11,5 +11,12 @@ export default defineConfig({
       minify: true,
     },
   },
+  external: [
+    '@ldesign/engine-core',
+    '@ldesign/router-vue3',
+    '@ldesign/router-vue',
+    'vue',
+    'vue-router',
+  ],
 })
 
