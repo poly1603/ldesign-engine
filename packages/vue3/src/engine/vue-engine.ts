@@ -36,46 +36,8 @@ export interface VueEngineConfig extends CoreEngineConfig {
     /** 全局指令 */
     globalDirectives?: Record<string, any>
   }
-  /** 路由配置 */
-  router?: {
-    /** 是否启用路由 */
-    enabled?: boolean
-    /** 路由配置 */
-    options?: any
-  }
-  /** i18n 国际化配置 */
-  i18n?: {
-    /** 是否启用 i18n */
-    enabled?: boolean
-    /** 当前语言 */
-    locale?: string
-    /** 回退语言 */
-    fallbackLocale?: string
-    /** 语言包 */
-    messages?: Record<string, Record<string, any>>
-    /** 是否启用缓存 */
-    cache?: boolean
-    /** 缓存大小 */
-    cacheSize?: number
-    /** 是否启用性能监控 */
-    performance?: boolean
-    /** 预加载的语言包 */
-    preloadLocales?: string[]
-    /** 持久化配置 */
-    persistence?: {
-      /** 是否启用持久化 */
-      enabled?: boolean
-      /** 存储键名 */
-      key?: string
-    }
-  }
-  /** 服务容器配置 */
-  container?: {
-    /** 是否启用依赖注入 */
-    enabled?: boolean
-    /** 服务提供者 */
-    providers?: any[]
-  }
+  /** 插件列表（在 beforeMount 时自动安装） */
+  plugins?: Plugin[]
 }
 
 /**
@@ -147,6 +109,15 @@ export class VueEngine extends EngineCoreImpl {
 
     // 注册核心服务
     this.registerCoreServices()
+
+    // 自动安装配置中的插件
+    if (config.plugins && config.plugins.length > 0) {
+      this.lifecycle.on('beforeMount', async () => {
+        for (const plugin of config.plugins!) {
+          await this.use(plugin)
+        }
+      })
+    }
   }
 
   /**
@@ -229,29 +200,13 @@ export class VueEngine extends EngineCoreImpl {
     // 初始化引擎
     await this.init()
 
-    console.log('[VueEngine] Checking i18n config:', {
-      hasI18n: !!this.vueConfig.i18n,
-      enabled: this.vueConfig.i18n?.enabled,
-      config: this.vueConfig.i18n,
-    })
-
-    // 安装 i18n（如果启用）- 必须在创建 Vue 应用之前安装
-    if (this.vueConfig.i18n?.enabled) {
-      await this.installI18n()
-    }
-
     // 创建 Vue 应用
     if (!this.app) {
       await this.createVueApp(rootComponent)
     }
 
-    // 触发挂载前生命周期
+    // 触发挂载前生命周期（插件会在这里安装）
     await this.lifecycle.trigger('beforeMount')
-
-    // 安装路由（如果启用）
-    if (this.vueConfig.router?.enabled) {
-      await this.installRouter()
-    }
 
     // 挂载应用
     this.app!.mount(selector)
@@ -364,70 +319,27 @@ export class VueEngine extends EngineCoreImpl {
   }
 
   /**
-   * 安装 i18n
-   *
-   * @private
+   * 重写 use 方法，提供增强的插件上下文
    */
-  private async installI18n(): Promise<void> {
-    try {
-      console.log('[VueEngine] Installing i18n...', this.vueConfig.i18n)
-
-      // 使用 i18n 插件
-      const { createI18nPlugin } = await import('../plugins/i18n-plugin')
-
-      // 创建 i18n 插件
-      const i18nPlugin = createI18nPlugin(this.vueConfig.i18n || {})
-
-      // 安装插件到 engine
-      // createI18nEnginePlugin 会自动处理 Vue 应用的安装
-      // 通过监听 app:created 事件
-      await this.use(i18nPlugin)
-
-      if (this.config.debug) {
-        console.log('[VueEngine] i18n installed successfully')
-      }
+  async use<T = any>(plugin: Plugin<T>, options?: T): Promise<void> {
+    // 构建增强的上下文
+    const enhancedContext = {
+      // 提供框架信息
+      framework: {
+        name: 'vue' as const,
+        version: this.app?.version,
+        app: this.app,
+      },
+      // 提供服务容器
+      container: {
+        singleton: this.container.singleton.bind(this.container),
+        resolve: this.container.resolve.bind(this.container),
+        has: this.container.has.bind(this.container),
+      },
     }
-    catch (error) {
-      console.error('[VueEngine] Failed to install i18n:', error)
 
-      if (this.config.debug) {
-        console.log('[VueEngine] i18n integration requires @ldesign/i18n-vue')
-      }
-    }
-  }
-
-  /**
-   * 安装路由
-   *
-   * @private
-   */
-  private async installRouter(): Promise<void> {
-    try {
-      // 使用路由插件
-      const { createRouterPlugin } = await import('../plugins/router-plugin')
-
-      // 创建路由插件
-      const routerPlugin = createRouterPlugin(this.vueConfig.router?.options || {})
-
-      // 安装插件
-      await this.use(routerPlugin)
-
-      // 如果 Vue 应用已创建，安装到 Vue
-      if (this.app && routerPlugin.installVue) {
-        routerPlugin.installVue(this.app, this.vueConfig.router?.options)
-      }
-
-      if (this.config.debug) {
-        console.log('[VueEngine] Router installed successfully')
-      }
-    }
-    catch (error) {
-      console.error('[VueEngine] Failed to install router:', error)
-
-      if (this.config.debug) {
-        console.log('[VueEngine] Router integration requires @ldesign/router-vue')
-      }
-    }
+    // 调用父类的 use 方法，传入增强的上下文
+    await this.plugins.use(plugin, options, enhancedContext)
   }
 
   /**

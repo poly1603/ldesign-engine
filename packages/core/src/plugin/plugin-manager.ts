@@ -83,7 +83,7 @@ export class CorePluginManager implements PluginManager {
    * }, { mode: 'history' })
    * ```
    */
-  async use<T = any>(plugin: Plugin<T>, options?: T): Promise<void> {
+  async use<T = any>(plugin: Plugin<T>, options?: T, customContext?: Partial<PluginContext>): Promise<void> {
     // 检查是否已安装
     if (this.plugins.has(plugin.name)) {
       if (this.context.config?.debug) {
@@ -108,8 +108,13 @@ export class CorePluginManager implements PluginManager {
         await this.checkDependencies(plugin)
       }
 
+      // 合并上下文（如果提供了自定义上下文）
+      const finalContext = customContext
+        ? { ...this.context, ...customContext }
+        : this.context
+
       // 调用插件的 install 方法
-      await plugin.install(this.context, options)
+      await plugin.install(finalContext, options)
 
       // 保存插件
       this.plugins.set(plugin.name, plugin)

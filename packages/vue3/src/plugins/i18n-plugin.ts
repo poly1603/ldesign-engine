@@ -65,7 +65,9 @@ export function createI18nPlugin(config: I18nPluginConfig = {}): VueEnginePlugin
 
       const i18n = new (OptimizedI18n as any)({
         locale: finalConfig.locale,
-        fallbackLocale: finalConfig.fallbackLocale,
+        fallbackLocale: Array.isArray(finalConfig.fallbackLocale)
+          ? finalConfig.fallbackLocale[0]
+          : finalConfig.fallbackLocale,
         messages: finalConfig.messages,
         // 将缓存配置映射到 core（支持 maxSize）
         cache: finalConfig.cache === false

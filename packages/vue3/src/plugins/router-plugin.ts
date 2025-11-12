@@ -99,7 +99,8 @@ export function createRouterPlugin(config: RouterPluginConfig = {}): VueEnginePl
     async installVue(app: App, options?: any) {
       try {
         const engine = app.config.globalProperties.$engine as VueEngine
-        const router = engine?.container?.resolve('router')?.router
+        const routerService = engine?.container?.resolve('router') as any
+        const router = routerService?.router
 
         if (router) {
           // 使用 Vue Router
