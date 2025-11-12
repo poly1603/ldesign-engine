@@ -69,19 +69,25 @@
     "@ldesign/engine-core": "workspace:*"
   },
   "peerDependencies": {
-    "vue": "^3.3.0 || ^3.4.0 || ^3.5.0"
+    "vue": "^3.3.0 || ^3.4.0 || ^3.5.0",
+    "@ldesign/router-vue": "workspace:*",
+    "@ldesign/i18n-vue": "workspace:*"
   },
   "devDependencies": {
     "@ldesign/builder": "workspace:*",
-    "@ldesign/router": "workspace:*",
+    "@ldesign/i18n-vue": "workspace:*",
     "@ldesign/router-vue": "workspace:*",
     "@types/node": "^22.0.0",
     "typescript": "^5.7.3",
     "vitest": "^3.2.4",
     "vue": "^3.5.18"
   },
-  "optionalDependencies": {
-    "@ldesign/router": "workspace:*",
-    "@ldesign/router-vue": "workspace:*"
+  "peerDependenciesMeta": {
+    "@ldesign/router-vue": {
+      "optional": true
+    },
+    "@ldesign/i18n-vue": {
+      "optional": true
+    }
   }
 }

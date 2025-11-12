@@ -43,6 +43,32 @@ export interface VueEngineConfig extends CoreEngineConfig {
     /** 路由配置 */
     options?: any
   }
+  /** i18n 国际化配置 */
+  i18n?: {
+    /** 是否启用 i18n */
+    enabled?: boolean
+    /** 当前语言 */
+    locale?: string
+    /** 回退语言 */
+    fallbackLocale?: string
+    /** 语言包 */
+    messages?: Record<string, Record<string, any>>
+    /** 是否启用缓存 */
+    cache?: boolean
+    /** 缓存大小 */
+    cacheSize?: number
+    /** 是否启用性能监控 */
+    performance?: boolean
+    /** 预加载的语言包 */
+    preloadLocales?: string[]
+    /** 持久化配置 */
+    persistence?: {
+      /** 是否启用持久化 */
+      enabled?: boolean
+      /** 存储键名 */
+      key?: string
+    }
+  }
   /** 服务容器配置 */
   container?: {
     /** 是否启用依赖注入 */
@@ -176,6 +202,13 @@ export class VueEngine extends EngineCoreImpl {
     this.app.config.globalProperties.$container = this.container
     this.app.config.globalProperties.$config = this.configManager
 
+    // 发射 app:created 事件，供插件使用
+    this.events.emit('app:created', { app: this.app })
+
+    if (this.config.debug) {
+      console.log('[VueEngine] Vue application created, app:created event emitted')
+    }
+
     return this.app
   }
 
@@ -195,6 +228,17 @@ export class VueEngine extends EngineCoreImpl {
 
     // 初始化引擎
     await this.init()
+
+    console.log('[VueEngine] Checking i18n config:', {
+      hasI18n: !!this.vueConfig.i18n,
+      enabled: this.vueConfig.i18n?.enabled,
+      config: this.vueConfig.i18n,
+    })
+
+    // 安装 i18n（如果启用）- 必须在创建 Vue 应用之前安装
+    if (this.vueConfig.i18n?.enabled) {
+      await this.installI18n()
+    }
 
     // 创建 Vue 应用
     if (!this.app) {
@@ -320,8 +364,41 @@ export class VueEngine extends EngineCoreImpl {
   }
 
   /**
+   * 安装 i18n
+   *
+   * @private
+   */
+  private async installI18n(): Promise<void> {
+    try {
+      console.log('[VueEngine] Installing i18n...', this.vueConfig.i18n)
+
+      // 使用 i18n 插件
+      const { createI18nPlugin } = await import('../plugins/i18n-plugin')
+
+      // 创建 i18n 插件
+      const i18nPlugin = createI18nPlugin(this.vueConfig.i18n || {})
+
+      // 安装插件到 engine
+      // createI18nEnginePlugin 会自动处理 Vue 应用的安装
+      // 通过监听 app:created 事件
+      await this.use(i18nPlugin)
+
+      if (this.config.debug) {
+        console.log('[VueEngine] i18n installed successfully')
+      }
+    }
+    catch (error) {
+      console.error('[VueEngine] Failed to install i18n:', error)
+
+      if (this.config.debug) {
+        console.log('[VueEngine] i18n integration requires @ldesign/i18n-vue')
+      }
+    }
+  }
+
+  /**
    * 安装路由
-   * 
+   *
    * @private
    */
   private async installRouter(): Promise<void> {
@@ -343,7 +420,8 @@ export class VueEngine extends EngineCoreImpl {
       if (this.config.debug) {
         console.log('[VueEngine] Router installed successfully')
       }
-    } catch (error) {
+    }
+    catch (error) {
       console.error('[VueEngine] Failed to install router:', error)
 
       if (this.config.debug) {
