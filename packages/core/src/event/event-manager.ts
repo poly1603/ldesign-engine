@@ -52,12 +52,25 @@ interface OnceWrapper<T = any> {
  * unsubscribe()
  * ```
  */
+/**
+ * 模式监听器接口
+ */
+interface PatternListener {
+  /** 正则表达式 */
+  regex: RegExp
+  /** 处理器 */
+  handler: EventHandler
+}
+
 export class CoreEventManager implements EventManager {
   /** 事件处理器存储 - 每个事件对应一组处理器 */
   private events = new Map<string, Set<EventHandler>>()
 
   /** 一次性事件处理器映射 - 用于正确清理 once 监听器 */
   private onceWrappers = new Map<string, Map<EventHandler, OnceWrapper>>()
+
+  /** 模式监听器存储 - 支持通配符事件监听 */
+  private patternListeners = new Map<string, Set<PatternListener>>()
 
   /** 最大监听器数量警告阈值 - 防止内存泄漏 */
   private maxListeners = 100
@@ -68,6 +81,7 @@ export class CoreEventManager implements EventManager {
    * 性能优化:
    * - 没有监听器时快速返回
    * - 错误隔离,单个处理器错误不影响其他处理器
+   * - 支持通配符模式匹配
    *
    * @param event - 事件名称
    * @param payload - 事件数据
@@ -79,28 +93,43 @@ export class CoreEventManager implements EventManager {
    *
    * // 触发带数据的事件
    * eventManager.emit('user:update', { id: 1, name: 'Bob' })
+   *
+   * // 会触发 'user:*' 和 '*' 的监听器
    * ```
    */
   emit<T = any>(event: string, payload?: T): void {
+    // 1. 触发精确匹配的监听器
     const handlers = this.events.get(event)
 
-    // 性能优化: 没有监听器时快速返回
-    if (!handlers || handlers.size === 0) {
-      return
+    if (handlers && handlers.size > 0) {
+      // 创建处理器数组副本,避免在遍历时修改集合
+      const handlersCopy = Array.from(handlers)
+
+      // 执行所有处理器
+      handlersCopy.forEach(handler => {
+        try {
+          handler(payload)
+        } catch (error) {
+          // 错误隔离: 单个处理器错误不影响其他处理器
+          console.error(`Error in event handler for "${event}":`, error)
+        }
+      })
     }
 
-    // 创建处理器数组副本,避免在遍历时修改集合
-    const handlersCopy = Array.from(handlers)
-
-    // 执行所有处理器
-    handlersCopy.forEach(handler => {
-      try {
-        handler(payload)
-      } catch (error) {
-        // 错误隔离: 单个处理器错误不影响其他处理器
-        console.error(`Error in event handler for "${event}":`, error)
-      }
-    })
+    // 2. 触发模式匹配的监听器
+    if (this.patternListeners.size > 0) {
+      this.patternListeners.forEach((listeners) => {
+        listeners.forEach(({ regex, handler }) => {
+          if (regex.test(event)) {
+            try {
+              handler(payload)
+            } catch (error) {
+              console.error(`Error in pattern handler for "${event}":`, error)
+            }
+          }
+        })
+      })
+    }
   }
 
   /**
@@ -142,14 +171,29 @@ export class CoreEventManager implements EventManager {
   /**
    * 监听事件
    *
-   * @param event - 事件名称
+   * 支持通配符模式:
+   * - `user:*` 监听所有 user 相关事件
+   * - `*` 监听所有事件
+   *
+   * @param event - 事件名称（支持通配符 *）
    * @param handler - 事件处理器
    * @returns 取消监听的函数
    *
    * @example
    * ```typescript
+   * // 精确监听
    * const unsubscribe = eventManager.on('message', (msg) => {
    *   console.log('Received:', msg)
+   * })
+   *
+   * // 通配符监听
+   * eventManager.on('user:*', (data) => {
+   *   console.log('User event:', data)
+   * })
+   *
+   * // 监听所有事件
+   * eventManager.on('*', (data) => {
+   *   console.log('Any event:', data)
    * })
    *
    * // 取消监听
@@ -157,6 +201,12 @@ export class CoreEventManager implements EventManager {
    * ```
    */
   on<T = any>(event: string, handler: EventHandler<T>): Unsubscribe {
+    // 支持通配符模式
+    if (event.includes('*')) {
+      return this.onPattern(event, handler)
+    }
+
+    // 精确匹配模式
     if (!this.events.has(event)) {
       this.events.set(event, new Set())
     }
@@ -346,6 +396,82 @@ export class CoreEventManager implements EventManager {
    */
   getMaxListeners(): number {
     return this.maxListeners
+  }
+
+  /**
+   * 模式匹配监听（内部方法）
+   *
+   * 支持通配符事件监听，如 'user:*' 或 '*'
+   *
+   * @private
+   * @param pattern - 事件模式（包含通配符）
+   * @param handler - 事件处理器
+   * @returns 取消监听的函数
+   */
+  private onPattern<T = any>(pattern: string, handler: EventHandler<T>): Unsubscribe {
+    const regex = this.patternToRegex(pattern)
+
+    // 创建模式监听器对象
+    const patternListener: PatternListener = { regex, handler }
+
+    // 存储模式监听器
+    if (!this.patternListeners.has(pattern)) {
+      this.patternListeners.set(pattern, new Set())
+    }
+
+    this.patternListeners.get(pattern)!.add(patternListener)
+
+    // 返回取消监听函数
+    return () => {
+      const listeners = this.patternListeners.get(pattern)
+      if (listeners) {
+        // 需要找到并删除匹配的监听器
+        for (const listener of listeners) {
+          if (listener.handler === handler) {
+            listeners.delete(listener)
+            break
+          }
+        }
+
+        // 如果没有监听器了，删除整个模式
+        if (listeners.size === 0) {
+          this.patternListeners.delete(pattern)
+        }
+      }
+    }
+  }
+
+  /**
+   * 将通配符模式转换为正则表达式
+   *
+   * 转换规则:
+   * - `*` 匹配任意字符（除了 :）
+   * - `**` 匹配任意字符（包括 :）
+   * - 其他字符按字面量匹配
+   *
+   * @private
+   * @param pattern - 通配符模式
+   * @returns 正则表达式
+   *
+   * @example
+   * ```typescript
+   * patternToRegex('user:*')     // /^user:[^:]*$/
+   * patternToRegex('*')          // /^[^:]*$/
+   * patternToRegex('user:**')    // /^user:.*$/
+   * ```
+   */
+  private patternToRegex(pattern: string): RegExp {
+    // 转义正则表达式特殊字符（除了 *）
+    let escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&')
+
+    // 处理 ** (匹配任意字符，包括 :)
+    escaped = escaped.replace(/\*\*/g, '.*')
+
+    // 处理单个 * (匹配任意字符，除了 :)
+    escaped = escaped.replace(/\*/g, '[^:]*')
+
+    // 添加开始和结束锚点
+    return new RegExp(`^${escaped}$`)
   }
 }
 

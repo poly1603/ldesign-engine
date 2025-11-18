@@ -8,20 +8,24 @@
 
 /**
  * 服务标识符类型
- * 
+ *
  * 支持字符串、Symbol 或构造函数作为服务标识
  */
-export type ServiceIdentifier<T = any> = string | symbol | Constructor<T>
+export type ServiceIdentifier<T = unknown> = string | symbol | Constructor<T>
 
 /**
  * 构造函数类型
+ *
+ * @template T - 构造函数返回的实例类型
  */
-export type Constructor<T = any> = new (...args: any[]) => T
+export type Constructor<T = unknown> = new (...args: unknown[]) => T
 
 /**
  * 工厂函数类型
+ *
+ * @template T - 工厂函数返回的服务类型
  */
-export type Factory<T = any> = (container: ServiceContainer) => T | Promise<T>
+export type Factory<T = unknown> = (container: ServiceContainer) => T | Promise<T>
 
 /**
  * 服务提供者接口
@@ -51,10 +55,12 @@ export enum ServiceLifetime {
 
 /**
  * 服务描述符
- * 
+ *
  * 描述服务的注册信息
+ *
+ * @template T - 服务类型
  */
-export interface ServiceDescriptor<T = any> {
+export interface ServiceDescriptor<T = unknown> {
   /** 服务标识 */
   identifier: ServiceIdentifier<T>
   /** 服务实现 */
@@ -64,17 +70,19 @@ export interface ServiceDescriptor<T = any> {
   /** 是否为工厂函数 */
   isFactory?: boolean
   /** 元数据 */
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 /**
  * 服务解析选项
+ *
+ * @template T - 默认值类型
  */
-export interface ResolveOptions {
+export interface ResolveOptions<T = unknown> {
   /** 是否为可选依赖 */
   optional?: boolean
   /** 默认值（当服务不存在时） */
-  defaultValue?: any
+  defaultValue?: T
   /** 是否允许多个实例 */
   multiple?: boolean
 }

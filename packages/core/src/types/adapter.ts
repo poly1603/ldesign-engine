@@ -6,6 +6,22 @@ import type { CoreEngine } from './engine'
 import type { Unsubscribe } from './event'
 
 /**
+ * 框架特性配置
+ */
+export interface FrameworkFeatures {
+  /** 是否支持响应式 */
+  reactive?: boolean
+  /** 是否支持组件 */
+  components?: boolean
+  /** 是否支持指令 */
+  directives?: boolean
+  /** 是否支持插槽 */
+  slots?: boolean
+  /** 其他自定义特性 */
+  [key: string]: boolean | undefined
+}
+
+/**
  * 框架信息
  */
 export interface FrameworkInfo {
@@ -14,13 +30,7 @@ export interface FrameworkInfo {
   /** 框架版本 */
   version: string
   /** 框架特性 */
-  features?: {
-    reactive?: boolean
-    components?: boolean
-    directives?: boolean
-    slots?: boolean
-    [key: string]: any
-  }
+  features?: FrameworkFeatures
 }
 
 /**
@@ -48,17 +58,23 @@ export interface StateAdapter {
 }
 
 /**
+ * 事件处理器类型
+ * 接收事件载荷并处理
+ */
+export type EventHandler<T = unknown> = (payload: T) => void
+
+/**
  * 事件适配器
  */
 export interface EventAdapter {
   /** 触发事件 */
-  emit(event: string, payload?: any): void
+  emit<T = unknown>(event: string, payload?: T): void
   /** 监听事件 */
-  on(event: string, handler: (payload: any) => void): Unsubscribe
+  on<T = unknown>(event: string, handler: EventHandler<T>): Unsubscribe
   /** 一次性监听 */
-  once(event: string, handler: (payload: any) => void): Unsubscribe
+  once<T = unknown>(event: string, handler: EventHandler<T>): Unsubscribe
   /** 移除监听 */
-  off(event: string, handler?: (payload: any) => void): void
+  off<T = unknown>(event: string, handler?: EventHandler<T>): void
 }
 
 /**
@@ -75,13 +91,24 @@ export interface LifecycleHookMap {
 }
 
 /**
- * 框架适配器接口
+ * 应用创建选项
  */
-export interface FrameworkAdapter<App = any, Component = any> {
+export interface AppCreateOptions {
+  /** 应用配置 */
+  [key: string]: unknown
+}
+
+/**
+ * 框架适配器接口
+ *
+ * @template App - 应用实例类型
+ * @template Component - 组件类型
+ */
+export interface FrameworkAdapter<App = unknown, Component = unknown> {
   /** 框架信息 */
   readonly info: FrameworkInfo
   /** 创建应用 */
-  createApp(rootComponent: Component, options?: any): App
+  createApp(rootComponent: Component, options?: AppCreateOptions): App
   /** 挂载应用 */
   mount(app: App, mountElement: string | Element): Promise<void>
   /** 卸载应用 */
@@ -95,10 +122,10 @@ export interface FrameworkAdapter<App = any, Component = any> {
   /** 映射生命周期钩子 */
   mapLifecycleHooks(): LifecycleHookMap
   /** 注册组件 */
-  registerComponent?(app: App, name: string, component: any): void
+  registerComponent?(app: App, name: string, component: Component): void
   /** 注册指令 */
-  registerDirective?(app: App, name: string, directive: any): void
+  registerDirective?(app: App, name: string, directive: unknown): void
   /** 提供全局属性 */
-  provideGlobalProperty?(app: App, key: string, value: any): void
+  provideGlobalProperty?(app: App, key: string, value: unknown): void
 }
 

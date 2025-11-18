@@ -85,6 +85,16 @@
       "import": "./es/middleware/*.js",
       "require": "./lib/middleware/*.cjs"
     },
+    "./performance": {
+      "types": "./es/performance/index.d.ts",
+      "import": "./es/performance/index.js",
+      "require": "./lib/performance/index.cjs"
+    },
+    "./performance/*": {
+      "types": "./es/performance/*.d.ts",
+      "import": "./es/performance/*.js",
+      "require": "./lib/performance/*.cjs"
+    },
     "./plugin": {
       "types": "./es/plugin/index.d.ts",
       "import": "./es/plugin/index.js",

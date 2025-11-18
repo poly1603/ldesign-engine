@@ -1,12 +1,12 @@
 /**
  * 路由相关的组合式 API
- * 
+ *
  * 提供在组件中使用路由功能的 Composition API
- * 
+ *
  * @module composables/use-router
  */
 
-import { computed, ref, Ref } from 'vue'
+import { computed, ref, Ref, onUnmounted } from 'vue'
 import { useService, useEngine, useEngineState } from './use-engine'
 import type { RouterService } from '../plugins/router-plugin'
 
@@ -113,7 +113,7 @@ export function useRouteTabs() {
   const closeTab = (path: string) => {
     const currentTabs = tabs.value.filter((t: any) => t.path !== path)
     setTabs(currentTabs)
-    
+
     // 如果关闭的是当前激活的标签，切换到最后一个标签
     if (activeTab.value === path && currentTabs.length > 0) {
       const lastTab = currentTabs[currentTabs.length - 1]
@@ -126,7 +126,7 @@ export function useRouteTabs() {
    */
   const closeOtherTabs = (path?: string) => {
     const keepPath = path || activeTab.value
-    const currentTabs = tabs.value.filter((t: any) => 
+    const currentTabs = tabs.value.filter((t: any) =>
       t.path === keepPath || t.meta?.affix
     )
     setTabs(currentTabs)
@@ -138,7 +138,7 @@ export function useRouteTabs() {
   const closeAllTabs = () => {
     const currentTabs = tabs.value.filter((t: any) => t.meta?.affix)
     setTabs(currentTabs)
-    
+
     // 如果没有固定标签，跳转到首页
     if (currentTabs.length === 0) {
       router.push('/')
@@ -180,16 +180,16 @@ export function useRouteTabs() {
    */
   const refreshTab = async (path?: string) => {
     const targetPath = path || activeTab.value
-    
+
     // 触发刷新事件
     engine.events.emit('router:refresh', { path: targetPath })
-    
+
     // 重新导航到当前路由以触发组件重新加载
     await router.replace({
       path: '/redirect',
       query: { redirect: targetPath }
     })
-    
+
     setTimeout(() => {
       router.replace(targetPath)
     }, 0)
@@ -260,17 +260,17 @@ export function useRouteStats(): Ref<Record<string, number>> {
 
 /**
  * 使用路由导航守卫
- * 
+ *
  * @param guard - 守卫函数
- * 
+ *
  * @example
  * ```vue
  * <script setup>
  * import { useNavigationGuard } from '@ldesign/engine-vue3'
- * 
+ *
  * useNavigationGuard((to, from) => {
  *   console.log('Navigating from', from.path, 'to', to.path)
- *   
+ *
  *   // 返回 false 取消导航
  *   // 返回路由路径或对象进行重定向
  *   if (to.meta.requiresAuth && !isLoggedIn.value) {
@@ -284,17 +284,27 @@ export function useNavigationGuard(
   guard: (to: any, from: any) => boolean | string | object | void
 ): void {
   const router = useRouterService()
-  
-  // 注册导航守卫
-  router.router.beforeEach((to: any, from: any, next: any) => {
+
+  // 创建守卫处理函数
+  const guardHandler = (to: any, from: any, next: any) => {
     const result = guard(to, from)
-    
+
     if (result === false) {
       next(false)
     } else if (typeof result === 'string' || typeof result === 'object') {
       next(result)
     } else {
       next()
+    }
+  }
+
+  // 注册导航守卫
+  const removeGuard = router.router.beforeEach(guardHandler)
+
+  // 组件卸载时移除守卫，防止内存泄漏
+  onUnmounted(() => {
+    if (typeof removeGuard === 'function') {
+      removeGuard()
     }
   })
 }
@@ -338,7 +348,7 @@ export function useRoutePreload() {
     const route = router.resolve(path)
     if (route && route.matched.length > 0) {
       const components = route.matched.map((r: any) => r.components?.default)
-      
+
       // 加载组件
       await Promise.all(
         components.map((component: any) => {
@@ -348,7 +358,7 @@ export function useRoutePreload() {
           return component
         })
       )
-      
+
       preloadedRoutes.value.add(path)
     }
   }
@@ -358,7 +368,7 @@ export function useRoutePreload() {
    */
   const preloadAll = async () => {
     const routes = router.getRoutes()
-    
+
     await Promise.all(
       routes.map((route: any) => preload(route.path))
     )

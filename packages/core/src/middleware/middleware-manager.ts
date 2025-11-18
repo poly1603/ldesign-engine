@@ -54,7 +54,9 @@ export class CoreMiddlewareManager implements MiddlewareManager {
   /**
    * 注册中间件
    *
-   * 性能优化: 注册时清除排序缓存
+   * 性能优化:
+   * - 如果优先级相同，只更新引用，不清除缓存
+   * - 优先级变化时才清除缓存
    *
    * @param middleware - 中间件对象
    *
@@ -74,18 +76,38 @@ export class CoreMiddlewareManager implements MiddlewareManager {
    * ```
    */
   use(middleware: Middleware): void {
-    if (this.middlewares.has(middleware.name)) {
+    const existed = this.middlewares.has(middleware.name)
+
+    if (existed) {
+      const oldMiddleware = this.middlewares.get(middleware.name)!
+
+      // 性能优化：如果优先级相同，不需要重新排序
+      if (oldMiddleware.priority === middleware.priority) {
+        this.middlewares.set(middleware.name, middleware)
+
+        // 更新缓存中的引用（如果缓存存在）
+        if (this.sortedCache) {
+          const index = this.sortedCache.findIndex(m => m.name === middleware.name)
+          if (index !== -1) {
+            this.sortedCache[index] = middleware
+          }
+        }
+        return
+      }
+
       console.warn(`Middleware "${middleware.name}" already registered, replacing...`)
     }
 
     this.middlewares.set(middleware.name, middleware)
 
-    // 清除缓存,下次执行时重新排序
+    // 只有在优先级变化或新增时才清除缓存
     this.sortedCache = null
   }
 
   /**
    * 移除中间件
+   *
+   * 性能优化: 直接从缓存中移除，而不是清空整个缓存
    *
    * @param name - 中间件名称
    * @returns 是否移除成功
@@ -96,11 +118,18 @@ export class CoreMiddlewareManager implements MiddlewareManager {
    * ```
    */
   remove(name: string): boolean {
+    if (!this.middlewares.has(name)) {
+      return false
+    }
+
     const result = this.middlewares.delete(name)
 
-    if (result) {
-      // 清除缓存
-      this.sortedCache = null
+    if (result && this.sortedCache) {
+      // 性能优化：直接从缓存中移除，而不是清空整个缓存
+      const index = this.sortedCache.findIndex(m => m.name === name)
+      if (index !== -1) {
+        this.sortedCache.splice(index, 1)
+      }
     }
 
     return result

@@ -31,6 +31,9 @@ export * from './container'
 // 导出配置管理
 export * from './config'
 
+// 导出性能监控
+export * from './performance'
+
 // 引擎版本
 export const ENGINE_VERSION = '0.3.0'
 

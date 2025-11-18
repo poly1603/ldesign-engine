@@ -49,6 +49,12 @@ export class CorePluginManager implements PluginManager {
   /** 正在安装的插件集合 - 用于检测循环依赖 */
   private installing = new Set<string>()
 
+  /** 插件选项存储 - 用于热重载时恢复配置 */
+  private pluginOptions = new Map<string, unknown>()
+
+  /** 热重载监听器 */
+  private hotReloadListeners = new Map<string, Set<() => void | Promise<void>>>()
+
   /**
    * 构造函数
    *
@@ -116,8 +122,11 @@ export class CorePluginManager implements PluginManager {
       // 调用插件的 install 方法
       await plugin.install(finalContext, options)
 
-      // 保存插件
+      // 保存插件和选项
       this.plugins.set(plugin.name, plugin)
+      if (options !== undefined) {
+        this.pluginOptions.set(plugin.name, options)
+      }
 
       if (this.context.config?.debug) {
         console.log(
@@ -356,6 +365,145 @@ export class CorePluginManager implements PluginManager {
     }
 
     return tree
+  }
+
+  /**
+   * 热重载插件
+   *
+   * 热重载流程:
+   * 1. 保存当前插件状态
+   * 2. 卸载旧插件
+   * 3. 安装新插件
+   * 4. 触发热重载监听器
+   *
+   * @param name - 插件名称
+   * @param newPlugin - 新的插件实例
+   * @returns 是否重载成功
+   *
+   * @example
+   * ```typescript
+   * // 热重载插件
+   * await pluginManager.hotReload('router', newRouterPlugin)
+   * ```
+   */
+  async hotReload<T = unknown>(name: string, newPlugin: Plugin<T>): Promise<boolean> {
+    const oldPlugin = this.plugins.get(name)
+
+    if (!oldPlugin) {
+      if (this.context.config?.debug) {
+        console.warn(`Plugin "${name}" not found, installing as new plugin`)
+      }
+      await this.use(newPlugin, this.pluginOptions.get(name) as T)
+      return true
+    }
+
+    try {
+      // 保存插件选项
+      const options = this.pluginOptions.get(name) as T
+
+      // 卸载旧插件（不检查依赖，因为会立即重新安装）
+      if (oldPlugin.uninstall) {
+        await oldPlugin.uninstall(this.context)
+      }
+
+      // 安装新插件
+      await newPlugin.install(this.context, options)
+
+      // 更新插件引用
+      this.plugins.set(name, newPlugin)
+
+      // 触发热重载监听器
+      const listeners = this.hotReloadListeners.get(name)
+      if (listeners) {
+        for (const listener of listeners) {
+          try {
+            await listener()
+          }
+          catch (error) {
+            console.error(`Error in hot reload listener for plugin "${name}":`, error)
+          }
+        }
+      }
+
+      if (this.context.config?.debug) {
+        console.log(`Plugin "${name}" hot reloaded successfully`)
+      }
+
+      return true
+    }
+    catch (error) {
+      console.error(`Failed to hot reload plugin "${name}":`, error)
+
+      // 尝试恢复旧插件
+      try {
+        await oldPlugin.install(this.context, this.pluginOptions.get(name))
+        console.log(`Rolled back to previous version of plugin "${name}"`)
+      }
+      catch (rollbackError) {
+        console.error(`Failed to rollback plugin "${name}":`, rollbackError)
+      }
+
+      throw error
+    }
+  }
+
+  /**
+   * 注册热重载监听器
+   *
+   * 当插件热重载时，会触发注册的监听器
+   *
+   * @param name - 插件名称
+   * @param listener - 监听器函数
+   * @returns 取消监听函数
+   *
+   * @example
+   * ```typescript
+   * const unsubscribe = pluginManager.onHotReload('router', () => {
+   *   console.log('Router plugin reloaded')
+   *   // 重新初始化路由相关状态
+   * })
+   *
+   * // 取消监听
+   * unsubscribe()
+   * ```
+   */
+  onHotReload(name: string, listener: () => void | Promise<void>): () => void {
+    if (!this.hotReloadListeners.has(name)) {
+      this.hotReloadListeners.set(name, new Set())
+    }
+
+    const listeners = this.hotReloadListeners.get(name)!
+    listeners.add(listener)
+
+    return () => {
+      listeners.delete(listener)
+      if (listeners.size === 0) {
+        this.hotReloadListeners.delete(name)
+      }
+    }
+  }
+
+  /**
+   * 检查插件是否支持热重载
+   *
+   * @param name - 插件名称
+   * @returns 是否支持热重载
+   *
+   * @example
+   * ```typescript
+   * if (pluginManager.isHotReloadable('router')) {
+   *   await pluginManager.hotReload('router', newRouterPlugin)
+   * }
+   * ```
+   */
+  isHotReloadable(name: string): boolean {
+    const plugin = this.plugins.get(name)
+    if (!plugin) {
+      return false
+    }
+
+    // 插件必须实现 uninstall 方法才能支持热重载
+    return typeof plugin.uninstall === 'function'
   }
 }
 

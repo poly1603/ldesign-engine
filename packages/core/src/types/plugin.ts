@@ -68,6 +68,12 @@ export interface PluginManager {
   clear: () => void
   /** 获取插件数量 */
   size: () => number
+  /** 热重载插件 */
+  hotReload?: <T = unknown>(name: string, newPlugin: Plugin<T>) => Promise<boolean>
+  /** 注册热重载监听器 */
+  onHotReload?: (name: string, listener: () => void | Promise<void>) => () => void
+  /** 检查插件是否支持热重载 */
+  isHotReloadable?: (name: string) => boolean
 }
 
 // ============================================================================

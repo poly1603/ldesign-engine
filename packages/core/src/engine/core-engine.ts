@@ -17,12 +17,14 @@ import type {
   Plugin,
 } from '../types'
 import type { PluginAPIRegistry } from '../plugin/plugin-api-registry'
+import type { PerformanceMonitor } from '../performance'
 import { createPluginManager } from '../plugin'
 import { createMiddlewareManager } from '../middleware'
 import { createLifecycleManager } from '../lifecycle'
 import { createEventManager } from '../event'
 import { createStateManager } from '../state'
 import { createPluginAPIRegistry } from '../plugin/plugin-api-registry'
+import { createPerformanceMonitor } from '../performance'
 
 /**
  * 核心引擎实现类
@@ -35,12 +37,13 @@ import { createPluginAPIRegistry } from '../plugin/plugin-api-registry'
  * 架构设计:
  * ```
  * CoreEngine
- * ├── PluginManager      - 插件系统
- * ├── MiddlewareManager  - 中间件系统
- * ├── LifecycleManager   - 生命周期管理
- * ├── EventManager       - 事件系统
- * ├── StateManager       - 状态管理
- * └── PluginAPIRegistry  - 插件 API 注册表
+ * ├── PluginManager        - 插件系统
+ * ├── MiddlewareManager    - 中间件系统
+ * ├── LifecycleManager     - 生命周期管理
+ * ├── EventManager         - 事件系统
+ * ├── StateManager         - 状态管理
+ * ├── PluginAPIRegistry    - 插件 API 注册表
+ * └── PerformanceMonitor   - 性能监控
  * ```
  *
  * @example
@@ -91,6 +94,9 @@ export class EngineCoreImpl implements CoreEngine {
   /** 插件 API 注册表 - 提供类型安全的插件间通信 */
   readonly api: PluginAPIRegistry
 
+  /** 性能监控管理器 - 提供性能监控和统计功能 */
+  readonly performance: PerformanceMonitor
+
   /** 初始化状态标志 */
   private initialized = false
 
@@ -116,6 +122,10 @@ export class EngineCoreImpl implements CoreEngine {
     this.events = createEventManager()
     this.state = createStateManager()
     this.api = createPluginAPIRegistry({ debug: this.config.debug })
+    this.performance = createPerformanceMonitor({
+      enabled: this.config.debug ?? false,
+      debug: this.config.debug,
+    })
 
     // 插件管理器需要引擎上下文,所以最后创建
     this.plugins = createPluginManager({

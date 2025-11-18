@@ -52,24 +52,30 @@ import type {
 export class ConfigManagerImpl implements ConfigManager {
   /** 配置数据 */
   private config: ConfigObject = {}
-  
+
   /** 配置源列表 */
   private sources: ConfigSource[] = []
-  
+
   /** 配置加载器列表 */
   private loaders: ConfigLoader[] = []
-  
+
   /** 当前环境 */
   private environment: Environment = 'development'
-  
+
   /** 配置选项 */
   private options: ConfigOptions
-  
+
   /** 监听器存储 */
-  private watchers = new Map<string, Set<(value: any) => void>>()
-  
+  private watchers = new Map<string, Set<(value: ConfigValue) => void>>()
+
   /** 全局监听器 */
-  private globalWatchers = new Set<(value: any) => void>()
+  private globalWatchers = new Set<(value: ConfigValue) => void>()
+
+  /** 配置缓存 - 用于优化 getAll() 性能 */
+  private configCache: { value: ConfigObject; timestamp: number } | null = null
+
+  /** 缓存 TTL（毫秒） */
+  private readonly CACHE_TTL = 1000
 
   /**
    * 构造函数
@@ -106,11 +112,11 @@ export class ConfigManagerImpl implements ConfigManager {
    */
   get<T = ConfigValue>(key: string, defaultValue?: T): T {
     const keys = key.split('.')
-    let current: any = this.config
+    let current: ConfigValue = this.config
 
     for (const k of keys) {
       if (current && typeof current === 'object' && k in current) {
-        current = current[k]
+        current = (current as ConfigObject)[k]
       } else {
         return defaultValue as T
       }
@@ -121,16 +127,16 @@ export class ConfigManagerImpl implements ConfigManager {
 
   /**
    * 设置配置值
-   * 
+   *
    * @param key - 配置键
    * @param value - 配置值
    */
   set(key: string, value: ConfigValue): void {
     const keys = key.split('.')
     const lastKey = keys.pop()!
-    
+
     let current = this.config
-    
+
     // 创建嵌套对象
     for (const k of keys) {
       if (!(k in current) || typeof current[k] !== 'object') {
@@ -138,10 +144,13 @@ export class ConfigManagerImpl implements ConfigManager {
       }
       current = current[k] as ConfigObject
     }
-    
+
     const oldValue = current[lastKey]
     current[lastKey] = value
-    
+
+    // 清除缓存
+    this.configCache = null
+
     // 触发监听器
     this.notifyWatchers(key, value, oldValue)
   }
@@ -165,11 +174,11 @@ export class ConfigManagerImpl implements ConfigManager {
    */
   has(key: string): boolean {
     const keys = key.split('.')
-    let current: any = this.config
+    let current: ConfigValue = this.config
 
     for (const k of keys) {
       if (current && typeof current === 'object' && k in current) {
-        current = current[k]
+        current = (current as ConfigObject)[k]
       } else {
         return false
       }
@@ -187,32 +196,45 @@ export class ConfigManagerImpl implements ConfigManager {
   delete(key: string): boolean {
     const keys = key.split('.')
     const lastKey = keys.pop()!
-    
+
     let current = this.config
-    
+
     for (const k of keys) {
       if (!(k in current) || typeof current[k] !== 'object') {
         return false
       }
       current = current[k] as ConfigObject
     }
-    
+
     if (lastKey in current) {
       delete current[lastKey]
       this.notifyWatchers(key, undefined, current[lastKey])
       return true
     }
-    
+
     return false
   }
 
   /**
    * 获取所有配置
-   * 
+   *
+   * 性能优化: 使用缓存避免频繁克隆
+   *
    * @returns 配置对象
    */
   getAll(): ConfigObject {
-    return this.deepClone(this.config)
+    const now = Date.now()
+
+    // 使用缓存（1秒内）
+    if (this.configCache && (now - this.configCache.timestamp) < this.CACHE_TTL) {
+      return this.deepClone(this.configCache.value)
+    }
+
+    // 更新缓存
+    const cloned = this.deepClone(this.config)
+    this.configCache = { value: this.config, timestamp: now }
+
+    return cloned
   }
 
   /**
@@ -221,12 +243,15 @@ export class ConfigManagerImpl implements ConfigManager {
   clear(): void {
     const oldConfig = this.config
     this.config = {}
-    
+
+    // 清除缓存
+    this.configCache = null
+
     // 通知所有监听器
     this.globalWatchers.forEach(watcher => {
       watcher({})
     })
-    
+
     this.watchers.clear()
   }
 
@@ -237,10 +262,10 @@ export class ConfigManagerImpl implements ConfigManager {
    */
   addSource(source: ConfigSource): void {
     this.sources.push(source)
-    
+
     // 按优先级排序
     this.sources.sort((a, b) => b.priority - a.priority)
-    
+
     // 重新合并配置
     this.mergeSourcesConfig()
   }
@@ -252,13 +277,13 @@ export class ConfigManagerImpl implements ConfigManager {
    */
   async addLoader(loader: ConfigLoader): Promise<void> {
     this.loaders.push(loader)
-    
+
     // 加载配置
     const config = await loader.load()
-    
+
     // 合并配置
     this.merge(config, true)
-    
+
     // 如果支持监听，设置监听器
     if (loader.watch) {
       loader.watch((newConfig) => {
@@ -273,21 +298,21 @@ export class ConfigManagerImpl implements ConfigManager {
   async reload(): Promise<void> {
     // 清空当前配置
     this.config = this.options.defaults ? this.deepClone(this.options.defaults) : {}
-    
+
     // 重新加载环境变量
     if (this.options.loadEnv && typeof process !== 'undefined' && process.env) {
       this.loadEnvironmentVariables()
     }
-    
+
     // 重新合并配置源
     this.mergeSourcesConfig()
-    
+
     // 重新加载所有加载器
     for (const loader of this.loaders) {
       const config = await loader.load()
       this.merge(config, true)
     }
-    
+
     // 通知监听器
     this.globalWatchers.forEach(watcher => {
       watcher(this.config)
@@ -311,7 +336,7 @@ export class ConfigManagerImpl implements ConfigManager {
   setEnvironment(env: Environment): void {
     const oldEnv = this.environment
     this.environment = env
-    
+
     if (oldEnv !== env) {
       // 环境变化，可能需要重新加载配置
       this.reload()
@@ -327,36 +352,36 @@ export class ConfigManagerImpl implements ConfigManager {
     if (!this.options.validator) {
       return true
     }
-    
+
     return await this.options.validator.validate(this.config)
   }
 
   /**
    * 监听配置变化
-   * 
+   *
    * @param key - 配置键或回调函数
    * @param callback - 回调函数
    * @returns 取消监听函数
    */
-  watch(key: string | ((value: any) => void), callback?: (value: any) => void): () => void {
+  watch(key: string | ((value: ConfigValue) => void), callback?: (value: ConfigValue) => void): () => void {
     if (typeof key === 'function') {
       // 全局监听
       this.globalWatchers.add(key)
       return () => this.globalWatchers.delete(key)
     }
-    
+
     if (!callback) {
       throw new Error('Callback is required when key is provided')
     }
-    
+
     // 特定键监听
     if (!this.watchers.has(key)) {
       this.watchers.set(key, new Set())
     }
-    
+
     const watchers = this.watchers.get(key)!
     watchers.add(callback)
-    
+
     return () => watchers.delete(callback)
   }
 
@@ -370,15 +395,15 @@ export class ConfigManagerImpl implements ConfigManager {
     if (format === 'json') {
       return JSON.stringify(this.config, null, 2)
     }
-    
+
     // 导出为环境变量格式
     const envLines: string[] = []
     const prefix = this.options.envPrefix || ''
-    
+
     const flattenConfig = (obj: ConfigObject, parentKey = ''): void => {
       Object.entries(obj).forEach(([key, value]) => {
         const fullKey = parentKey ? `${parentKey}_${key}` : key
-        
+
         if (value && typeof value === 'object' && !Array.isArray(value)) {
           flattenConfig(value as ConfigObject, fullKey)
         } else {
@@ -388,9 +413,9 @@ export class ConfigManagerImpl implements ConfigManager {
         }
       })
     }
-    
+
     flattenConfig(this.config)
-    
+
     return envLines.join('\n')
   }
 
@@ -406,7 +431,7 @@ export class ConfigManagerImpl implements ConfigManager {
     } else {
       Object.assign(this.config, config)
     }
-    
+
     // 通知监听器
     this.globalWatchers.forEach(watcher => {
       watcher(this.config)
@@ -421,16 +446,16 @@ export class ConfigManagerImpl implements ConfigManager {
   private loadEnvironmentVariables(): void {
     const prefix = this.options.envPrefix || ''
     const env = process.env
-    
+
     Object.keys(env).forEach(key => {
       if (key.startsWith(prefix)) {
         const configKey = key
           .substring(prefix.length)
           .toLowerCase()
           .replace(/_/g, '.')
-        
+
         let value: ConfigValue = env[key]
-        
+
         // 尝试解析 JSON
         if (value && typeof value === 'string') {
           try {
@@ -439,7 +464,7 @@ export class ConfigManagerImpl implements ConfigManager {
             // 保持字符串值
           }
         }
-        
+
         this.set(configKey, value)
       }
     })
@@ -469,31 +494,31 @@ export class ConfigManagerImpl implements ConfigManager {
   private hasConflict(config: ConfigObject): boolean {
     // 简单实现：检查是否有重复的键
     const keys = Object.keys(config)
-    
+
     for (const key of keys) {
       if (this.has(key)) {
         return true
       }
     }
-    
+
     return false
   }
 
   /**
    * 通知监听器
-   * 
+   *
    * @private
    * @param key - 配置键
    * @param value - 新值
    * @param oldValue - 旧值
    */
-  private notifyWatchers(key: string, value: any, oldValue: any): void {
+  private notifyWatchers(key: string, value: ConfigValue, oldValue: ConfigValue): void {
     // 通知特定键的监听器
     const watchers = this.watchers.get(key)
     if (watchers) {
       watchers.forEach(watcher => watcher(value))
     }
-    
+
     // 通知全局监听器
     this.globalWatchers.forEach(watcher => {
       watcher(this.config)
@@ -501,34 +526,103 @@ export class ConfigManagerImpl implements ConfigManager {
   }
 
   /**
-   * 深度克隆对象
-   * 
+   * 深度克隆对象（优化版）
+   *
+   * 性能优化:
+   * - 优先使用原生 structuredClone（Node 17+, 现代浏览器）
+   * - 降级到 JSON 序列化（适用于可序列化对象）
+   * - 最后降级到递归克隆
+   *
    * @private
    * @param obj - 对象
    * @returns 克隆后的对象
    */
   private deepClone<T>(obj: T): T {
+    // 基本类型直接返回
     if (obj === null || typeof obj !== 'object') {
       return obj
     }
-    
-    if (obj instanceof Date) {
-      return new Date(obj.getTime()) as any
-    }
-    
-    if (Array.isArray(obj)) {
-      return obj.map(item => this.deepClone(item)) as any
-    }
-    
-    const cloned: any = {}
-    
-    for (const key in obj) {
-      if (obj.hasOwnProperty(key)) {
-        cloned[key] = this.deepClone(obj[key])
+
+    // 性能优化: 使用原生 structuredClone（最快）
+    if (typeof structuredClone !== 'undefined') {
+      try {
+        return structuredClone(obj)
+      } catch {
+        // 降级到其他方法
       }
     }
-    
-    return cloned
+
+    // 降级方案: 使用 JSON（适用于可序列化对象）
+    if (this.isSerializable(obj)) {
+      try {
+        return JSON.parse(JSON.stringify(obj))
+      } catch {
+        // 降级到递归克隆
+      }
+    }
+
+    // 最后降级: 递归克隆
+    return this.recursiveClone(obj)
+  }
+
+  /**
+   * 检查对象是否可序列化
+   *
+   * @private
+   * @param obj - 对象
+   * @returns 是否可序列化
+   */
+  private isSerializable(obj: unknown): boolean {
+    if (obj === null || typeof obj !== 'object') {
+      return true
+    }
+
+    // Date、RegExp、Function 等不可序列化
+    if (obj instanceof Date || obj instanceof RegExp || typeof obj === 'function') {
+      return false
+    }
+
+    // 递归检查对象属性
+    if (Array.isArray(obj)) {
+      return obj.every(item => this.isSerializable(item))
+    }
+
+    return Object.values(obj as Record<string, unknown>).every(value => this.isSerializable(value))
+  }
+
+  /**
+   * 递归克隆对象
+   *
+   * @private
+   * @param obj - 对象
+   * @returns 克隆后的对象
+   */
+  private recursiveClone<T>(obj: T): T {
+    if (obj === null || typeof obj !== 'object') {
+      return obj
+    }
+
+    if (obj instanceof Date) {
+      return new Date(obj.getTime()) as T
+    }
+
+    if (obj instanceof RegExp) {
+      return new RegExp(obj.source, obj.flags) as T
+    }
+
+    if (Array.isArray(obj)) {
+      return obj.map(item => this.recursiveClone(item)) as T
+    }
+
+    const cloned: Record<string, unknown> = {}
+
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        cloned[key] = this.recursiveClone((obj as Record<string, unknown>)[key])
+      }
+    }
+
+    return cloned as T
   }
 
   /**
@@ -541,19 +635,19 @@ export class ConfigManagerImpl implements ConfigManager {
    */
   private deepMerge(target: ConfigObject, source: ConfigObject): ConfigObject {
     const result = { ...target }
-    
+
     for (const key in source) {
       if (source.hasOwnProperty(key)) {
         if (
-          source[key] && 
-          typeof source[key] === 'object' && 
+          source[key] &&
+          typeof source[key] === 'object' &&
           !Array.isArray(source[key]) &&
-          result[key] && 
-          typeof result[key] === 'object' && 
+          result[key] &&
+          typeof result[key] === 'object' &&
           !Array.isArray(result[key])
         ) {
           result[key] = this.deepMerge(
-            result[key] as ConfigObject, 
+            result[key] as ConfigObject,
             source[key] as ConfigObject
           )
         } else {
@@ -561,7 +655,7 @@ export class ConfigManagerImpl implements ConfigManager {
         }
       }
     }
-    
+
     return result
   }
 }

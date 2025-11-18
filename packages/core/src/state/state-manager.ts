@@ -57,7 +57,7 @@ export class CoreStateManager implements StateManager {
    * 设置状态值
    *
    * 性能优化:
-   * - 仅在值实际改变时触发监听器
+   * - 使用深度比较，仅在值实际改变时触发监听器
    * - 支持批量更新模式减少监听器调用
    *
    * @param key - 状态键
@@ -72,8 +72,8 @@ export class CoreStateManager implements StateManager {
   set<T = any>(key: string, value: T): void {
     const oldValue = this.state.get(key)
 
-    // 性能优化: 值未改变时跳过更新
-    if (oldValue === value) {
+    // 性能优化: 使用深度比较，值未改变时跳过更新
+    if (this.deepEqual(oldValue, value)) {
       return
     }
 
@@ -313,6 +313,90 @@ export class CoreStateManager implements StateManager {
         console.error(`Error in state watcher for "${key}":`, error)
       }
     })
+  }
+
+  /**
+   * 深度比较两个值是否相等
+   *
+   * 性能优化:
+   * - 基本类型使用 === 快速比较
+   * - 对象类型递归比较所有属性
+   * - 支持 Date、RegExp、Array 等特殊类型
+   *
+   * @param a - 值 A
+   * @param b - 值 B
+   * @returns 是否相等
+   * @private
+   */
+  private deepEqual(a: any, b: any): boolean {
+    // 快速路径: 引用相等或基本类型相等
+    if (a === b) {
+      return true
+    }
+
+    // null 或 undefined 处理
+    if (a == null || b == null) {
+      return a === b
+    }
+
+    // 类型不同
+    if (typeof a !== typeof b) {
+      return false
+    }
+
+    // 基本类型（已经通过 === 检查，这里不相等）
+    if (typeof a !== 'object') {
+      return false
+    }
+
+    // Date 类型
+    if (a instanceof Date && b instanceof Date) {
+      return a.getTime() === b.getTime()
+    }
+
+    // RegExp 类型
+    if (a instanceof RegExp && b instanceof RegExp) {
+      return a.toString() === b.toString()
+    }
+
+    // 数组类型
+    if (Array.isArray(a) && Array.isArray(b)) {
+      if (a.length !== b.length) {
+        return false
+      }
+      for (let i = 0; i < a.length; i++) {
+        if (!this.deepEqual(a[i], b[i])) {
+          return false
+        }
+      }
+      return true
+    }
+
+    // 数组和非数组不相等
+    if (Array.isArray(a) !== Array.isArray(b)) {
+      return false
+    }
+
+    // 对象类型
+    const keysA = Object.keys(a)
+    const keysB = Object.keys(b)
+
+    // 键数量不同
+    if (keysA.length !== keysB.length) {
+      return false
+    }
+
+    // 递归比较所有属性
+    for (const key of keysA) {
+      if (!Object.prototype.hasOwnProperty.call(b, key)) {
+        return false
+      }
+      if (!this.deepEqual(a[key], b[key])) {
+        return false
+      }
+    }
+
+    return true
   }
 }
 

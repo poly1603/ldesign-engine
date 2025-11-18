@@ -8,6 +8,7 @@ import type { LifecycleManager } from './lifecycle'
 import type { EventManager } from './event'
 import type { StateManager } from './state'
 import type { PluginAPIRegistry } from '../plugin/plugin-api-registry'
+import type { PerformanceMonitor } from '../performance'
 
 /**
  * 引擎配置
@@ -39,6 +40,8 @@ export interface CoreEngine {
   readonly state: StateManager
   /** 插件 API 注册表 */
   readonly api: PluginAPIRegistry
+  /** 性能监控管理器 */
+  readonly performance: PerformanceMonitor
   /** 初始化引擎 */
   init(): Promise<void>
   /** 销毁引擎 */

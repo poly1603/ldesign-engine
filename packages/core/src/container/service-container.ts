@@ -60,6 +60,9 @@ export class ServiceContainerImpl implements ServiceContainer {
   /** 正在解析的服务集合（用于检测循环依赖） */
   private resolving = new Set<ServiceIdentifier>()
 
+  /** 解析路径栈（用于检测间接循环依赖） */
+  private resolvingStack: ServiceIdentifier[] = []
+
   /**
    * 构造函数
    * 
@@ -132,7 +135,7 @@ export class ServiceContainerImpl implements ServiceContainer {
 
   /**
    * 解析服务
-   * 
+   *
    * @param identifier - 服务标识
    * @param options - 解析选项
    * @returns 服务实例
@@ -141,10 +144,11 @@ export class ServiceContainerImpl implements ServiceContainer {
     identifier: ServiceIdentifier<T>,
     options?: ResolveOptions
   ): T {
-    // 检查循环依赖
+    // 检查循环依赖（增强版：支持间接循环依赖检测）
     if (this.resolving.has(identifier)) {
+      const cycle = this.findCycle(identifier)
       throw new Error(
-        `Circular dependency detected: "${String(identifier)}" is already being resolved`
+        `Circular dependency detected: ${cycle.map(id => String(id)).join(' → ')}`
       )
     }
 
@@ -158,20 +162,22 @@ export class ServiceContainerImpl implements ServiceContainer {
       throw new Error(`Service "${String(identifier)}" not registered`)
     }
 
-    // 标记为正在解析
+    // 标记为正在解析，并添加到解析栈
     this.resolving.add(identifier)
+    this.resolvingStack.push(identifier)
 
     try {
       return this.resolveDescriptor(descriptor, options)
     } finally {
       // 解析完成，移除标记
       this.resolving.delete(identifier)
+      this.resolvingStack.pop()
     }
   }
 
   /**
    * 异步解析服务
-   * 
+   *
    * @param identifier - 服务标识
    * @param options - 解析选项
    * @returns Promise<服务实例>
@@ -180,10 +186,11 @@ export class ServiceContainerImpl implements ServiceContainer {
     identifier: ServiceIdentifier<T>,
     options?: ResolveOptions
   ): Promise<T> {
-    // 检查循环依赖
+    // 检查循环依赖（增强版：支持间接循环依赖检测）
     if (this.resolving.has(identifier)) {
+      const cycle = this.findCycle(identifier)
       throw new Error(
-        `Circular dependency detected: "${String(identifier)}" is already being resolved`
+        `Circular dependency detected: ${cycle.map(id => String(id)).join(' → ')}`
       )
     }
 
@@ -197,13 +204,16 @@ export class ServiceContainerImpl implements ServiceContainer {
       throw new Error(`Service "${String(identifier)}" not registered`)
     }
 
-    // 标记为正在解析
+    // 标记为正在解析，并添加到解析栈
     this.resolving.add(identifier)
+    this.resolvingStack.push(identifier)
 
     try {
       return await this.resolveDescriptorAsync(descriptor, options)
     } finally {
+      // 解析完成，移除标记
       this.resolving.delete(identifier)
+      this.resolvingStack.pop()
     }
   }
 
@@ -471,7 +481,7 @@ export class ServiceContainerImpl implements ServiceContainer {
 
   /**
    * 检查是否为构造函数
-   * 
+   *
    * @private
    * @param fn - 函数
    * @returns 是否为构造函数
@@ -483,6 +493,37 @@ export class ServiceContainerImpl implements ServiceContainer {
     } catch {
       return false
     }
+  }
+
+  /**
+   * 查找循环依赖路径
+   *
+   * 从解析栈中提取循环依赖的完整路径，用于生成详细的错误信息
+   *
+   * @private
+   * @param identifier - 当前正在解析的服务标识
+   * @returns 循环依赖路径数组
+   *
+   * @example
+   * ```typescript
+   * // 假设解析栈为: [A, B, C]，当前尝试解析 A
+   * // 返回: [A, B, C, A]
+   * ```
+   */
+  private findCycle(identifier: ServiceIdentifier): ServiceIdentifier[] {
+    // 在解析栈中查找第一次出现的位置
+    const firstIndex = this.resolvingStack.indexOf(identifier)
+
+    if (firstIndex === -1) {
+      // 如果栈中没有找到（理论上不应该发生），返回简单路径
+      return [identifier]
+    }
+
+    // 提取从第一次出现到当前的路径，并添加当前标识符形成闭环
+    const cycle = this.resolvingStack.slice(firstIndex)
+    cycle.push(identifier)
+
+    return cycle
   }
 }
 

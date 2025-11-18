@@ -7,6 +7,36 @@
  */
 
 /**
+ * 路由位置信息
+ */
+export interface RouteLocation {
+  /** 路由路径 */
+  path: string
+  /** 路由名称 */
+  name?: string
+  /** 路由参数 */
+  params?: Record<string, string | string[]>
+  /** 查询参数 */
+  query?: Record<string, string | string[]>
+  /** 路由元信息 */
+  meta?: Record<string, unknown>
+  /** 哈希值 */
+  hash?: string
+}
+
+/**
+ * 主题配置
+ */
+export interface ThemeConfig {
+  /** 主题模式 */
+  mode?: 'light' | 'dark'
+  /** 主色调 */
+  primaryColor?: string
+  /** 其他主题配置 */
+  [key: string]: unknown
+}
+
+/**
  * 引擎核心事件
  */
 export const ENGINE_EVENTS = {
@@ -128,6 +158,8 @@ export type EngineEventType =
 
 /**
  * 事件载荷类型映射
+ *
+ * 为每个事件定义具体的载荷类型，提供类型安全
  */
 export interface EventPayloadMap {
   // Engine 核心事件
@@ -135,7 +167,7 @@ export interface EventPayloadMap {
   [ENGINE_EVENTS.INIT_COMPLETE]: void
   [ENGINE_EVENTS.INIT_ERROR]: { error: Error }
   [ENGINE_EVENTS.DESTROY]: void
-  [ENGINE_EVENTS.APP_CREATED]: { app: any }
+  [ENGINE_EVENTS.APP_CREATED]: { app: unknown }
   [ENGINE_EVENTS.APP_BEFORE_MOUNT]: void
   [ENGINE_EVENTS.APP_MOUNTED]: void
   [ENGINE_EVENTS.APP_UNMOUNTED]: void
@@ -147,27 +179,27 @@ export interface EventPayloadMap {
   [I18N_EVENTS.LOCALE_CHANGED]: { locale: string; oldLocale: string }
   [I18N_EVENTS.LOCALE_CHANGE_ERROR]: { locale: string; error: Error }
   [I18N_EVENTS.MESSAGES_LOADING]: { locale: string }
-  [I18N_EVENTS.MESSAGES_LOADED]: { locale: string; messages: Record<string, any> }
+  [I18N_EVENTS.MESSAGES_LOADED]: { locale: string; messages: Record<string, unknown> }
   [I18N_EVENTS.MESSAGES_LOAD_ERROR]: { locale: string; error: Error }
   [I18N_EVENTS.TRANSLATION_MISSING]: { key: string; locale: string }
 
   // Router 事件
   [ROUTER_EVENTS.INSTALLED]: { mode: string; base: string }
   [ROUTER_EVENTS.UNINSTALLED]: void
-  [ROUTER_EVENTS.NAVIGATION_START]: { to: any; from: any }
-  [ROUTER_EVENTS.NAVIGATED]: { to: any; from?: any }
-  [ROUTER_EVENTS.NAVIGATION_CANCELLED]: { to: any; from: any }
-  [ROUTER_EVENTS.NAVIGATION_ERROR]: { to: any; from: any; error: Error }
-  [ROUTER_EVENTS.GUARD_BEFORE]: { to: any; from: any; guard: string }
-  [ROUTER_EVENTS.GUARD_AFTER]: { to: any; from: any; guard: string }
-  [ROUTER_EVENTS.GUARD_ERROR]: { to: any; from: any; guard: string; error: Error }
+  [ROUTER_EVENTS.NAVIGATION_START]: { to: RouteLocation; from: RouteLocation }
+  [ROUTER_EVENTS.NAVIGATED]: { to: RouteLocation; from?: RouteLocation }
+  [ROUTER_EVENTS.NAVIGATION_CANCELLED]: { to: RouteLocation; from: RouteLocation }
+  [ROUTER_EVENTS.NAVIGATION_ERROR]: { to: RouteLocation; from: RouteLocation; error: Error }
+  [ROUTER_EVENTS.GUARD_BEFORE]: { to: RouteLocation; from: RouteLocation; guard: string }
+  [ROUTER_EVENTS.GUARD_AFTER]: { to: RouteLocation; from: RouteLocation; guard: string }
+  [ROUTER_EVENTS.GUARD_ERROR]: { to: RouteLocation; from: RouteLocation; guard: string; error: Error }
 
   // Color 事件
   [COLOR_EVENTS.INSTALLED]: { primaryColor?: string }
   [COLOR_EVENTS.UNINSTALLED]: void
-  [COLOR_EVENTS.THEME_CHANGING]: { theme: any; oldTheme?: any }
-  [COLOR_EVENTS.THEME_CHANGED]: { theme: any; oldTheme?: any }
-  [COLOR_EVENTS.THEME_CHANGE_ERROR]: { theme: any; error: Error }
+  [COLOR_EVENTS.THEME_CHANGING]: { theme: ThemeConfig; oldTheme?: ThemeConfig }
+  [COLOR_EVENTS.THEME_CHANGED]: { theme: ThemeConfig; oldTheme?: ThemeConfig }
+  [COLOR_EVENTS.THEME_CHANGE_ERROR]: { theme: ThemeConfig; error: Error }
   [COLOR_EVENTS.MODE_CHANGED]: { mode: 'light' | 'dark' }
   [COLOR_EVENTS.PRIMARY_COLOR_CHANGED]: { color: string; oldColor?: string }
 
