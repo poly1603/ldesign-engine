@@ -16,11 +16,13 @@ import type {
   StateManager,
   Plugin,
 } from '../types'
+import type { PluginAPIRegistry } from '../plugin/plugin-api-registry'
 import { createPluginManager } from '../plugin'
 import { createMiddlewareManager } from '../middleware'
 import { createLifecycleManager } from '../lifecycle'
 import { createEventManager } from '../event'
 import { createStateManager } from '../state'
+import { createPluginAPIRegistry } from '../plugin/plugin-api-registry'
 
 /**
  * 核心引擎实现类
@@ -37,7 +39,8 @@ import { createStateManager } from '../state'
  * ├── MiddlewareManager  - 中间件系统
  * ├── LifecycleManager   - 生命周期管理
  * ├── EventManager       - 事件系统
- * └── StateManager       - 状态管理
+ * ├── StateManager       - 状态管理
+ * └── PluginAPIRegistry  - 插件 API 注册表
  * ```
  *
  * @example
@@ -85,6 +88,9 @@ export class EngineCoreImpl implements CoreEngine {
   /** 状态管理器 - 管理全局状态 */
   readonly state: StateManager
 
+  /** 插件 API 注册表 - 提供类型安全的插件间通信 */
+  readonly api: PluginAPIRegistry
+
   /** 初始化状态标志 */
   private initialized = false
 
@@ -109,6 +115,7 @@ export class EngineCoreImpl implements CoreEngine {
     this.lifecycle = createLifecycleManager()
     this.events = createEventManager()
     this.state = createStateManager()
+    this.api = createPluginAPIRegistry({ debug: this.config.debug })
 
     // 插件管理器需要引擎上下文,所以最后创建
     this.plugins = createPluginManager({
@@ -227,6 +234,7 @@ export class EngineCoreImpl implements CoreEngine {
       this.middleware.clear()
       this.events.clear()
       this.state.clear()
+      this.api.clear()
 
       // 最后清理生命周期管理器
       // 注意: 在触发 destroyed 钩子之前不能清理
@@ -305,6 +313,7 @@ export class EngineCoreImpl implements CoreEngine {
       events: this.events.eventNames().length,
       states: this.state.keys().length,
       hooks: this.lifecycle.getHookNames().length,
+      apis: this.api.size(),
     })
   }
 }

@@ -7,6 +7,7 @@ import type { MiddlewareManager } from './middleware'
 import type { LifecycleManager } from './lifecycle'
 import type { EventManager } from './event'
 import type { StateManager } from './state'
+import type { PluginAPIRegistry } from '../plugin/plugin-api-registry'
 
 /**
  * 引擎配置
@@ -36,6 +37,8 @@ export interface CoreEngine {
   readonly events: EventManager
   /** 状态管理器 */
   readonly state: StateManager
+  /** 插件 API 注册表 */
+  readonly api: PluginAPIRegistry
   /** 初始化引擎 */
   init(): Promise<void>
   /** 销毁引擎 */

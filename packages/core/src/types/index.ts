@@ -3,6 +3,7 @@
  */
 
 export * from './plugin'
+export * from './plugin-api'
 export * from './middleware'
 export * from './lifecycle'
 export * from './event'
