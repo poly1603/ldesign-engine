@@ -287,6 +287,100 @@ export class CoreStateManager implements StateManager {
   }
 
   /**
+   * 批量设置状态
+   *
+   * 性能优化: 使用批量更新模式,减少监听器调用次数
+   *
+   * @param states - 状态键值对对象
+   *
+   * @example
+   * ```typescript
+   * stateManager.setAll({
+   *   user: { name: 'Alice' },
+   *   count: 0,
+   *   theme: 'dark'
+   * })
+   * ```
+   */
+  setAll(states: Record<string, any>): void {
+    this.batch(() => {
+      Object.entries(states).forEach(([key, value]) => {
+        this.set(key, value)
+      })
+    })
+  }
+
+  /**
+   * 获取状态数量
+   *
+   * @returns 状态键的数量
+   *
+   * @example
+   * ```typescript
+   * const count = stateManager.size()
+   * console.log('状态数量:', count)
+   * ```
+   */
+  size(): number {
+    return this.state.size
+  }
+
+  /**
+   * 导出状态为 JSON 字符串
+   *
+   * 用于持久化或调试
+   *
+   * @param pretty - 是否格式化输出
+   * @returns JSON 字符串
+   *
+   * @example
+   * ```typescript
+   * const json = stateManager.toJSON(true)
+   * localStorage.setItem('app-state', json)
+   * ```
+   */
+  toJSON(pretty = false): string {
+    const state = this.getAll()
+    return pretty ? JSON.stringify(state, null, 2) : JSON.stringify(state)
+  }
+
+  /**
+   * 从 JSON 字符串导入状态
+   *
+   * 用于从持久化存储恢复状态
+   *
+   * @param json - JSON 字符串
+   * @param merge - 是否合并到现有状态(默认为 false,会清空现有状态)
+   *
+   * @example
+   * ```typescript
+   * const json = localStorage.getItem('app-state')
+   * if (json) {
+   *   stateManager.fromJSON(json)
+   * }
+   * ```
+   */
+  fromJSON(json: string, merge = false): void {
+    try {
+      const states = JSON.parse(json)
+
+      if (typeof states !== 'object' || states === null) {
+        throw new Error('Invalid JSON: must be an object')
+      }
+
+      if (!merge) {
+        this.clear()
+      }
+
+      this.setAll(states)
+    }
+    catch (error) {
+      console.error('Failed to import state from JSON:', error)
+      throw error
+    }
+  }
+
+  /**
    * 触发状态监听器 (内部方法)
    *
    * 错误处理: 单个监听器的错误不会影响其他监听器的执行

@@ -442,6 +442,46 @@ export class CoreEventManager implements EventManager {
   }
 
   /**
+   * 获取事件统计信息
+   *
+   * @returns 事件统计对象
+   *
+   * @example
+   * ```typescript
+   * const stats = eventManager.getStats()
+   * console.log('事件总数:', stats.totalEvents)
+   * console.log('监听器总数:', stats.totalListeners)
+   * ```
+   */
+  getStats(): {
+    totalEvents: number
+    totalListeners: number
+    totalPatternListeners: number
+    events: Array<{ name: string; listenerCount: number }>
+  } {
+    const events: Array<{ name: string; listenerCount: number }> = []
+    let totalListeners = 0
+
+    this.events.forEach((handlers, name) => {
+      const count = handlers.size
+      events.push({ name, listenerCount: count })
+      totalListeners += count
+    })
+
+    let totalPatternListeners = 0
+    this.patternListeners.forEach(listeners => {
+      totalPatternListeners += listeners.size
+    })
+
+    return {
+      totalEvents: this.events.size,
+      totalListeners,
+      totalPatternListeners,
+      events: events.sort((a, b) => b.listenerCount - a.listenerCount),
+    }
+  }
+
+  /**
    * 将通配符模式转换为正则表达式
    *
    * 转换规则:

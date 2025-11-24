@@ -84,6 +84,8 @@ export interface PerformanceMonitor {
   enable(): void
   /** 禁用监控 */
   disable(): void
+  /** 销毁监控器,清理所有资源 */
+  destroy(): void
 }
 
 /**
@@ -528,6 +530,88 @@ export class CorePerformanceMonitor implements PerformanceMonitor {
     if (this.config.debug) {
       console.log('[Performance] Monitor destroyed')
     }
+  }
+
+  /**
+   * 获取性能报告
+   *
+   * 生成详细的性能分析报告
+   *
+   * @returns 性能报告对象
+   *
+   * @example
+   * ```typescript
+   * const report = monitor.getReport()
+   * console.log('总操作数:', report.totalOperations)
+   * console.log('平均耗时:', report.averageDuration, 'ms')
+   * console.log('最慢操作:', report.slowestOperation)
+   * ```
+   */
+  getReport(): {
+    totalOperations: number
+    averageDuration: number
+    slowestOperation: { name: string; duration: number } | null
+    fastestOperation: { name: string; duration: number } | null
+    operationsByName: Array<{ name: string; count: number; avgDuration: number }>
+  } {
+    const stats = this.getStats()
+
+    let slowest: { name: string; duration: number } | null = null
+    let fastest: { name: string; duration: number } | null = null
+
+    this.metrics.forEach((metric) => {
+      if (metric.endTime) {
+        const duration = metric.endTime - metric.startTime
+
+        if (!slowest || duration > slowest.duration) {
+          slowest = { name: metric.name, duration }
+        }
+
+        if (!fastest || duration < fastest.duration) {
+          fastest = { name: metric.name, duration }
+        }
+      }
+    })
+
+    const operationsByName = Array.isArray(stats)
+      ? stats.map(s => ({
+        name: s.name,
+        count: s.count,
+        avgDuration: s.avgDuration,
+      }))
+      : []
+
+    return {
+      totalOperations: this.metrics.length,
+      averageDuration: operationsByName.reduce((sum, op) => sum + op.avgDuration, 0) / (operationsByName.length || 1),
+      slowestOperation: slowest,
+      fastestOperation: fastest,
+      operationsByName: operationsByName.sort((a, b) => b.avgDuration - a.avgDuration),
+    }
+  }
+
+  /**
+   * 导出性能数据为 JSON
+   *
+   * @param pretty - 是否格式化输出
+   * @returns JSON 字符串
+   *
+   * @example
+   * ```typescript
+   * const json = monitor.exportJSON(true)
+   * console.log(json)
+   * ```
+   */
+  exportJSON(pretty = false): string {
+    const data = {
+      config: this.config,
+      metrics: this.metrics,
+      stats: this.getStats(),
+      report: this.getReport(),
+      timestamp: Date.now(),
+    }
+
+    return pretty ? JSON.stringify(data, null, 2) : JSON.stringify(data)
   }
 }
 

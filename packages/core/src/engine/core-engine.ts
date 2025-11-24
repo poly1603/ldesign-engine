@@ -310,6 +310,128 @@ export class EngineCoreImpl implements CoreEngine {
   }
 
   /**
+   * 获取引擎统计信息
+   *
+   * 返回各个管理器的状态统计
+   *
+   * @returns 统计信息对象
+   *
+   * @example
+   * ```typescript
+   * const stats = engine.getStats()
+   * console.log('已安装插件数:', stats.plugins)
+   * console.log('注册的中间件数:', stats.middleware)
+   * ```
+   */
+  getStats(): {
+    plugins: number
+    middleware: number
+    events: number
+    states: number
+    hooks: number
+    apis: number
+  } {
+    return {
+      plugins: this.plugins.size(),
+      middleware: this.middleware.size(),
+      events: this.events.eventNames().length,
+      states: this.state.keys().length,
+      hooks: this.lifecycle.getHookNames().length,
+      apis: this.api.size(),
+    }
+  }
+
+  /**
+   * 健康检查
+   *
+   * 检查引擎各个子系统的健康状态
+   *
+   * @returns 健康检查结果
+   *
+   * @example
+   * ```typescript
+   * const health = engine.healthCheck()
+   * if (health.healthy) {
+   *   console.log('引擎运行正常')
+   * } else {
+   *   console.error('引擎异常:', health.issues)
+   * }
+   * ```
+   */
+  healthCheck(): {
+    healthy: boolean
+    initialized: boolean
+    issues: string[]
+    stats: ReturnType<typeof this.getStats>
+  } {
+    const issues: string[] = []
+
+    // 检查初始化状态
+    if (!this.initialized) {
+      issues.push('引擎未初始化')
+    }
+
+    // 检查性能监控
+    if (this.performance) {
+      const perfStats = this.performance.getStats()
+      if (Array.isArray(perfStats)) {
+        // 检查是否有性能警告
+        const slowOps = perfStats.filter(s => s.avgDuration > 1000)
+        if (slowOps.length > 0) {
+          issues.push(`检测到 ${slowOps.length} 个慢操作 (平均耗时 >1s)`)
+        }
+      }
+    }
+
+    return {
+      healthy: issues.length === 0,
+      initialized: this.initialized,
+      issues,
+      stats: this.getStats(),
+    }
+  }
+
+  /**
+   * 测量异步操作性能
+   *
+   * 这是 performance.measure() 的快捷方法
+   *
+   * @param name - 操作名称
+   * @param fn - 异步函数
+   * @returns 函数执行结果
+   *
+   * @example
+   * ```typescript
+   * const result = await engine.measure('fetchData', async () => {
+   *   return await fetch('/api/data')
+   * })
+   * ```
+   */
+  async measure<T>(name: string, fn: () => Promise<T>): Promise<T> {
+    return this.performance.measure(name, fn)
+  }
+
+  /**
+   * 测量同步操作性能
+   *
+   * 这是 performance.measureSync() 的快捷方法
+   *
+   * @param name - 操作名称
+   * @param fn - 同步函数
+   * @returns 函数执行结果
+   *
+   * @example
+   * ```typescript
+   * const result = engine.measureSync('calculate', () => {
+   *   return heavyCalculation()
+   * })
+   * ```
+   */
+  measureSync<T>(name: string, fn: () => T): T {
+    return this.performance.measureSync(name, fn)
+  }
+
+  /**
    * 打印引擎统计信息 (内部方法)
    *
    * 用于调试,显示各个管理器的状态
@@ -317,14 +439,7 @@ export class EngineCoreImpl implements CoreEngine {
    * @private
    */
   private logStats(): void {
-    console.log('[Engine] Stats:', {
-      plugins: this.plugins.size(),
-      middleware: this.middleware.size(),
-      events: this.events.eventNames().length,
-      states: this.state.keys().length,
-      hooks: this.lifecycle.getHookNames().length,
-      apis: this.api.size(),
-    })
+    console.log('[Engine] Stats:', this.getStats())
   }
 }
 

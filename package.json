@@ -83,11 +83,11 @@
     "quality:fix": "pnpm run lint && pnpm run format && pnpm run test:unit",
     "lint:fix": "eslint . --fix"
   },
-  "dependencies": {},
   "peerDependencies": {
     "vue": "^3.5.18"
   },
   "devDependencies": {
+    "@antfu/eslint-config": "^6.0.0",
     "@ldesign/builder": "workspace:*",
     "@rollup/plugin-commonjs": "^25.0.7",
     "@rollup/plugin-node-resolve": "^15.2.3",
@@ -96,7 +96,8 @@
     "@typescript-eslint/eslint-plugin": "^8.42.0",
     "@typescript-eslint/parser": "^8.42.0",
     "@vitejs/plugin-vue": "^5.0.3",
-    "@vitest/ui": "^3.2.4",
+    "@vitest/coverage-v8": "^4.0.13",
+    "@vitest/ui": "^4.0.13",
     "@vue/compiler-dom": "^3.5.18",
     "@vue/runtime-dom": "^3.5.18",
     "@vue/shared": "^3.5.18",
@@ -110,11 +111,10 @@
     "typescript-eslint": "^8.0.0",
     "vite": "^5.0.12",
     "vitepress": "^1.6.4",
-    "vitest": "^3.2.4",
+    "vitest": "^4.0.13",
     "vue": "^3.5.18",
     "vue-tsc": "^3.0.5",
-    "webpack-bundle-analyzer": "^4.10.2",
-    "@antfu/eslint-config": "^6.0.0"
+    "webpack-bundle-analyzer": "^4.10.2"
   },
   "size-limit": [
     {

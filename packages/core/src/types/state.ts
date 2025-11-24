@@ -25,9 +25,19 @@ export interface StateManager {
   clear: () => void
   /** 监听状态变化 */
   watch: <T = any>(key: string, listener: StateChangeListener<T>) => Unsubscribe
+  /** 批量更新状态 */
+  batch: (fn: () => void) => void
   /** 获取所有状态键 */
   keys: () => string[]
   /** 获取所有状态 */
   getAll: () => Record<string, any>
+  /** 批量设置状态 */
+  setAll: (states: Record<string, any>) => void
+  /** 获取状态数量 */
+  size: () => number
+  /** 导出为 JSON */
+  toJSON: (pretty?: boolean) => string
+  /** 从 JSON 导入 */
+  fromJSON: (json: string, merge?: boolean) => void
 }
 
