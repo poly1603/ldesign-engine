@@ -20,6 +20,11 @@
       "import": "./es/index.js",
       "require": "./lib/index.cjs"
     },
+    "./benchmark/*": {
+      "types": "./es/benchmark/*.d.ts",
+      "import": "./es/benchmark/*.js",
+      "require": "./lib/benchmark/*.cjs"
+    },
     "./config": {
       "types": "./es/config/index.d.ts",
       "import": "./es/config/index.js",
@@ -55,6 +60,16 @@
       "import": "./es/engine/*.js",
       "require": "./lib/engine/*.cjs"
     },
+    "./errors": {
+      "types": "./es/errors/index.d.ts",
+      "import": "./es/errors/index.js",
+      "require": "./lib/errors/index.cjs"
+    },
+    "./errors/*": {
+      "types": "./es/errors/*.d.ts",
+      "import": "./es/errors/*.js",
+      "require": "./lib/errors/*.cjs"
+    },
     "./event": {
       "types": "./es/event/index.d.ts",
       "import": "./es/event/index.js",
@@ -64,6 +79,11 @@
       "types": "./es/event/*.d.ts",
       "import": "./es/event/*.js",
       "require": "./lib/event/*.cjs"
+    },
+    "./examples/*": {
+      "types": "./es/examples/*.d.ts",
+      "import": "./es/examples/*.js",
+      "require": "./lib/examples/*.cjs"
     },
     "./lifecycle": {
       "types": "./es/lifecycle/index.d.ts",
@@ -75,6 +95,11 @@
       "import": "./es/lifecycle/*.js",
       "require": "./lib/lifecycle/*.cjs"
     },
+    "./memory/*": {
+      "types": "./es/memory/*.d.ts",
+      "import": "./es/memory/*.js",
+      "require": "./lib/memory/*.cjs"
+    },
     "./middleware": {
       "types": "./es/middleware/index.d.ts",
       "import": "./es/middleware/index.js",
@@ -84,6 +109,11 @@
       "types": "./es/middleware/*.d.ts",
       "import": "./es/middleware/*.js",
       "require": "./lib/middleware/*.cjs"
+    },
+    "./monitor/*": {
+      "types": "./es/monitor/*.d.ts",
+      "import": "./es/monitor/*.js",
+      "require": "./lib/monitor/*.cjs"
     },
     "./performance": {
       "types": "./es/performance/index.d.ts",
