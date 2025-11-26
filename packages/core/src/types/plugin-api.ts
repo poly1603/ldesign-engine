@@ -256,6 +256,48 @@ export interface SizePluginAPI extends PluginAPI {
 }
 
 /**
+ * Device 插件 API
+ */
+export interface DevicePluginAPI extends PluginAPI {
+  name: 'device'
+
+  /**
+   * 获取设备检测器实例
+   */
+  getInstance(): unknown
+
+  /**
+   * 获取设备信息
+   */
+  getDeviceInfo(): UnknownRecord
+
+  /**
+   * 获取设备类型
+   */
+  getDeviceType(): string
+
+  /**
+   * 是否移动设备
+   */
+  isMobile(): boolean
+
+  /**
+   * 是否平板设备
+   */
+  isTablet(): boolean
+
+  /**
+   * 是否桌面设备
+   */
+  isDesktop(): boolean
+
+  /**
+   * 刷新设备信息
+   */
+  refresh(): UnknownRecord
+}
+
+/**
  * 插件 API 类型映射
  */
 export interface PluginAPIMap {
@@ -263,6 +305,7 @@ export interface PluginAPIMap {
   router: RouterPluginAPI
   color: ColorPluginAPI
   size: SizePluginAPI
+  device: DevicePluginAPI
 }
 
 /**
