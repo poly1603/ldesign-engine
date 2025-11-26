@@ -3,9 +3,9 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest'
-import { createCoreEngine } from '../engine'
-import { definePlugin } from '../plugin'
-import { defineMiddleware } from '../middleware'
+import { createCoreEngine } from '../src/engine'
+import { definePlugin } from '../src/plugin'
+import { defineMiddleware } from '../src/middleware'
 
 describe('CoreEngine', () => {
   let engine: ReturnType<typeof createCoreEngine>
@@ -61,13 +61,13 @@ describe('CoreEngine', () => {
     it('应该支持插件依赖', async () => {
       const basePlugin = definePlugin({
         name: 'base-plugin',
-        install() {},
+        install() { },
       })
 
       const dependentPlugin = definePlugin({
         name: 'dependent-plugin',
         dependencies: ['base-plugin'],
-        install() {},
+        install() { },
       })
 
       await engine.init()
@@ -82,7 +82,7 @@ describe('CoreEngine', () => {
       const dependentPlugin = definePlugin({
         name: 'dependent-plugin',
         dependencies: ['missing-plugin'],
-        install() {},
+        install() { },
       })
 
       await engine.init()
@@ -159,7 +159,7 @@ describe('CoreEngine', () => {
 
   describe('生命周期系统', () => {
     it('应该成功注册生命周期钩子', () => {
-      const handler = () => {}
+      const handler = () => { }
       engine.lifecycle.on('mounted', handler)
 
       expect(engine.lifecycle.getHandlers('mounted')).toContain(handler)
@@ -245,8 +245,8 @@ describe('CoreEngine', () => {
     })
 
     it('应该返回正确的监听器数量', () => {
-      engine.events.on('test-event', () => {})
-      engine.events.on('test-event', () => {})
+      engine.events.on('test-event', () => { })
+      engine.events.on('test-event', () => { })
 
       expect(engine.events.listenerCount('test-event')).toBe(2)
     })

@@ -15,6 +15,7 @@ import type {
   ServiceProvider,
   ResolveOptions,
 } from './types'
+import type { ServiceInstance } from '../types/common'
 import { ServiceLifetime } from './types'
 
 /**
@@ -49,10 +50,10 @@ export class ServiceContainerImpl implements ServiceContainer {
   private descriptors = new Map<ServiceIdentifier, ServiceDescriptor>()
 
   /** 单例实例缓存 */
-  private singletons = new Map<ServiceIdentifier, any>()
+  private singletons = new Map<ServiceIdentifier, ServiceInstance>()
 
   /** 作用域实例缓存 */
-  private scopedInstances = new Map<ServiceIdentifier, any>()
+  private scopedInstances = new Map<ServiceIdentifier, ServiceInstance>()
 
   /** 父容器（用于作用域） */
   private parent: ServiceContainerImpl | null = null
@@ -157,7 +158,7 @@ export class ServiceContainerImpl implements ServiceContainer {
 
     if (!descriptor) {
       if (options?.optional) {
-        return options.defaultValue
+        return options.defaultValue as T
       }
       throw new Error(`Service "${String(identifier)}" not registered`)
     }
@@ -167,7 +168,7 @@ export class ServiceContainerImpl implements ServiceContainer {
     this.resolvingStack.push(identifier)
 
     try {
-      return this.resolveDescriptor(descriptor, options)
+      return this.resolveDescriptor(descriptor, options) as T
     } finally {
       // 解析完成，移除标记
       this.resolving.delete(identifier)
@@ -199,7 +200,7 @@ export class ServiceContainerImpl implements ServiceContainer {
 
     if (!descriptor) {
       if (options?.optional) {
-        return options.defaultValue
+        return options.defaultValue as T
       }
       throw new Error(`Service "${String(identifier)}" not registered`)
     }
@@ -209,7 +210,7 @@ export class ServiceContainerImpl implements ServiceContainer {
     this.resolvingStack.push(identifier)
 
     try {
-      return await this.resolveDescriptorAsync(descriptor, options)
+      return await this.resolveDescriptorAsync(descriptor, options) as T
     } finally {
       // 解析完成，移除标记
       this.resolving.delete(identifier)
@@ -313,14 +314,14 @@ export class ServiceContainerImpl implements ServiceContainer {
       // 检查缓存（包括父容器）
       const cached = this.getSingleton(identifier)
       if (cached) {
-        return cached
+        return cached as T
       }
 
       // 创建实例
       const instance = this.createInstance(implementation, isFactory)
 
       // 缓存到最顶层容器
-      this.setSingleton(identifier, instance)
+      this.setSingleton(identifier, instance as ServiceInstance)
 
       return instance
     }
@@ -329,14 +330,14 @@ export class ServiceContainerImpl implements ServiceContainer {
     if (lifetime === ServiceLifetime.Scoped) {
       // 检查当前作用域缓存
       if (this.scopedInstances.has(identifier)) {
-        return this.scopedInstances.get(identifier)
+        return this.scopedInstances.get(identifier) as T
       }
 
       // 创建实例
       const instance = this.createInstance(implementation, isFactory)
 
       // 缓存到当前作用域
-      this.scopedInstances.set(identifier, instance)
+      this.scopedInstances.set(identifier, instance as ServiceInstance)
 
       return instance
     }
@@ -363,11 +364,11 @@ export class ServiceContainerImpl implements ServiceContainer {
     if (lifetime === ServiceLifetime.Singleton) {
       const cached = this.getSingleton(identifier)
       if (cached) {
-        return cached
+        return cached as T
       }
 
       const instance = await this.createInstanceAsync(implementation, isFactory)
-      this.setSingleton(identifier, instance)
+      this.setSingleton(identifier, instance as ServiceInstance)
 
       return instance
     }
@@ -375,11 +376,11 @@ export class ServiceContainerImpl implements ServiceContainer {
     // 处理作用域服务
     if (lifetime === ServiceLifetime.Scoped) {
       if (this.scopedInstances.has(identifier)) {
-        return this.scopedInstances.get(identifier)
+        return this.scopedInstances.get(identifier) as T
       }
 
       const instance = await this.createInstanceAsync(implementation, isFactory)
-      this.scopedInstances.set(identifier, instance)
+      this.scopedInstances.set(identifier, instance as ServiceInstance)
 
       return instance
     }
@@ -407,7 +408,7 @@ export class ServiceContainerImpl implements ServiceContainer {
 
     // 如果是工厂函数
     if (isFactory) {
-      return (implementation as Factory<T>)(this)
+      return (implementation as Factory<T>)(this) as T
     }
 
     // 如果是构造函数
@@ -449,7 +450,7 @@ export class ServiceContainerImpl implements ServiceContainer {
    * @param identifier - 服务标识
    * @returns 单例实例
    */
-  private getSingleton(identifier: ServiceIdentifier): any {
+  private getSingleton(identifier: ServiceIdentifier): ServiceInstance | undefined {
     // 查找当前容器
     if (this.singletons.has(identifier)) {
       return this.singletons.get(identifier)
@@ -470,7 +471,7 @@ export class ServiceContainerImpl implements ServiceContainer {
    * @param identifier - 服务标识
    * @param instance - 实例
    */
-  private setSingleton(identifier: ServiceIdentifier, instance: any): void {
+  private setSingleton(identifier: ServiceIdentifier, instance: ServiceInstance): void {
     // 单例总是存储在最顶层容器
     if (this.parent) {
       this.parent.setSingleton(identifier, instance)
@@ -486,10 +487,10 @@ export class ServiceContainerImpl implements ServiceContainer {
    * @param fn - 函数
    * @returns 是否为构造函数
    */
-  private isConstructor(fn: any): boolean {
+  private isConstructor(fn: unknown): boolean {
     try {
       // 尝试获取原型
-      return !!fn.prototype && !!fn.prototype.constructor
+      return !!(fn as any).prototype && !!(fn as any).prototype.constructor
     } catch {
       return false
     }

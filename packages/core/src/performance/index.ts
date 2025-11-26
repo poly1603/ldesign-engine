@@ -4,5 +4,10 @@
  * @module performance
  */
 
-export * from './performance-monitor'
-
+export {
+  PerformanceMonitor,
+  createPerformanceMonitor,
+  type PerformanceMetric,
+  type PerformanceStats,
+  type PerformanceMonitorConfig,
+} from './performance-monitor'

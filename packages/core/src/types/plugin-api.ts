@@ -6,6 +6,8 @@
  * @module types/plugin-api
  */
 
+import type { UnknownRecord, RouteLocation } from './common'
+
 /**
  * 插件 API 基础接口
  */
@@ -38,7 +40,7 @@ export interface I18nPluginAPI extends PluginAPI {
    * @param key - 翻译键
    * @param params - 翻译参数
    */
-  t(key: string, params?: Record<string, any>): string
+  t(key: string, params?: UnknownRecord): string
 
   /**
    * 获取可用语言列表
@@ -50,7 +52,7 @@ export interface I18nPluginAPI extends PluginAPI {
    * @param locale - 语言代码
    * @param messages - 语言包数据
    */
-  addLocale(locale: string, messages: Record<string, any>): void
+  addLocale(locale: string, messages: UnknownRecord): void
 
   /**
    * 移除语言包
@@ -103,18 +105,18 @@ export interface RouterPluginAPI extends PluginAPI {
   /**
    * 获取当前路由
    */
-  getCurrentRoute(): any
+  getCurrentRoute(): RouteLocation
 
   /**
    * 获取所有路由
    */
-  getRoutes(): any[]
+  getRoutes(): RouteLocation[]
 
   /**
    * 添加路由
    * @param route - 路由配置
    */
-  addRoute(route: any): void
+  addRoute(route: RouteLocation): void
 
   /**
    * 移除路由
@@ -132,13 +134,13 @@ export interface RouterPluginAPI extends PluginAPI {
    * 添加导航守卫
    * @param guard - 守卫函数
    */
-  beforeEach(guard: (to: any, from: any, next: Function) => void): () => void
+  beforeEach(guard: (to: RouteLocation, from: RouteLocation, next: Function) => void): () => void
 
   /**
    * 添加后置钩子
    * @param hook - 钩子函数
    */
-  afterEach(hook: (to: any, from: any) => void): () => void
+  afterEach(hook: (to: RouteLocation, from: RouteLocation) => void): () => void
 }
 
 /**
@@ -156,7 +158,7 @@ export interface ColorPluginAPI extends PluginAPI {
   /**
    * 获取当前主题
    */
-  getCurrentTheme(): any
+  getCurrentTheme(): UnknownRecord
 
   /**
    * 设置主题模式
@@ -188,7 +190,7 @@ export interface ColorPluginAPI extends PluginAPI {
   /**
    * 获取预设主题列表
    */
-  getPresets(): any[]
+  getPresets(): UnknownRecord[]
 
   /**
    * 应用预设主题
@@ -239,7 +241,7 @@ export interface SizePluginAPI extends PluginAPI {
   /**
    * 获取预设列表
    */
-  getPresets(): any[]
+  getPresets(): UnknownRecord[]
 
   /**
    * 计算尺寸值
@@ -250,7 +252,7 @@ export interface SizePluginAPI extends PluginAPI {
   /**
    * 获取当前状态
    */
-  getState(): any
+  getState(): UnknownRecord
 }
 
 /**

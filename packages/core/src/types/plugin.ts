@@ -3,6 +3,7 @@
  */
 
 import type { CoreEngine } from './engine'
+import type { UnknownRecord, FrameworkApp, ServiceInstance } from './common'
 
 /**
  * 框架信息
@@ -13,7 +14,7 @@ export interface FrameworkInfo {
   /** 框架版本 */
   version?: string
   /** 框架应用实例 */
-  app?: any
+  app?: FrameworkApp
 }
 
 /**
@@ -23,13 +24,13 @@ export interface PluginContext {
   /** 引擎实例 */
   engine: CoreEngine
   /** 插件配置 */
-  config?: Record<string, any>
+  config?: UnknownRecord
   /** 框架信息（可选，框架特定引擎会提供） */
   framework?: FrameworkInfo
   /** 服务容器（可选，支持依赖注入的引擎会提供） */
   container?: {
-    singleton: (identifier: string | symbol, implementation: any) => void
-    resolve: <T = any>(identifier: string | symbol) => T
+    singleton: (identifier: string | symbol, implementation: ServiceInstance) => void
+    resolve: <T = ServiceInstance>(identifier: string | symbol) => T
     has: (identifier: string | symbol) => boolean
   }
 }
@@ -37,7 +38,7 @@ export interface PluginContext {
 /**
  * 插件接口
  */
-export interface Plugin<Options = any> {
+export interface Plugin<Options = UnknownRecord> {
   /** 插件名称 */
   readonly name: string
   /** 插件版本 */
@@ -55,7 +56,7 @@ export interface Plugin<Options = any> {
  */
 export interface PluginManager {
   /** 注册插件 */
-  use: <T = any>(plugin: Plugin<T>, options?: T, customContext?: Partial<PluginContext>) => Promise<void>
+  use: <T = UnknownRecord>(plugin: Plugin<T>, options?: T, customContext?: Partial<PluginContext>) => Promise<void>
   /** 卸载插件 */
   uninstall: (name: string) => Promise<boolean>
   /** 获取插件 */
@@ -191,12 +192,12 @@ export type EventKey = typeof EventKeys[keyof typeof EventKeys]
  */
 export interface EventPayloadMap {
   // 应用事件
-  [EventKeys.APP_CREATED]: { app: any }
-  [EventKeys.APP_MOUNTED]: { app: any; element: HTMLElement | string }
-  [EventKeys.APP_UNMOUNTED]: { app: any }
+  [EventKeys.APP_CREATED]: { app: FrameworkApp }
+  [EventKeys.APP_MOUNTED]: { app: FrameworkApp; element: HTMLElement | string }
+  [EventKeys.APP_UNMOUNTED]: { app: FrameworkApp }
 
   // I18n 事件
-  [EventKeys.I18N_INSTALLED]: { i18n: any; locale: string }
+  [EventKeys.I18N_INSTALLED]: { i18n: import('./common').I18nInstance; locale: string }
   [EventKeys.I18N_LOCALE_CHANGED]: { locale: string; oldLocale: string }
   [EventKeys.I18N_UNINSTALLED]: Record<string, never>
 
@@ -207,10 +208,10 @@ export interface EventPayloadMap {
   [EventKeys.COLOR_UNINSTALLED]: Record<string, never>
 
   // Router 事件
-  [EventKeys.ROUTER_INSTALLED]: { router: any; mode: string; base: string }
-  [EventKeys.ROUTER_NAVIGATED]: { to: any; from?: any }
-  [EventKeys.ROUTER_BEFORE_NAVIGATE]: { to: any; from: any }
-  [EventKeys.ROUTER_AFTER_NAVIGATE]: { to: any; from: any }
+  [EventKeys.ROUTER_INSTALLED]: { router: import('./common').RouterInstance; mode: string; base: string }
+  [EventKeys.ROUTER_NAVIGATED]: { to: import('./common').RouteLocation; from?: import('./common').RouteLocation }
+  [EventKeys.ROUTER_BEFORE_NAVIGATE]: { to: import('./common').RouteLocation; from: import('./common').RouteLocation }
+  [EventKeys.ROUTER_AFTER_NAVIGATE]: { to: import('./common').RouteLocation; from: import('./common').RouteLocation }
   [EventKeys.ROUTER_UNINSTALLED]: Record<string, never>
 }
 
@@ -225,14 +226,14 @@ export interface TypedStateAccess {
    * @param key - 状态键
    * @returns 状态值
    */
-  get<T = any>(key: StateKey): T | undefined
+  get<T = unknown>(key: StateKey): T | undefined
 
   /**
    * 设置状态值
    * @param key - 状态键
    * @param value - 状态值
    */
-  set<T = any>(key: StateKey, value: T): void
+  set<T = unknown>(key: StateKey, value: T): void
 
   /**
    * 监听状态变化
@@ -240,7 +241,7 @@ export interface TypedStateAccess {
    * @param listener - 监听器函数
    * @returns 取消监听的函数
    */
-  watch<T = any>(key: StateKey, listener: (value: T, oldValue: T) => void): () => void
+  watch<T = unknown>(key: StateKey, listener: (value: T, oldValue: T) => void): () => void
 
   /**
    * 检查状态是否存在

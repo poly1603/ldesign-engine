@@ -27,8 +27,10 @@ export default defineConfig({
     testTimeout: 30000, // 增加超时时间以支持性能基准测试
     hookTimeout: 30000,
     coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html'],
+      provider: 'istanbul',
+      reporter: ['text', 'json', 'html', 'lcov'],
+      reportsDirectory: './coverage',
+
       exclude: [
         'node_modules/**',
         'dist/**',
@@ -37,21 +39,23 @@ export default defineConfig({
         'types/**',
         'cjs/**',
         'esm/**',
-        'tests/**',
         '**/__tests__/**',
         '**/*.test.ts',
         '**/*.spec.ts',
         '**/*.d.ts',
         '**/*.config.*',
+        '**/examples/**',
+        '**/example/**',
+        '**/benchmark/**',
       ],
-      // 暂时禁用覆盖率门槛,等待覆盖率配置问题解决
-      // TODO: 修复覆盖率收集问题后恢复到 90%
-      // thresholds: {
-      //   statements: 90,
-      //   branches: 90,
-      //   functions: 90,
-      //   lines: 90,
-      // },
+
+      // 暂时降低阈值，先确保覆盖率能正常显示
+      thresholds: {
+        statements: 50,
+        branches: 45,
+        functions: 50,
+        lines: 50,
+      },
     },
   },
   resolve: {

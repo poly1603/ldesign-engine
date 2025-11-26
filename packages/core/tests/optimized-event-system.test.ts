@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { OptimizedEventEmitter } from '../engine/optimized-event-system';
+import { OptimizedEventEmitter } from '../src/engine/optimized-event-system';
 
 describe('OptimizedEventEmitter', () => {
   let emitter: OptimizedEventEmitter;

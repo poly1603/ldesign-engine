@@ -7,6 +7,7 @@
  */
 
 import type { Plugin, PluginManager, PluginContext } from '../types'
+import type { UnknownRecord } from '../types/common'
 
 /**
  * 核心插件管理器
@@ -41,7 +42,7 @@ import type { Plugin, PluginManager, PluginContext } from '../types'
  */
 export class CorePluginManager implements PluginManager {
   /** 已安装的插件存储 */
-  private plugins = new Map<string, Plugin>()
+  private plugins = new Map<string, Plugin<unknown>>()
 
   /** 插件上下文 */
   private context: PluginContext
@@ -54,6 +55,12 @@ export class CorePluginManager implements PluginManager {
 
   /** 热重载监听器 */
   private hotReloadListeners = new Map<string, Set<() => void | Promise<void>>>()
+
+  /** 依赖图缓存 - 性能优化：快速查找依赖关系 */
+  private dependencyGraph = new Map<string, Set<string>>()
+
+  /** 反向依赖图 - 性能优化：快速查找依赖者 */
+  private reverseDependencyGraph = new Map<string, Set<string>>()
 
   /**
    * 构造函数
@@ -89,7 +96,7 @@ export class CorePluginManager implements PluginManager {
    * }, { mode: 'history' })
    * ```
    */
-  async use<T = any>(plugin: Plugin<T>, options?: T, customContext?: Partial<PluginContext>): Promise<void> {
+  async use<T = UnknownRecord>(plugin: Plugin<T>, options?: T, customContext?: Partial<PluginContext>): Promise<void> {
     // 检查是否已安装
     if (this.plugins.has(plugin.name)) {
       if (this.context.config?.debug) {
@@ -111,7 +118,7 @@ export class CorePluginManager implements PluginManager {
     try {
       // 检查并安装依赖
       if (plugin.dependencies && plugin.dependencies.length > 0) {
-        await this.checkDependencies(plugin)
+        await this.checkDependencies(plugin as Plugin<unknown>)
       }
 
       // 合并上下文（如果提供了自定义上下文）
@@ -123,10 +130,13 @@ export class CorePluginManager implements PluginManager {
       await plugin.install(finalContext, options)
 
       // 保存插件和选项
-      this.plugins.set(plugin.name, plugin)
+      this.plugins.set(plugin.name, plugin as Plugin<unknown>)
       if (options !== undefined) {
         this.pluginOptions.set(plugin.name, options)
       }
+
+      // 性能优化：更新依赖图缓存
+      this.updateDependencyGraph(plugin as Plugin<unknown>)
 
       if (this.context.config?.debug) {
         console.log(
@@ -195,6 +205,11 @@ export class CorePluginManager implements PluginManager {
 
       // 移除插件
       const result = this.plugins.delete(name)
+
+      // 性能优化：从依赖图中移除
+      if (result) {
+        this.removeDependencyGraph(name)
+      }
 
       if (this.context.config?.debug && result) {
         console.log(`Plugin "${name}" uninstalled successfully`)
@@ -270,6 +285,8 @@ export class CorePluginManager implements PluginManager {
   clear(): void {
     this.plugins.clear()
     this.installing.clear()
+    this.dependencyGraph.clear()
+    this.reverseDependencyGraph.clear()
   }
 
   /**
@@ -290,22 +307,19 @@ export class CorePluginManager implements PluginManager {
   /**
    * 检查插件依赖 (内部方法)
    *
+   * 性能优化：使用 Set 快速检查依赖
+   *
    * @param plugin - 插件对象
    * @throws 如果依赖不满足
    * @private
    */
-  private async checkDependencies(plugin: Plugin): Promise<void> {
+  private async checkDependencies(plugin: Plugin<unknown>): Promise<void> {
     if (!plugin.dependencies || plugin.dependencies.length === 0) {
       return
     }
 
-    const missingDeps: string[] = []
-
-    for (const dep of plugin.dependencies) {
-      if (!this.plugins.has(dep)) {
-        missingDeps.push(dep)
-      }
-    }
+    // 性能优化：使用 filter 和 Set.has 快速查找缺失依赖
+    const missingDeps = plugin.dependencies.filter(dep => !this.plugins.has(dep))
 
     if (missingDeps.length > 0) {
       throw new Error(
@@ -316,22 +330,71 @@ export class CorePluginManager implements PluginManager {
   }
 
   /**
+   * 更新依赖图缓存
+   *
+   * @param plugin - 插件对象
+   * @private
+   */
+  private updateDependencyGraph(plugin: Plugin<unknown>): void {
+    const name = plugin.name
+    const deps = plugin.dependencies || []
+
+    // 更新正向依赖图
+    if (deps.length > 0) {
+      this.dependencyGraph.set(name, new Set(deps))
+    } else {
+      this.dependencyGraph.delete(name)
+    }
+
+    // 更新反向依赖图
+    for (const dep of deps) {
+      if (!this.reverseDependencyGraph.has(dep)) {
+        this.reverseDependencyGraph.set(dep, new Set())
+      }
+      this.reverseDependencyGraph.get(dep)!.add(name)
+    }
+  }
+
+  /**
+   * 从依赖图中移除插件
+   *
+   * @param name - 插件名称
+   * @private
+   */
+  private removeDependencyGraph(name: string): void {
+    // 从正向依赖图移除
+    const deps = this.dependencyGraph.get(name)
+    this.dependencyGraph.delete(name)
+
+    // 从反向依赖图移除
+    if (deps) {
+      for (const dep of deps) {
+        const dependents = this.reverseDependencyGraph.get(dep)
+        if (dependents) {
+          dependents.delete(name)
+          if (dependents.size === 0) {
+            this.reverseDependencyGraph.delete(dep)
+          }
+        }
+      }
+    }
+
+    // 从所有反向依赖中移除此插件
+    this.reverseDependencyGraph.delete(name)
+  }
+
+  /**
    * 获取依赖某个插件的所有插件 (内部方法)
+   *
+   * 性能优化：使用反向依赖图O(1)查找
    *
    * @param name - 插件名称
    * @returns 依赖该插件的插件名称数组
    * @private
    */
   private getDependents(name: string): string[] {
-    const dependents: string[] = []
-
-    for (const [pluginName, plugin] of this.plugins) {
-      if (plugin.dependencies?.includes(name)) {
-        dependents.push(pluginName)
-      }
-    }
-
-    return dependents
+    const dependents = this.reverseDependencyGraph.get(name)
+    return dependents ? Array.from(dependents) : []
   }
 
   /**
@@ -410,7 +473,7 @@ export class CorePluginManager implements PluginManager {
       await newPlugin.install(this.context, options)
 
       // 更新插件引用
-      this.plugins.set(name, newPlugin)
+      this.plugins.set(name, newPlugin as Plugin<unknown>)
 
       // 触发热重载监听器
       const listeners = this.hotReloadListeners.get(name)
@@ -436,7 +499,7 @@ export class CorePluginManager implements PluginManager {
 
       // 尝试恢复旧插件
       try {
-        await oldPlugin.install(this.context, this.pluginOptions.get(name))
+        await oldPlugin.install(this.context, this.pluginOptions.get(name) as T)
         console.log(`Rolled back to previous version of plugin "${name}"`)
       }
       catch (rollbackError) {

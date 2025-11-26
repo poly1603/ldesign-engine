@@ -50,6 +50,16 @@
       "import": "./es/container/*.js",
       "require": "./lib/container/*.cjs"
     },
+    "./devtools": {
+      "types": "./es/devtools/index.d.ts",
+      "import": "./es/devtools/index.js",
+      "require": "./lib/devtools/index.cjs"
+    },
+    "./devtools/*": {
+      "types": "./es/devtools/*.d.ts",
+      "import": "./es/devtools/*.js",
+      "require": "./lib/devtools/*.cjs"
+    },
     "./engine": {
       "types": "./es/engine/index.d.ts",
       "import": "./es/engine/index.js",
@@ -154,11 +164,6 @@
       "types": "./es/types/*.d.ts",
       "import": "./es/types/*.js",
       "require": "./lib/types/*.cjs"
-    },
-    "./__tests__/*": {
-      "types": "./es/__tests__/*.d.ts",
-      "import": "./es/__tests__/*.js",
-      "require": "./lib/__tests__/*.cjs"
     }
   },
   "main": "./lib/index.cjs",
@@ -183,7 +188,8 @@
   "devDependencies": {
     "@ldesign/builder": "workspace:*",
     "@types/node": "^22.0.0",
+    "@vitest/coverage-v8": "^4.0.13",
     "typescript": "^5.7.3",
-    "vitest": "^3.2.4"
+    "vitest": "^4.0.13"
   }
 }

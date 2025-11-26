@@ -3,6 +3,7 @@
  */
 
 import type { PluginManager, Plugin } from './plugin'
+import type { UnknownRecord } from './common'
 import type { MiddlewareManager } from './middleware'
 import type { LifecycleManager } from './lifecycle'
 import type { EventManager } from './event'
@@ -13,13 +14,11 @@ import type { PerformanceMonitor } from '../performance'
 /**
  * 引擎配置
  */
-export interface CoreEngineConfig {
+export interface CoreEngineConfig extends UnknownRecord {
   /** 应用名称 */
   name?: string
   /** 调试模式 */
   debug?: boolean
-  /** 自定义配置 */
-  [key: string]: any
 }
 
 /**
@@ -80,7 +79,7 @@ export interface CoreEngine {
   /** 销毁引擎 */
   destroy(): Promise<void>
   /** 使用插件 */
-  use<T = any>(plugin: Plugin<T>, options?: T): Promise<void>
+  use<T = UnknownRecord>(plugin: Plugin<T>, options?: T): Promise<void>
   /** 检查是否已初始化 */
   isInitialized(): boolean
   /** 获取统计信息 */

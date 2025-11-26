@@ -170,7 +170,7 @@ export class CoreLifecycleManager implements LifecycleManager {
    * await lifecycleManager.trigger('beforeUpdate', oldData, newData)
    * ```
    */
-  async trigger(hook: LifecycleHook, ...args: any[]): Promise<void> {
+  async trigger(hook: LifecycleHook, ...args: unknown[]): Promise<void> {
     const handlers = this.hooks.get(hook)
 
     // 性能优化: 没有处理器时快速返回
@@ -228,7 +228,7 @@ export class CoreLifecycleManager implements LifecycleManager {
    */
   once(hook: LifecycleHook, handler: LifecycleHandler): void {
     // 创建包装函数
-    const wrappedHandler: LifecycleHandler = async (...args: any[]) => {
+    const wrappedHandler: LifecycleHandler = async (...args: unknown[]) => {
       // 先移除钩子
       this.off(hook, handler)
 

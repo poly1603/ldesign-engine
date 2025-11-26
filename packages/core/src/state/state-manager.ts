@@ -53,12 +53,19 @@ export class CoreStateManager implements StateManager {
   /** 批量更新队列 - 存储待触发的监听器 */
   private batchQueue = new Map<string, { value: any; oldValue: any }>()
 
+  /** 浅比较模式标记 - 标记哪些键使用浅比较 */
+  private shallowKeys = new Set<string>()
+
+  /** 深度比较最大深度 - 防止栈溢出 */
+  private maxDepth = 10
+
   /**
    * 设置状态值
    *
    * 性能优化:
    * - 使用深度比较，仅在值实际改变时触发监听器
    * - 支持批量更新模式减少监听器调用
+   * - 支持浅比较模式提升性能
    *
    * @param key - 状态键
    * @param value - 状态值
@@ -67,13 +74,20 @@ export class CoreStateManager implements StateManager {
    * ```typescript
    * stateManager.set('count', 0)
    * stateManager.set('user', { name: 'Bob' })
+   *
+   * // 使用浅比较模式
+   * stateManager.setShallow('bigObject', largeData)
    * ```
    */
   set<T = any>(key: string, value: T): void {
     const oldValue = this.state.get(key)
 
-    // 性能优化: 使用深度比较，值未改变时跳过更新
-    if (this.deepEqual(oldValue, value)) {
+    // 性能优化: 根据键的比较模式选择比较方式
+    const isEqual = this.shallowKeys.has(key)
+      ? oldValue === value
+      : this.deepEqual(oldValue, value)
+
+    if (isEqual) {
       return
     }
 
@@ -87,6 +101,25 @@ export class CoreStateManager implements StateManager {
 
     // 立即触发监听器
     this.notifyWatchers(key, value, oldValue)
+  }
+
+  /**
+   * 设置状态值（浅比较模式）
+   *
+   * 性能优化: 使用浅比较（===），适用于大对象或频繁更新的场景
+   *
+   * @param key - 状态键
+   * @param value - 状态值
+   *
+   * @example
+   * ```typescript
+   * // 对于大对象，使用浅比较可以显著提升性能
+   * stateManager.setShallow('largeData', bigObject)
+   * ```
+   */
+  setShallow<T = any>(key: string, value: T): void {
+    this.shallowKeys.add(key)
+    this.set(key, value)
   }
 
   /**
@@ -416,13 +449,21 @@ export class CoreStateManager implements StateManager {
    * - 基本类型使用 === 快速比较
    * - 对象类型递归比较所有属性
    * - 支持 Date、RegExp、Array 等特殊类型
+   * - 限制递归深度防止栈溢出
+   * - JSON 序列化快速路径
    *
    * @param a - 值 A
    * @param b - 值 B
+   * @param depth - 当前递归深度
    * @returns 是否相等
    * @private
    */
-  private deepEqual(a: any, b: any): boolean {
+  private deepEqual(a: any, b: any, depth = 0): boolean {
+    // 性能优化: 防止无限递归和栈溢出
+    if (depth > this.maxDepth) {
+      console.warn('[StateManager] Deep equal reached max depth, using shallow comparison')
+      return a === b
+    }
     // 快速路径: 引用相等或基本类型相等
     if (a === b) {
       return true
@@ -443,6 +484,15 @@ export class CoreStateManager implements StateManager {
       return false
     }
 
+    // 性能优化: 对于简单对象，尝试 JSON 序列化快速比较
+    if (depth === 0 && this.isSimpleObject(a) && this.isSimpleObject(b)) {
+      try {
+        return JSON.stringify(a) === JSON.stringify(b)
+      } catch {
+        // JSON 序列化失败，继续使用深度比较
+      }
+    }
+
     // Date 类型
     if (a instanceof Date && b instanceof Date) {
       return a.getTime() === b.getTime()
@@ -459,7 +509,7 @@ export class CoreStateManager implements StateManager {
         return false
       }
       for (let i = 0; i < a.length; i++) {
-        if (!this.deepEqual(a[i], b[i])) {
+        if (!this.deepEqual(a[i], b[i], depth + 1)) {
           return false
         }
       }
@@ -485,12 +535,52 @@ export class CoreStateManager implements StateManager {
       if (!Object.prototype.hasOwnProperty.call(b, key)) {
         return false
       }
-      if (!this.deepEqual(a[key], b[key])) {
+      if (!this.deepEqual(a[key], b[key], depth + 1)) {
         return false
       }
     }
 
     return true
+  }
+
+  /**
+   * 检查是否为简单对象（可 JSON 序列化）
+   *
+   * @param obj - 对象
+   * @returns 是否为简单对象
+   * @private
+   */
+  private isSimpleObject(obj: any): boolean {
+    if (obj === null || typeof obj !== 'object') {
+      return false
+    }
+
+    // 排除特殊对象
+    if (obj instanceof Date || obj instanceof RegExp || obj instanceof Error) {
+      return false
+    }
+
+    // 排除包含函数的对象
+    const proto = Object.getPrototypeOf(obj)
+    if (proto !== Object.prototype && proto !== Array.prototype && proto !== null) {
+      return false
+    }
+
+    return true
+  }
+
+  /**
+   * 设置深度比较的最大深度
+   *
+   * @param depth - 最大深度
+   *
+   * @example
+   * ```typescript
+   * stateManager.setMaxDepth(20) // 允许更深的对象嵌套
+   * ```
+   */
+  setMaxDepth(depth: number): void {
+    this.maxDepth = Math.max(1, Math.min(depth, 50)) // 限制在 1-50 之间
   }
 }
 

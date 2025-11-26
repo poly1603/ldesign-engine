@@ -2,14 +2,21 @@
  * 中间件系统类型定义
  */
 
+import type { UnknownRecord } from './common'
+
+/**
+ * 中间件上下文数据类型
+ */
+export type ContextData = unknown
+
 /**
  * 中间件上下文
  */
-export interface MiddlewareContext<T = any> {
+export interface MiddlewareContext<T = ContextData> {
   /** 上下文数据 */
   data: T
   /** 元数据 */
-  metadata?: Record<string, any>
+  metadata?: UnknownRecord
   /** 是否已取消 */
   cancelled?: boolean
 }
@@ -22,7 +29,7 @@ export type MiddlewareNext = () => void | Promise<void>
 /**
  * 中间件接口
  */
-export interface Middleware<T = any> {
+export interface Middleware<T = ContextData> {
   /** 中间件名称 */
   readonly name: string
   /** 中间件优先级 (数字越大优先级越高) */
@@ -46,7 +53,7 @@ export interface MiddlewareManager {
   /** 获取所有中间件 */
   getAll: () => Middleware[]
   /** 执行中间件链 */
-  execute: <T = any>(context: MiddlewareContext<T>) => Promise<void>
+  execute: <T = ContextData>(context: MiddlewareContext<T>) => Promise<void>
   /** 清空所有中间件 */
   clear: () => void
   /** 获取中间件数量 */

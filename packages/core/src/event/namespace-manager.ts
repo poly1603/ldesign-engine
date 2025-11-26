@@ -1,13 +1,14 @@
 /**
  * 事件命名空间管理器
- * 
+ *
  * 提供命名空间隔离、事件组织和批量操作功能
- * 
+ *
  * @module namespace-manager
  */
 
 import type { EventHandler, Unsubscribe } from '../types'
 import type { EventManager } from '../types/event'
+import type { EventPayload } from '../types/common'
 
 /**
  * 命名空间配置
@@ -138,7 +139,7 @@ export class EventNamespace {
    * // 实际触发 'user:login'
    * ```
    */
-  emit<T = any>(event: string, payload?: T): void {
+  emit<T = EventPayload>(event: string, payload?: T): void {
     const fullEvent = this.getFullEventName(event)
     this.eventManager.emit(fullEvent, payload)
 
@@ -162,7 +163,7 @@ export class EventNamespace {
    * })
    * ```
    */
-  on<T = any>(event: string, handler: EventHandler<T>): Unsubscribe {
+  on<T = EventPayload>(event: string, handler: EventHandler<T>): Unsubscribe {
     const fullEvent = this.getFullEventName(event)
     this.registeredEvents.add(event)
     return this.eventManager.on(fullEvent, handler)
@@ -175,7 +176,7 @@ export class EventNamespace {
    * @param handler - 事件处理器
    * @returns 取消监听函数
    */
-  once<T = any>(event: string, handler: EventHandler<T>): Unsubscribe {
+  once<T = EventPayload>(event: string, handler: EventHandler<T>): Unsubscribe {
     const fullEvent = this.getFullEventName(event)
     this.registeredEvents.add(event)
     return this.eventManager.once(fullEvent, handler)
@@ -302,7 +303,7 @@ export class EventNamespace {
    * // 监听 'user:*' 模式
    * ```
    */
-  onAll<T = any>(handler: EventHandler<T>): Unsubscribe {
+  onAll<T = EventPayload>(handler: EventHandler<T>): Unsubscribe {
     const pattern = `${this.getFullPath()}${this.separator}*`
     return this.eventManager.on(pattern, handler)
   }
@@ -318,7 +319,7 @@ export class EventNamespace {
    * userNs.emitBatch(['login', 'profile-loaded', 'permissions-set'], user)
    * ```
    */
-  emitBatch<T = any>(events: string[], payload?: T): void {
+  emitBatch<T = EventPayload>(events: string[], payload?: T): void {
     events.forEach(event => this.emit(event, payload))
   }
 
@@ -337,7 +338,7 @@ export class EventNamespace {
    * )
    * ```
    */
-  onBatch<T = any>(events: string[], handler: EventHandler<T>): Unsubscribe {
+  onBatch<T = EventPayload>(events: string[], handler: EventHandler<T>): Unsubscribe {
     const unsubscribers = events.map(event => this.on(event, handler))
 
     return () => {

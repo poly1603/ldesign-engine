@@ -7,11 +7,14 @@
 // 导出 Vue 引擎
 export * from './engine/vue-engine'
 
-// 导出组合弌 API
+// 导出组合式 API
 export * from './composables'
 
 // 导出插件
 export * from './plugins'
+
+// 导出 Devtools
+export * from './devtools'
 
 // 重新导出核心功能
 export * from '@ldesign/engine-core'

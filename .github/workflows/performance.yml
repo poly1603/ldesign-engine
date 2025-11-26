@@ -1,0 +1,54 @@
+name: Performance Benchmarks
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  benchmark:
+    name: Performance Benchmarks
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+          
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        
+      - name: Run performance benchmarks
+        run: pnpm run test:performance
+        
+      - name: Store benchmark result
+        uses: benchmark-action/github-action-benchmark@v1
+        if: github.ref == 'refs/heads/main'
+        with:
+          name: Engine Performance Benchmarks
+          tool: 'vitest'
+          output-file-path: ./performance-results.json
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: true
+          alert-threshold: '150%'
+          comment-on-alert: true
+          fail-on-alert: false
+          alert-comment-cc-users: '@maintainers'
+          
+      - name: Upload performance results
+        uses: actions/upload-artifact@v3
+        with:
+          name: performance-results
+          path: ./performance-results.json
+          retention-days: 30

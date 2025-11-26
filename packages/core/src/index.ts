@@ -34,6 +34,9 @@ export * from './config'
 // 导出性能监控
 export * from './performance'
 
+// 导出开发工具
+export * from './devtools'
+
 // 引擎版本
 export const ENGINE_VERSION = '0.3.0'
 

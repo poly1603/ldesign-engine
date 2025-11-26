@@ -7,11 +7,11 @@
 /**
  * 配置值类型
  */
-export type ConfigValue = 
-  | string 
-  | number 
-  | boolean 
-  | null 
+export type ConfigValue =
+  | string
+  | number
+  | boolean
+  | null
   | undefined
   | ConfigObject
   | ConfigValue[]
@@ -170,7 +170,7 @@ export interface ConfigManager {
    * @param key - 配置键（可选，不传则监听所有变化）
    * @param callback - 回调函数
    */
-  watch(key: string | ((value: any) => void), callback?: (value: any) => void): () => void
+  watch(key: string | ((value: unknown) => void), callback?: (value: unknown) => void): () => void
 
   /**
    * 导出配置

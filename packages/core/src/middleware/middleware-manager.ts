@@ -11,6 +11,7 @@ import type {
   MiddlewareContext,
   MiddlewareManager,
 } from '../types'
+import type { ContextData } from '../types/common'
 
 /**
  * 核心中间件管理器
@@ -194,7 +195,7 @@ export class CoreMiddlewareManager implements MiddlewareManager {
    * }
    * ```
    */
-  async execute<T = any>(context: MiddlewareContext<T>): Promise<void> {
+  async execute<T = ContextData>(context: MiddlewareContext<T>): Promise<void> {
     // 性能优化: 使用缓存的排序结果
     if (!this.sortedCache) {
       this.sortedCache = this.getSortedMiddlewares()

@@ -1,8 +1,8 @@
 /**
  * Vue3 引擎实现
- * 
+ *
  * 提供基于 Vue3 的应用引擎，整合框架适配器、插件系统和路由功能
- * 
+ *
  * @module engine/vue-engine
  */
 
@@ -18,6 +18,7 @@ import {
   Plugin,
 } from '@ldesign/engine-core'
 import { ENGINE_KEY, CONTAINER_KEY, CONFIG_KEY } from '../composables/use-engine'
+import { VueDevtoolsAdapter, DevtoolsOptions, createVueDevtoolsAdapter } from '../devtools'
 
 /**
  * Vue3 引擎配置
@@ -38,6 +39,8 @@ export interface VueEngineConfig extends CoreEngineConfig {
   }
   /** 插件列表（在 beforeMount 时自动安装） */
   plugins?: Plugin[]
+  /** Devtools 配置 */
+  devtools?: DevtoolsOptions | boolean
 }
 
 /**
@@ -86,6 +89,9 @@ export class VueEngine extends EngineCoreImpl {
 
   /** 是否已挂载 */
   private mounted = false
+
+  /** Devtools 适配器 */
+  private devtoolsAdapter: VueDevtoolsAdapter | null = null
 
   /**
    * 构造函数
@@ -176,11 +182,71 @@ export class VueEngine extends EngineCoreImpl {
     // 发射 app:created 事件，供插件使用
     this.events.emit('app:created', { app: this.app })
 
+    // 初始化 Devtools (仅在开发模式下)
+    if (this.shouldEnableDevtools()) {
+      this.initDevtools()
+    }
+
     if (this.config.debug) {
       console.log('[VueEngine] Vue application created, app:created event emitted')
     }
 
     return this.app
+  }
+
+  /**
+   * 检查是否应该启用 Devtools
+   */
+  private shouldEnableDevtools(): boolean {
+    // 生产模式下不启用
+    if (this.config.environment === 'production') {
+      return false
+    }
+
+    const devtoolsConfig = this.vueConfig.devtools
+
+    // 如果显式设置为 false，则不启用
+    if (devtoolsConfig === false) {
+      return false
+    }
+
+    // 默认在开发模式下启用
+    return true
+  }
+
+  /**
+   * 初始化 Devtools 适配器
+   */
+  private initDevtools(): void {
+    if (!this.app) {
+      console.warn('[VueEngine] Cannot init devtools: app not created')
+      return
+    }
+
+    const devtoolsConfig = this.vueConfig.devtools
+    const options: DevtoolsOptions = typeof devtoolsConfig === 'object'
+      ? devtoolsConfig
+      : {
+          appName: this.config.name || 'LDesign Engine',
+          enableStateInspector: true,
+          enableEventTracker: true,
+          enableTimeTravel: true,
+        }
+
+    try {
+      this.devtoolsAdapter = createVueDevtoolsAdapter(
+        this.app,
+        this.state,
+        this.events,
+        options
+      )
+
+      if (this.config.debug) {
+        console.log('[VueEngine] Devtools adapter initialized')
+      }
+    } catch (error) {
+      console.error('[VueEngine] Failed to initialize devtools:', error)
+    }
   }
 
   /**
@@ -343,9 +409,22 @@ export class VueEngine extends EngineCoreImpl {
   }
 
   /**
+   * 获取 Devtools 适配器
+   */
+  getDevtools(): VueDevtoolsAdapter | null {
+    return this.devtoolsAdapter
+  }
+
+  /**
    * 重写销毁方法
    */
   async destroy(): Promise<void> {
+    // 清理 Devtools 适配器
+    if (this.devtoolsAdapter) {
+      this.devtoolsAdapter.destroy()
+      this.devtoolsAdapter = null
+    }
+
     // 清理 Vue 应用
     if (this.app) {
       this.app = null
