@@ -16,6 +16,9 @@ export * from './plugins'
 // 导出 Devtools
 export * from './devtools'
 
+// 导出配置模块（defineConfig 和类型定义）
+export * from './config'
+
 // 重新导出核心功能
 export * from '@ldesign/engine-core'
 

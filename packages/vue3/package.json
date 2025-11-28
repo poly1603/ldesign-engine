@@ -33,6 +33,18 @@
       "require": "./lib/composables/*.cjs",
       "default": "./es/composables/*.js"
     },
+    "./config": {
+      "types": "./es/config/index.d.ts",
+      "import": "./es/config/index.js",
+      "require": "./lib/config/index.cjs",
+      "default": "./es/config/index.js"
+    },
+    "./config/*": {
+      "types": "./es/config/*.d.ts",
+      "import": "./es/config/*.js",
+      "require": "./lib/config/*.cjs",
+      "default": "./es/config/*.js"
+    },
     "./devtools": {
       "types": "./es/devtools/index.d.ts",
       "import": "./es/devtools/index.js",
