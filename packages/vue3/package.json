@@ -18,53 +18,62 @@
     ".": {
       "types": "./es/index.d.ts",
       "import": "./es/index.js",
-      "require": "./lib/index.cjs"
+      "require": "./lib/index.cjs",
+      "default": "./es/index.js"
     },
     "./composables": {
       "types": "./es/composables/index.d.ts",
       "import": "./es/composables/index.js",
-      "require": "./lib/composables/index.cjs"
+      "require": "./lib/composables/index.cjs",
+      "default": "./es/composables/index.js"
     },
     "./composables/*": {
       "types": "./es/composables/*.d.ts",
       "import": "./es/composables/*.js",
-      "require": "./lib/composables/*.cjs"
+      "require": "./lib/composables/*.cjs",
+      "default": "./es/composables/*.js"
     },
     "./devtools": {
       "types": "./es/devtools/index.d.ts",
       "import": "./es/devtools/index.js",
-      "require": "./lib/devtools/index.cjs"
+      "require": "./lib/devtools/index.cjs",
+      "default": "./es/devtools/index.js"
     },
     "./devtools/*": {
       "types": "./es/devtools/*.d.ts",
       "import": "./es/devtools/*.js",
-      "require": "./lib/devtools/*.cjs"
+      "require": "./lib/devtools/*.cjs",
+      "default": "./es/devtools/*.js"
     },
     "./engine/*": {
       "types": "./es/engine/*.d.ts",
       "import": "./es/engine/*.js",
-      "require": "./lib/engine/*.cjs"
+      "require": "./lib/engine/*.cjs",
+      "default": "./es/engine/*.js"
     },
     "./plugins": {
       "types": "./es/plugins/index.d.ts",
       "import": "./es/plugins/index.js",
-      "require": "./lib/plugins/index.cjs"
+      "require": "./lib/plugins/index.cjs",
+      "default": "./es/plugins/index.js"
     },
     "./plugins/*": {
       "types": "./es/plugins/*.d.ts",
       "import": "./es/plugins/*.js",
-      "require": "./lib/plugins/*.cjs"
-    }
+      "require": "./lib/plugins/*.cjs",
+      "default": "./es/plugins/*.js"
+    },
+    "./package.json": "./package.json"
   },
   "main": "./lib/index.cjs",
   "module": "./es/index.js",
   "types": "./es/index.d.ts",
-  "unpkg": "./dist/index.min.js",
-  "jsdelivr": "./dist/index.min.js",
+  "unpkg": "./dist/index.js",
+  "jsdelivr": "./dist/index.js",
   "files": [
     "README.md",
     "LICENSE",
-    "package.json",
+    "CHANGELOG.md",
     "es",
     "lib",
     "dist"
@@ -99,5 +108,7 @@
     "@ldesign/i18n-vue": {
       "optional": true
     }
-  }
+  },
+  "typings": "./es/index.d.ts",
+  "browser": "./dist/index.js"
 }

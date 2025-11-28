@@ -18,163 +18,200 @@
     ".": {
       "types": "./es/index.d.ts",
       "import": "./es/index.js",
-      "require": "./lib/index.cjs"
+      "require": "./lib/index.cjs",
+      "default": "./es/index.js"
     },
     "./benchmark/*": {
       "types": "./es/benchmark/*.d.ts",
       "import": "./es/benchmark/*.js",
-      "require": "./lib/benchmark/*.cjs"
+      "require": "./lib/benchmark/*.cjs",
+      "default": "./es/benchmark/*.js"
     },
     "./config": {
       "types": "./es/config/index.d.ts",
       "import": "./es/config/index.js",
-      "require": "./lib/config/index.cjs"
+      "require": "./lib/config/index.cjs",
+      "default": "./es/config/index.js"
     },
     "./config/*": {
       "types": "./es/config/*.d.ts",
       "import": "./es/config/*.js",
-      "require": "./lib/config/*.cjs"
+      "require": "./lib/config/*.cjs",
+      "default": "./es/config/*.js"
     },
     "./constants/*": {
       "types": "./es/constants/*.d.ts",
       "import": "./es/constants/*.js",
-      "require": "./lib/constants/*.cjs"
+      "require": "./lib/constants/*.cjs",
+      "default": "./es/constants/*.js"
     },
     "./container": {
       "types": "./es/container/index.d.ts",
       "import": "./es/container/index.js",
-      "require": "./lib/container/index.cjs"
+      "require": "./lib/container/index.cjs",
+      "default": "./es/container/index.js"
     },
     "./container/*": {
       "types": "./es/container/*.d.ts",
       "import": "./es/container/*.js",
-      "require": "./lib/container/*.cjs"
+      "require": "./lib/container/*.cjs",
+      "default": "./es/container/*.js"
     },
     "./devtools": {
       "types": "./es/devtools/index.d.ts",
       "import": "./es/devtools/index.js",
-      "require": "./lib/devtools/index.cjs"
+      "require": "./lib/devtools/index.cjs",
+      "default": "./es/devtools/index.js"
     },
     "./devtools/*": {
       "types": "./es/devtools/*.d.ts",
       "import": "./es/devtools/*.js",
-      "require": "./lib/devtools/*.cjs"
+      "require": "./lib/devtools/*.cjs",
+      "default": "./es/devtools/*.js"
     },
     "./engine": {
       "types": "./es/engine/index.d.ts",
       "import": "./es/engine/index.js",
-      "require": "./lib/engine/index.cjs"
+      "require": "./lib/engine/index.cjs",
+      "default": "./es/engine/index.js"
     },
     "./engine/*": {
       "types": "./es/engine/*.d.ts",
       "import": "./es/engine/*.js",
-      "require": "./lib/engine/*.cjs"
+      "require": "./lib/engine/*.cjs",
+      "default": "./es/engine/*.js"
     },
     "./errors": {
       "types": "./es/errors/index.d.ts",
       "import": "./es/errors/index.js",
-      "require": "./lib/errors/index.cjs"
+      "require": "./lib/errors/index.cjs",
+      "default": "./es/errors/index.js"
     },
     "./errors/*": {
       "types": "./es/errors/*.d.ts",
       "import": "./es/errors/*.js",
-      "require": "./lib/errors/*.cjs"
+      "require": "./lib/errors/*.cjs",
+      "default": "./es/errors/*.js"
     },
     "./event": {
       "types": "./es/event/index.d.ts",
       "import": "./es/event/index.js",
-      "require": "./lib/event/index.cjs"
+      "require": "./lib/event/index.cjs",
+      "default": "./es/event/index.js"
     },
     "./event/*": {
       "types": "./es/event/*.d.ts",
       "import": "./es/event/*.js",
-      "require": "./lib/event/*.cjs"
+      "require": "./lib/event/*.cjs",
+      "default": "./es/event/*.js"
     },
     "./examples/*": {
       "types": "./es/examples/*.d.ts",
       "import": "./es/examples/*.js",
-      "require": "./lib/examples/*.cjs"
+      "require": "./lib/examples/*.cjs",
+      "default": "./es/examples/*.js"
     },
     "./lifecycle": {
       "types": "./es/lifecycle/index.d.ts",
       "import": "./es/lifecycle/index.js",
-      "require": "./lib/lifecycle/index.cjs"
+      "require": "./lib/lifecycle/index.cjs",
+      "default": "./es/lifecycle/index.js"
     },
     "./lifecycle/*": {
       "types": "./es/lifecycle/*.d.ts",
       "import": "./es/lifecycle/*.js",
-      "require": "./lib/lifecycle/*.cjs"
+      "require": "./lib/lifecycle/*.cjs",
+      "default": "./es/lifecycle/*.js"
     },
     "./memory/*": {
       "types": "./es/memory/*.d.ts",
       "import": "./es/memory/*.js",
-      "require": "./lib/memory/*.cjs"
+      "require": "./lib/memory/*.cjs",
+      "default": "./es/memory/*.js"
     },
     "./middleware": {
       "types": "./es/middleware/index.d.ts",
       "import": "./es/middleware/index.js",
-      "require": "./lib/middleware/index.cjs"
+      "require": "./lib/middleware/index.cjs",
+      "default": "./es/middleware/index.js"
     },
     "./middleware/*": {
       "types": "./es/middleware/*.d.ts",
       "import": "./es/middleware/*.js",
-      "require": "./lib/middleware/*.cjs"
+      "require": "./lib/middleware/*.cjs",
+      "default": "./es/middleware/*.js"
     },
     "./monitor/*": {
       "types": "./es/monitor/*.d.ts",
       "import": "./es/monitor/*.js",
-      "require": "./lib/monitor/*.cjs"
+      "require": "./lib/monitor/*.cjs",
+      "default": "./es/monitor/*.js"
     },
     "./performance": {
       "types": "./es/performance/index.d.ts",
       "import": "./es/performance/index.js",
-      "require": "./lib/performance/index.cjs"
+      "require": "./lib/performance/index.cjs",
+      "default": "./es/performance/index.js"
     },
     "./performance/*": {
       "types": "./es/performance/*.d.ts",
       "import": "./es/performance/*.js",
-      "require": "./lib/performance/*.cjs"
+      "require": "./lib/performance/*.cjs",
+      "default": "./es/performance/*.js"
     },
     "./plugin": {
       "types": "./es/plugin/index.d.ts",
       "import": "./es/plugin/index.js",
-      "require": "./lib/plugin/index.cjs"
+      "require": "./lib/plugin/index.cjs",
+      "default": "./es/plugin/index.js"
     },
     "./plugin/*": {
       "types": "./es/plugin/*.d.ts",
       "import": "./es/plugin/*.js",
-      "require": "./lib/plugin/*.cjs"
+      "require": "./lib/plugin/*.cjs",
+      "default": "./es/plugin/*.js"
     },
     "./state": {
       "types": "./es/state/index.d.ts",
       "import": "./es/state/index.js",
-      "require": "./lib/state/index.cjs"
+      "require": "./lib/state/index.cjs",
+      "default": "./es/state/index.js"
     },
     "./state/*": {
       "types": "./es/state/*.d.ts",
       "import": "./es/state/*.js",
-      "require": "./lib/state/*.cjs"
+      "require": "./lib/state/*.cjs",
+      "default": "./es/state/*.js"
     },
     "./types": {
       "types": "./es/types/index.d.ts",
       "import": "./es/types/index.js",
-      "require": "./lib/types/index.cjs"
+      "require": "./lib/types/index.cjs",
+      "default": "./es/types/index.js"
     },
     "./types/*": {
       "types": "./es/types/*.d.ts",
       "import": "./es/types/*.js",
-      "require": "./lib/types/*.cjs"
-    }
+      "require": "./lib/types/*.cjs",
+      "default": "./es/types/*.js"
+    },
+    "./utils/*": {
+      "types": "./es/utils/*.d.ts",
+      "import": "./es/utils/*.js",
+      "require": "./lib/utils/*.cjs",
+      "default": "./es/utils/*.js"
+    },
+    "./package.json": "./package.json"
   },
   "main": "./lib/index.cjs",
   "module": "./es/index.js",
   "types": "./es/index.d.ts",
-  "unpkg": "./dist/index.min.js",
-  "jsdelivr": "./dist/index.min.js",
+  "unpkg": "./dist/index.js",
+  "jsdelivr": "./dist/index.js",
   "files": [
     "README.md",
     "LICENSE",
-    "package.json",
+    "CHANGELOG.md",
     "es",
     "lib",
     "dist"
@@ -191,5 +228,7 @@
     "@vitest/coverage-v8": "^4.0.13",
     "typescript": "^5.7.3",
     "vitest": "^4.0.13"
-  }
+  },
+  "typings": "./es/index.d.ts",
+  "browser": "./dist/index.js"
 }

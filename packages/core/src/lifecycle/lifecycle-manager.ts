@@ -11,6 +11,7 @@ import type {
   LifecycleHandler,
   LifecycleManager,
 } from '../types'
+import { EngineError, ErrorCode } from '../errors'
 
 /**
  * 一次性钩子处理器包装器
@@ -203,11 +204,47 @@ export class CoreLifecycleManager implements LifecycleManager {
       .filter((r): r is PromiseRejectedResult => r.status === 'rejected')
       .map(r => r.reason)
 
-    // 如果有错误,在所有处理器执行完后抛出第一个错误
+    // 修复：如果有错误，抛出 EngineError 以阻止后续流程
     if (errors.length > 0) {
-      console.error(
-        `${errors.length} error(s) occurred in lifecycle hook "${hook}"`
+      const errorMessages = errors.map(e =>
+        e === null || e === undefined ? 'Unknown error' : (e instanceof Error ? e.message : String(e))
+      ).join('; ')
+      
+      // 修复：正确的参数顺序 (message, code, options) 和属性名称
+      const error = new EngineError(
+        `${errors.length} error(s) occurred in lifecycle hook "${hook}": ${errorMessages}`,
+        6000 as any, // ErrorCode.LIFECYCLE_HOOK_ERROR
+        {
+          severity: 'high' as any,
+          recoverable: false,
+          details: {
+            hook,
+            errorCount: errors.length,
+            errors: errors.map(e => ({
+              message: e === null || e === undefined ? 'Unknown error' : (e instanceof Error ? e.message : String(e)),
+              stack: e instanceof Error ? e.stack : undefined
+            }))
+          },
+          cause: errors[0] instanceof Error ? errors[0] : undefined
+        }
       )
+      
+      // 添加上下文信息作为错误对象的属性
+      ;(error as any).context = {
+        operation: `lifecycle:${hook}`,
+        data: {
+          hook,
+          errorCount: errors.length,
+          errors: errors.map(e => ({
+            message: e === null || e === undefined ? 'Unknown error' : (e instanceof Error ? e.message : String(e)),
+            stack: e instanceof Error ? e.stack : undefined
+          }))
+        },
+        module: 'engine',
+        timestamp: Date.now()
+      }
+      
+      throw error
     }
   }
 

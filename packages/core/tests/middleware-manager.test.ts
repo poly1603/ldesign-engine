@@ -595,8 +595,10 @@ describe('MiddlewareManager', () => {
   // 5. 错误处理测试 (6个)
   // ===========================
   describe('错误处理', () => {
-    it('中间件执行错误应该向上抛出', async () => {
+    // 修复：新的错误隔离行为 - 错误被标记到上下文而不是抛出
+    it('中间件执行错误应该被标记到上下文', async () => {
       const error = new Error('Test error')
+      const context: any = { data: {}, cancelled: false }
 
       middlewareManager.use({
         name: 'error-thrower',
@@ -606,9 +608,11 @@ describe('MiddlewareManager', () => {
         },
       })
 
-      await expect(
-        middlewareManager.execute({ data: {}, cancelled: false })
-      ).rejects.toThrow('Test error')
+      await middlewareManager.execute(context)
+      
+      // 错误应该被标记到上下文，而不是向上抛出
+      expect(context.error).toBeDefined()
+      expect(context.error.message).toBe('Test error')
     })
 
     it('应该调用中间件的错误处理器', async () => {
@@ -654,8 +658,10 @@ describe('MiddlewareManager', () => {
       expect(capturedContext.data.value).toBe('test')
     })
 
-    it('错误处理器本身出错应该向上抛出', async () => {
+    // 修复：新的错误隔离行为 - 错误处理器的错误也被标记到上下文
+    it('错误处理器本身出错应该被标记到上下文', async () => {
       const handlerError = new Error('Handler error')
+      const context: any = { data: {}, cancelled: false }
 
       middlewareManager.use({
         name: 'test',
@@ -668,9 +674,11 @@ describe('MiddlewareManager', () => {
         },
       })
 
-      await expect(
-        middlewareManager.execute({ data: {}, cancelled: false })
-      ).rejects.toThrow('Handler error')
+      await middlewareManager.execute(context)
+      
+      // 错误处理器的错误应该被标记到上下文
+      expect(context.error).toBeDefined()
+      expect(context.error.message).toBe('Handler error')
     })
 
     it('某个中间件出错不应该影响错误处理器执行', async () => {

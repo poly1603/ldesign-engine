@@ -459,10 +459,16 @@ export class CoreStateManager implements StateManager {
    * @private
    */
   private deepEqual(a: any, b: any, depth = 0): boolean {
-    // 性能优化: 防止无限递归和栈溢出
+    // 修复：防止无限递归和栈溢出 - 使用 JSON.stringify 作为降级策略
     if (depth > this.maxDepth) {
-      console.warn('[StateManager] Deep equal reached max depth, using shallow comparison')
-      return a === b
+      console.warn('[StateManager] Deep equal reached max depth, using JSON comparison as fallback')
+      try {
+        // 尝试使用 JSON 序列化比较
+        return JSON.stringify(a) === JSON.stringify(b)
+      } catch {
+        // JSON 序列化失败，降级为浅比较
+        return a === b
+      }
     }
     // 快速路径: 引用相等或基本类型相等
     if (a === b) {

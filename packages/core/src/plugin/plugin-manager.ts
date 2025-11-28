@@ -8,6 +8,8 @@
 
 import type { Plugin, PluginManager, PluginContext } from '../types'
 import type { UnknownRecord } from '../types/common'
+import { logger } from '../utils/logger'
+import { getPerformanceTracker } from '../monitor/performance-tracker'
 
 /**
  * 核心插件管理器
@@ -62,6 +64,12 @@ export class CorePluginManager implements PluginManager {
   /** 反向依赖图 - 性能优化：快速查找依赖者 */
   private reverseDependencyGraph = new Map<string, Set<string>>()
 
+  /** 修复：添加安装互斥锁，防止并发安装导致的竞态条件 */
+  private installMutex = new Map<string, Promise<void>>()
+
+  /** 修复：正在热重载的插件集合，防止热重载时的竞态条件 */
+  private reloadingPlugins = new Set<string>()
+
   /**
    * 构造函数
    *
@@ -69,6 +77,7 @@ export class CorePluginManager implements PluginManager {
    */
   constructor(context: PluginContext) {
     this.context = context
+    logger.info('PluginManager', 'constructor', 'Plugin manager initialized')
   }
 
   /**
@@ -97,59 +106,111 @@ export class CorePluginManager implements PluginManager {
    * ```
    */
   async use<T = UnknownRecord>(plugin: Plugin<T>, options?: T, customContext?: Partial<PluginContext>): Promise<void> {
-    // 检查是否已安装
-    if (this.plugins.has(plugin.name)) {
-      if (this.context.config?.debug) {
-        console.warn(`Plugin "${plugin.name}" already installed, skipping...`)
-      }
-      return
-    }
+    const tracker = getPerformanceTracker()
+    const perfId = tracker.start('install', 'PluginManager', {
+      plugin: plugin.name,
+      version: plugin.version,
+      hasDependencies: !!(plugin.dependencies && plugin.dependencies.length > 0),
+    })
 
-    // 检测循环依赖
-    if (this.installing.has(plugin.name)) {
-      throw new Error(
-        `Circular dependency detected: Plugin "${plugin.name}" is already being installed`
-      )
-    }
-
-    // 标记为正在安装
-    this.installing.add(plugin.name)
+    logger.info('PluginManager', 'install', `Starting plugin installation: ${plugin.name}`, {
+      version: plugin.version,
+      dependencies: plugin.dependencies,
+    })
 
     try {
-      // 检查并安装依赖
-      if (plugin.dependencies && plugin.dependencies.length > 0) {
-        await this.checkDependencies(plugin as Plugin<unknown>)
+      // 修复：检查是否已经有正在进行的安装操作
+      const existingInstall = this.installMutex.get(plugin.name)
+      if (existingInstall) {
+        logger.debug('PluginManager', 'install', `Plugin ${plugin.name} installation already in progress, waiting...`)
+        // 等待现有安装完成
+        await existingInstall
+        tracker.end(perfId)
+        return
       }
 
-      // 合并上下文（如果提供了自定义上下文）
-      const finalContext = customContext
-        ? { ...this.context, ...customContext }
-        : this.context
-
-      // 调用插件的 install 方法
-      await plugin.install(finalContext, options)
-
-      // 保存插件和选项
-      this.plugins.set(plugin.name, plugin as Plugin<unknown>)
-      if (options !== undefined) {
-        this.pluginOptions.set(plugin.name, options)
+      // 检查是否已安装
+      if (this.plugins.has(plugin.name)) {
+        logger.warn('PluginManager', 'install', `Plugin ${plugin.name} already installed, skipping...`)
+        if (this.context.config?.debug) {
+          console.warn(`Plugin "${plugin.name}" already installed, skipping...`)
+        }
+        tracker.end(perfId)
+        return
       }
 
-      // 性能优化：更新依赖图缓存
-      this.updateDependencyGraph(plugin as Plugin<unknown>)
-
-      if (this.context.config?.debug) {
-        console.log(
-          `Plugin "${plugin.name}" v${plugin.version || 'unknown'} installed successfully`
+      // 检测循环依赖
+      if (this.installing.has(plugin.name)) {
+        const error = new Error(
+          `Circular dependency detected: Plugin "${plugin.name}" is already being installed`
         )
+        logger.error('PluginManager', 'install', `Circular dependency detected for plugin ${plugin.name}`, error)
+        tracker.end(perfId)
+        throw error
       }
+
+      // 修复：创建安装互斥锁
+      const installPromise = (async () => {
+        // 标记为正在安装
+        this.installing.add(plugin.name)
+        logger.debug('PluginManager', 'install', `Acquired installation lock for ${plugin.name}`)
+
+        try {
+          // 检查并安装依赖
+          if (plugin.dependencies && plugin.dependencies.length > 0) {
+            logger.debug('PluginManager', 'install', `Checking dependencies for ${plugin.name}`, {
+              dependencies: plugin.dependencies,
+            })
+            await this.checkDependencies(plugin as Plugin<unknown>)
+          }
+
+          // 合并上下文（如果提供了自定义上下文）
+          const finalContext = customContext
+            ? { ...this.context, ...customContext }
+            : this.context
+
+          // 调用插件的 install 方法
+          logger.debug('PluginManager', 'install', `Calling install method for ${plugin.name}`)
+          await plugin.install(finalContext, options)
+
+          // 保存插件和选项
+          this.plugins.set(plugin.name, plugin as Plugin<unknown>)
+          if (options !== undefined) {
+            this.pluginOptions.set(plugin.name, options)
+          }
+
+          // 性能优化：更新依赖图缓存
+          this.updateDependencyGraph(plugin as Plugin<unknown>)
+
+          logger.info('PluginManager', 'install', `Plugin ${plugin.name} v${plugin.version || 'unknown'} installed successfully`)
+          if (this.context.config?.debug) {
+            console.log(
+              `Plugin "${plugin.name}" v${plugin.version || 'unknown'} installed successfully`
+            )
+          }
+        } catch (error) {
+          // 安装失败,记录错误
+          logger.error('PluginManager', 'install', `Failed to install plugin ${plugin.name}`, error as Error)
+          console.error(`Failed to install plugin "${plugin.name}":`, error)
+          throw error
+        } finally {
+          // 移除安装标记
+          this.installing.delete(plugin.name)
+          logger.debug('PluginManager', 'install', `Released installation lock for ${plugin.name}`)
+          // 移除互斥锁
+          this.installMutex.delete(plugin.name)
+        }
+      })()
+
+      // 保存安装 Promise
+      this.installMutex.set(plugin.name, installPromise)
+      
+      // 等待安装完成
+      await installPromise
+      tracker.end(perfId)
     } catch (error) {
-      // 安装失败,记录错误
-      console.error(`Failed to install plugin "${plugin.name}":`, error)
+      tracker.end(perfId)
       throw error
-    } finally {
-      // 移除安装标记
-      this.installing.delete(plugin.name)
     }
   }
 
@@ -176,12 +237,19 @@ export class CorePluginManager implements PluginManager {
    * ```
    */
   async uninstall(name: string, force = false): Promise<boolean> {
+    const tracker = getPerformanceTracker()
+    const perfId = tracker.start('uninstall', 'PluginManager', { plugin: name, force })
+
+    logger.info('PluginManager', 'uninstall', `Starting plugin uninstallation: ${name}`, { force })
+
     const plugin = this.plugins.get(name)
 
     if (!plugin) {
+      logger.warn('PluginManager', 'uninstall', `Plugin ${name} not found`)
       if (this.context.config?.debug) {
         console.warn(`Plugin "${name}" not found`)
       }
+      tracker.end(perfId)
       return false
     }
 
@@ -189,17 +257,23 @@ export class CorePluginManager implements PluginManager {
     if (!force) {
       const dependents = this.getDependents(name)
       if (dependents.length > 0) {
-        throw new Error(
+        const error = new Error(
           `Cannot uninstall plugin "${name}": ` +
           `It is required by: ${dependents.join(', ')}. ` +
           `Use force=true to uninstall anyway.`
         )
+        logger.error('PluginManager', 'uninstall', `Cannot uninstall ${name} due to dependencies`, error, {
+          dependents,
+        })
+        tracker.end(perfId)
+        throw error
       }
     }
 
     try {
       // 调用卸载函数
       if (plugin.uninstall) {
+        logger.debug('PluginManager', 'uninstall', `Calling uninstall method for ${name}`)
         await plugin.uninstall(this.context)
       }
 
@@ -211,13 +285,20 @@ export class CorePluginManager implements PluginManager {
         this.removeDependencyGraph(name)
       }
 
+      if (result) {
+        logger.info('PluginManager', 'uninstall', `Plugin ${name} uninstalled successfully`)
+      }
+
       if (this.context.config?.debug && result) {
         console.log(`Plugin "${name}" uninstalled successfully`)
       }
 
+      tracker.end(perfId)
       return result
     } catch (error) {
+      logger.error('PluginManager', 'uninstall', `Failed to uninstall plugin ${name}`, error as Error)
       console.error(`Failed to uninstall plugin "${name}":`, error)
+      tracker.end(perfId)
       throw error
     }
   }
@@ -283,6 +364,7 @@ export class CorePluginManager implements PluginManager {
    * ```
    */
   clear(): void {
+    logger.info('PluginManager', 'clear', 'Clearing all plugins', { count: this.plugins.size })
     this.plugins.clear()
     this.installing.clear()
     this.dependencyGraph.clear()
@@ -437,76 +519,119 @@ export class CorePluginManager implements PluginManager {
    * 1. 保存当前插件状态
    * 2. 卸载旧插件
    * 3. 安装新插件
-   * 4. 触发热重载监听器
+   * 4. 失败时回滚
    *
    * @param name - 插件名称
-   * @param newPlugin - 新的插件实例
-   * @returns 是否重载成功
+   * @param newPlugin - 新插件对象
+   * @returns 是否热重载成功
    *
    * @example
    * ```typescript
-   * // 热重载插件
+   * const newRouterPlugin = {
+   *   name: 'router',
+   *   version: '2.0.0',
+   *   install: async (ctx, options) => {
+   *     // 新版本逻辑
+   *   }
+   * }
+   *
    * await pluginManager.hotReload('router', newRouterPlugin)
    * ```
    */
-  async hotReload<T = unknown>(name: string, newPlugin: Plugin<T>): Promise<boolean> {
-    const oldPlugin = this.plugins.get(name)
+  async hotReload<T = UnknownRecord>(name: string, newPlugin: Plugin<T>): Promise<boolean> {
+    const tracker = getPerformanceTracker()
+    const perfId = tracker.start('hotReload', 'PluginManager', { plugin: name })
 
-    if (!oldPlugin) {
-      if (this.context.config?.debug) {
-        console.warn(`Plugin "${name}" not found, installing as new plugin`)
-      }
-      await this.use(newPlugin, this.pluginOptions.get(name) as T)
-      return true
+    logger.info('PluginManager', 'hotReload', `Starting hot reload for plugin: ${name}`)
+
+    // 修复：检查是否已经在热重载中
+    if (this.reloadingPlugins.has(name)) {
+      const error = new Error(`Plugin "${name}" is currently being reloaded`)
+      logger.error('PluginManager', 'hotReload', `Concurrent reload attempt for ${name}`, error)
+      tracker.end(perfId)
+      throw error
     }
+
+    // 标记为正在热重载
+    this.reloadingPlugins.add(name)
+    logger.debug('PluginManager', 'hotReload', `Acquired hot reload lock for ${name}`)
 
     try {
-      // 保存插件选项
+      const oldPlugin = this.plugins.get(name)
       const options = this.pluginOptions.get(name) as T
 
-      // 卸载旧插件（不检查依赖，因为会立即重新安装）
-      if (oldPlugin.uninstall) {
-        await oldPlugin.uninstall(this.context)
+      // 如果插件不存在，直接安装新插件
+      if (!oldPlugin) {
+        logger.info('PluginManager', 'hotReload', `Plugin ${name} not found, installing as new`)
+        await this.use(newPlugin, options)
+        tracker.end(perfId)
+        return true
       }
 
-      // 安装新插件
-      await newPlugin.install(this.context, options)
+      logger.debug('PluginManager', 'hotReload', `Removing old plugin ${name} from registry`)
 
-      // 更新插件引用
-      this.plugins.set(name, newPlugin as Plugin<unknown>)
+      // 修复：先从 Map 中删除旧插件（原子性操作的第一步）
+      this.plugins.delete(name)
 
-      // 触发热重载监听器
-      const listeners = this.hotReloadListeners.get(name)
-      if (listeners) {
-        for (const listener of listeners) {
+      try {
+        // 安装新插件
+        logger.debug('PluginManager', 'hotReload', `Installing new version of ${name}`)
+        await newPlugin.install(this.context, options)
+
+        // 修复：安装成功后更新插件引用（原子性操作的第二步）
+        this.plugins.set(name, newPlugin as Plugin<unknown>)
+
+        logger.debug('PluginManager', 'hotReload', `Uninstalling old version of ${name}`)
+
+        // 卸载旧插件
+        if (oldPlugin.uninstall) {
           try {
-            await listener()
-          }
-          catch (error) {
-            console.error(`Error in hot reload listener for plugin "${name}":`, error)
+            await oldPlugin.uninstall(this.context)
+          } catch (error) {
+            // 卸载失败不影响热重载，只记录警告
+            logger.warn('PluginManager', 'hotReload', `Failed to uninstall old version of ${name}`, error as Error)
+            console.warn(`Failed to uninstall old version of plugin "${name}":`, error)
           }
         }
-      }
 
-      if (this.context.config?.debug) {
-        console.log(`Plugin "${name}" hot reloaded successfully`)
-      }
+        // 触发热重载监听器
+        const listeners = this.hotReloadListeners.get(name)
+        if (listeners && listeners.size > 0) {
+          logger.debug('PluginManager', 'hotReload', `Triggering ${listeners.size} hot reload listeners for ${name}`)
+          for (const listener of listeners) {
+            try {
+              await listener()
+            } catch (error) {
+              logger.error('PluginManager', 'hotReload', `Error in hot reload listener for ${name}`, error as Error)
+              console.error(`Error in hot reload listener for plugin "${name}":`, error)
+            }
+          }
+        }
 
-      return true
-    }
-    catch (error) {
+        logger.info('PluginManager', 'hotReload', `Plugin ${name} hot reloaded successfully`)
+
+        if (this.context.config?.debug) {
+          console.log(`Plugin "${name}" hot reloaded successfully`)
+        }
+
+        tracker.end(perfId)
+        return true
+      } catch (error) {
+        // 修复：安装失败时恢复旧插件到 Map 中
+        logger.error('PluginManager', 'hotReload', `Failed to install new version of ${name}, rolling back`, error as Error)
+        this.plugins.set(name, oldPlugin)
+        throw error
+      }
+    } catch (error) {
+      logger.error('PluginManager', 'hotReload', `Hot reload failed for ${name}`, error as Error)
       console.error(`Failed to hot reload plugin "${name}":`, error)
 
-      // 尝试恢复旧插件
-      try {
-        await oldPlugin.install(this.context, this.pluginOptions.get(name) as T)
-        console.log(`Rolled back to previous version of plugin "${name}"`)
-      }
-      catch (rollbackError) {
-        console.error(`Failed to rollback plugin "${name}":`, rollbackError)
-      }
-
+      tracker.end(perfId)
       throw error
+    } finally {
+      // 修复：无论成功或失败，都要清除热重载标记
+      this.reloadingPlugins.delete(name)
+      logger.debug('PluginManager', 'hotReload', `Released hot reload lock for ${name}`)
     }
   }
 

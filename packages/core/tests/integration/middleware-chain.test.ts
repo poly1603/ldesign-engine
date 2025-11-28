@@ -251,9 +251,11 @@ describe('复杂中间件链集成测试', () => {
       expect(results[4]).toBe('parallel-end')
     })
 
+    // 修复：新的错误隔离行为 - 超时错误被标记到上下文
     it('应该处理异步中间件中的超时', async () => {
       const timeout = 100
       let timeoutOccurred = false
+      const context: any = { ...mockContext }
 
       const timeoutMiddleware: Middleware = {
         name: 'timeout',
@@ -290,13 +292,19 @@ describe('复杂中间件链集成测试', () => {
       middlewareManager.use(timeoutMiddleware)
       middlewareManager.use(slowMiddleware)
 
-      await expect(middlewareManager.execute(mockContext)).rejects.toThrow('Middleware timeout')
+      await middlewareManager.execute(context)
+      
+      // 错误应该被标记到上下文
       expect(timeoutOccurred).toBe(true)
+      expect(context.error).toBeDefined()
+      expect(context.error.message).toBe('Middleware timeout')
     })
   })
 
   describe('中间件错误处理和传播', () => {
+    // 修复：新的错误隔离行为 - 同步错误被标记到上下文
     it('应该捕获中间件中的同步错误', async () => {
+      const context: any = { ...mockContext }
       const errorMiddleware: Middleware = {
         name: 'error',
         priority: 100,
@@ -307,10 +315,16 @@ describe('复杂中间件链集成测试', () => {
 
       middlewareManager.use(errorMiddleware)
 
-      await expect(middlewareManager.execute(mockContext)).rejects.toThrow('Middleware error')
+      await middlewareManager.execute(context)
+      
+      // 错误应该被标记到上下文
+      expect(context.error).toBeDefined()
+      expect(context.error.message).toBe('Middleware error')
     })
 
+    // 修复：新的错误隔离行为 - 异步错误被标记到上下文
     it('应该捕获中间件中的异步错误', async () => {
+      const context: any = { ...mockContext }
       const asyncErrorMiddleware: Middleware = {
         name: 'async-error',
         priority: 100,
@@ -324,22 +338,29 @@ describe('复杂中间件链集成测试', () => {
 
       middlewareManager.use(asyncErrorMiddleware)
 
-      await expect(middlewareManager.execute(mockContext)).rejects.toThrow('Async error')
+      await middlewareManager.execute(context)
+      
+      // 错误应该被标记到上下文
+      expect(context.error).toBeDefined()
+      expect(context.error.message).toBe('Async error')
     })
 
+    // 修复：新的错误隔离行为 - 错误被标记到上下文，中间件可以检查context.error
     it('应该支持错误恢复中间件', async () => {
       const events: string[] = []
+      const context: any = { ...mockContext }
 
       const errorRecoveryMiddleware: Middleware = {
         name: 'error-recovery',
         priority: 300,
-        async execute(ctx, next) {
-          try {
-            await next()
-            events.push('success')
-          } catch (error) {
+        async execute(ctx: any, next) {
+          await next()
+          // 新行为：检查上下文中的错误
+          if (ctx.error) {
             events.push('error-caught')
             ctx.data = { status: 500, body: 'Error handled' }
+          } else {
+            events.push('success')
           }
         },
       }
@@ -355,26 +376,28 @@ describe('复杂中间件链集成测试', () => {
       middlewareManager.use(errorRecoveryMiddleware)
       middlewareManager.use(errorMiddleware)
 
-      await middlewareManager.execute(mockContext)
+      await middlewareManager.execute(context)
 
       expect(events).toContain('error-caught')
-      expect(mockContext.data).toEqual({ status: 500, body: 'Error handled' })
+      expect(context.data).toEqual({ status: 500, body: 'Error handled' })
     })
 
+    // 修复：新的错误隔离行为 - 错误在上下文中传播，中间件可以检查
     it('应该传播错误到外层中间件', async () => {
       const events: string[] = []
+      const context: any = { ...mockContext }
 
       const outerMiddleware: Middleware = {
         name: 'outer',
         priority: 300,
-        async execute(ctx, next) {
+        async execute(ctx: any, next) {
           events.push('outer-start')
-          try {
-            await next()
-            events.push('outer-success')
-          } catch (error) {
+          await next()
+          // 新行为：检查上下文中的错误
+          if (ctx.error) {
             events.push('outer-catch')
-            throw error
+          } else {
+            events.push('outer-success')
           }
         },
       }
@@ -402,12 +425,17 @@ describe('复杂中间件链集成测试', () => {
       middlewareManager.use(middleMiddleware)
       middlewareManager.use(errorMiddleware)
 
-      await expect(middlewareManager.execute(mockContext)).rejects.toThrow('Inner error')
+      await middlewareManager.execute(context)
 
+      // 错误应该被标记到上下文
+      expect(context.error).toBeDefined()
+      expect(context.error.message).toBe('Inner error')
+      
       expect(events).toEqual([
         'outer-start',
         'middle-start',
         'error-throw',
+        'middle-end',
         'outer-catch',
       ])
     })

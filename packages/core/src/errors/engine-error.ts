@@ -413,11 +413,13 @@ export function wrapError<T extends any[], R>(
       if (error instanceof EngineError) {
         throw error
       }
+      // 修复：将第三个参数改为 options 对象，正确传递 cause
       throw new errorType(
         error instanceof Error ? error.message : String(error),
         ErrorCode.UNKNOWN,
-        undefined,
-        error instanceof Error ? error : undefined
+        {
+          cause: error instanceof Error ? error : undefined
+        }
       )
     }
   }
@@ -441,11 +443,13 @@ export function wrapAsyncError<T extends any[], R>(
       if (error instanceof EngineError) {
         throw error
       }
+      // 修复：将第三个参数改为 options 对象，正确传递 cause
       throw new errorType(
         error instanceof Error ? error.message : String(error),
         ErrorCode.UNKNOWN,
-        undefined,
-        error instanceof Error ? error : undefined
+        {
+          cause: error instanceof Error ? error : undefined
+        }
       )
     }
   }

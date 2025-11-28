@@ -235,22 +235,36 @@ export class CoreMiddlewareManager implements MiddlewareManager {
         // 执行中间件,传入 dispatch 作为 next 函数
         await middleware.execute(context, dispatch)
       } catch (error) {
-        // 错误处理: 优先使用中间件自己的错误处理器
+        // 修复：错误处理 - 捕获错误处理器异常，标记上下文但不中断链
         if (middleware.onError) {
           try {
             await middleware.onError(error as Error, context)
+            // 错误已被处理，继续执行后续中间件
           } catch (handlerError) {
-            // 错误处理器本身出错,向上抛出
+            // 修复：错误处理器本身出错，记录错误但不中断整个链
             console.error(
               `Error in middleware "${middleware.name}" error handler:`,
               handlerError
             )
-            throw handlerError
+            // 标记上下文有错误，但允许其他中间件继续执行
+            const ctxWithError = context as any
+            if (!ctxWithError.error) {
+              ctxWithError.error = handlerError as Error
+            }
+            // 不再抛出，允许链继续
           }
         } else {
-          // 没有错误处理器,向上抛出
-          throw error
+          // 没有错误处理器，记录错误并标记上下文
+          console.error(`Error in middleware "${middleware.name}":`, error)
+          const ctxWithError = context as any
+          if (!ctxWithError.error) {
+            ctxWithError.error = error as Error
+          }
+          // 不中断链，让后续中间件有机会处理或清理
         }
+        
+        // 修复：错误发生后继续执行后续中间件（错误隔离）
+        await dispatch()
       }
     }
 

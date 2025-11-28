@@ -342,20 +342,36 @@ export class LazyPluginLoader {
 
   /**
    * 添加超时控制
+   *
+   * 修复：清理超时定时器，防止内存泄漏
    */
   private async withTimeout<T>(
     promise: Promise<T>,
     timeout: number,
     pluginName: string
   ): Promise<T> {
-    return Promise.race([
-      promise,
-      new Promise<T>((_, reject) => {
-        setTimeout(() => {
-          reject(new Error(`Plugin "${pluginName}" load timeout after ${timeout}ms`))
-        }, timeout)
-      }),
-    ])
+    let timeoutId: ReturnType<typeof setTimeout> | undefined
+
+    const timeoutPromise = new Promise<T>((_, reject) => {
+      timeoutId = setTimeout(() => {
+        reject(new Error(`Plugin "${pluginName}" load timeout after ${timeout}ms`))
+      }, timeout)
+    })
+
+    try {
+      const result = await Promise.race([promise, timeoutPromise])
+      // 修复：成功时清理定时器
+      if (timeoutId !== undefined) {
+        clearTimeout(timeoutId)
+      }
+      return result
+    } catch (error) {
+      // 修复：失败时也要清理定时器
+      if (timeoutId !== undefined) {
+        clearTimeout(timeoutId)
+      }
+      throw error
+    }
   }
 
   // ============== 查询方法 ==============

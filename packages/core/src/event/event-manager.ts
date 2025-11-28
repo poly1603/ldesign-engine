@@ -221,6 +221,9 @@ export class CoreEventManager implements EventManager {
   /** 清理定时器 */
   private cleanupTimer?: NodeJS.Timeout
 
+  /** 修复：待清理队列的最大大小限制，防止内存泄漏 */
+  private readonly maxPendingCleanup = 100
+
   /**
    * 触发事件
    *
@@ -590,9 +593,10 @@ export class CoreEventManager implements EventManager {
       }
     }
 
-    // 内存优化: 清理空的事件数组
+    // 修复：内存优化 - 清理空的事件数组并调度延迟清理
     if (handlers.length === 0) {
-      this.events.delete(event)
+      this.pendingCleanup.add(event)
+      this.scheduleCleanup()
     }
   }
 
@@ -891,8 +895,19 @@ export class CoreEventManager implements EventManager {
    * @private
    */
   private scheduleCleanup(): void {
-    if (this.cleanupTimer) {
+    // 修复：如果待清理队列超过限制，立即执行清理
+    if (this.pendingCleanup.size >= this.maxPendingCleanup) {
+      if (this.cleanupTimer) {
+        clearTimeout(this.cleanupTimer)
+        this.cleanupTimer = undefined
+      }
+      this.performCleanup()
       return
+    }
+
+    // 修复：重置定时器，确保高频场景下定时器能正确触发
+    if (this.cleanupTimer) {
+      clearTimeout(this.cleanupTimer)
     }
 
     this.cleanupTimer = setTimeout(() => {
