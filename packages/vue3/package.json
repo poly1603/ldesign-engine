@@ -16,77 +16,77 @@
   "sideEffects": false,
   "exports": {
     ".": {
-      "types": "./es/index.d.ts",
-      "import": "./es/index.js",
+      "types": "./esm/index.d.ts",
+      "import": "./esm/index.js",
       "require": "./lib/index.cjs",
-      "default": "./es/index.js"
+      "default": "./esm/index.js"
     },
     "./composables": {
-      "types": "./es/composables/index.d.ts",
-      "import": "./es/composables/index.js",
+      "types": "./esm/composables/index.d.ts",
+      "import": "./esm/composables/index.js",
       "require": "./lib/composables/index.cjs",
-      "default": "./es/composables/index.js"
+      "default": "./esm/composables/index.js"
     },
     "./composables/*": {
-      "types": "./es/composables/*.d.ts",
-      "import": "./es/composables/*.js",
+      "types": "./esm/composables/*.d.ts",
+      "import": "./esm/composables/*.js",
       "require": "./lib/composables/*.cjs",
-      "default": "./es/composables/*.js"
+      "default": "./esm/composables/*.js"
     },
     "./config": {
-      "types": "./es/config/index.d.ts",
-      "import": "./es/config/index.js",
+      "types": "./esm/config/index.d.ts",
+      "import": "./esm/config/index.js",
       "require": "./lib/config/index.cjs",
-      "default": "./es/config/index.js"
+      "default": "./esm/config/index.js"
     },
     "./config/*": {
-      "types": "./es/config/*.d.ts",
-      "import": "./es/config/*.js",
+      "types": "./esm/config/*.d.ts",
+      "import": "./esm/config/*.js",
       "require": "./lib/config/*.cjs",
-      "default": "./es/config/*.js"
+      "default": "./esm/config/*.js"
     },
     "./devtools": {
-      "types": "./es/devtools/index.d.ts",
-      "import": "./es/devtools/index.js",
+      "types": "./esm/devtools/index.d.ts",
+      "import": "./esm/devtools/index.js",
       "require": "./lib/devtools/index.cjs",
-      "default": "./es/devtools/index.js"
+      "default": "./esm/devtools/index.js"
     },
     "./devtools/*": {
-      "types": "./es/devtools/*.d.ts",
-      "import": "./es/devtools/*.js",
+      "types": "./esm/devtools/*.d.ts",
+      "import": "./esm/devtools/*.js",
       "require": "./lib/devtools/*.cjs",
-      "default": "./es/devtools/*.js"
+      "default": "./esm/devtools/*.js"
     },
     "./engine/*": {
-      "types": "./es/engine/*.d.ts",
-      "import": "./es/engine/*.js",
+      "types": "./esm/engine/*.d.ts",
+      "import": "./esm/engine/*.js",
       "require": "./lib/engine/*.cjs",
-      "default": "./es/engine/*.js"
+      "default": "./esm/engine/*.js"
     },
     "./plugins": {
-      "types": "./es/plugins/index.d.ts",
-      "import": "./es/plugins/index.js",
+      "types": "./esm/plugins/index.d.ts",
+      "import": "./esm/plugins/index.js",
       "require": "./lib/plugins/index.cjs",
-      "default": "./es/plugins/index.js"
+      "default": "./esm/plugins/index.js"
     },
     "./plugins/*": {
-      "types": "./es/plugins/*.d.ts",
-      "import": "./es/plugins/*.js",
+      "types": "./esm/plugins/*.d.ts",
+      "import": "./esm/plugins/*.js",
       "require": "./lib/plugins/*.cjs",
-      "default": "./es/plugins/*.js"
+      "default": "./esm/plugins/*.js"
     },
     "./package.json": "./package.json"
   },
   "main": "./lib/index.cjs",
-  "module": "./es/index.js",
-  "types": "./es/index.d.ts",
-  "unpkg": "./dist/index.js",
-  "jsdelivr": "./dist/index.js",
+  "module": "./esm/index.js",
+  "types": "./esm/index.d.ts",
+  "unpkg": "./dist/index.min.js",
+  "jsdelivr": "./dist/index.min.js",
   "files": [
     "README.md",
     "LICENSE",
     "CHANGELOG.md",
-    "es",
+    "esm",
     "lib",
     "dist"
   ],
@@ -121,6 +121,6 @@
       "optional": true
     }
   },
-  "typings": "./es/index.d.ts",
+  "typings": "./esm/index.d.ts",
   "browser": "./dist/index.js"
 }

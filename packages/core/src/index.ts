@@ -7,6 +7,17 @@
 // 导出类型
 export * from './types'
 
+// 导出常量
+export {
+  ENGINE_EVENTS,
+  I18N_EVENTS,
+  ROUTER_EVENTS,
+  COLOR_EVENTS,
+  SIZE_EVENTS,
+  type RouteLocation,
+  type ThemeConfig,
+} from './constants'
+
 // 导出核心引擎
 export * from './engine'
 

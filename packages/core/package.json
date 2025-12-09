@@ -16,203 +16,209 @@
   "sideEffects": false,
   "exports": {
     ".": {
-      "types": "./es/index.d.ts",
-      "import": "./es/index.js",
+      "types": "./esm/index.d.ts",
+      "import": "./esm/index.js",
       "require": "./lib/index.cjs",
-      "default": "./es/index.js"
+      "default": "./esm/index.js"
     },
     "./benchmark/*": {
-      "types": "./es/benchmark/*.d.ts",
-      "import": "./es/benchmark/*.js",
+      "types": "./esm/benchmark/*.d.ts",
+      "import": "./esm/benchmark/*.js",
       "require": "./lib/benchmark/*.cjs",
-      "default": "./es/benchmark/*.js"
+      "default": "./esm/benchmark/*.js"
     },
     "./config": {
-      "types": "./es/config/index.d.ts",
-      "import": "./es/config/index.js",
+      "types": "./esm/config/index.d.ts",
+      "import": "./esm/config/index.js",
       "require": "./lib/config/index.cjs",
-      "default": "./es/config/index.js"
+      "default": "./esm/config/index.js"
     },
     "./config/*": {
-      "types": "./es/config/*.d.ts",
-      "import": "./es/config/*.js",
+      "types": "./esm/config/*.d.ts",
+      "import": "./esm/config/*.js",
       "require": "./lib/config/*.cjs",
-      "default": "./es/config/*.js"
+      "default": "./esm/config/*.js"
+    },
+    "./constants": {
+      "types": "./esm/constants/index.d.ts",
+      "import": "./esm/constants/index.js",
+      "require": "./lib/constants/index.cjs",
+      "default": "./esm/constants/index.js"
     },
     "./constants/*": {
-      "types": "./es/constants/*.d.ts",
-      "import": "./es/constants/*.js",
+      "types": "./esm/constants/*.d.ts",
+      "import": "./esm/constants/*.js",
       "require": "./lib/constants/*.cjs",
-      "default": "./es/constants/*.js"
+      "default": "./esm/constants/*.js"
     },
     "./container": {
-      "types": "./es/container/index.d.ts",
-      "import": "./es/container/index.js",
+      "types": "./esm/container/index.d.ts",
+      "import": "./esm/container/index.js",
       "require": "./lib/container/index.cjs",
-      "default": "./es/container/index.js"
+      "default": "./esm/container/index.js"
     },
     "./container/*": {
-      "types": "./es/container/*.d.ts",
-      "import": "./es/container/*.js",
+      "types": "./esm/container/*.d.ts",
+      "import": "./esm/container/*.js",
       "require": "./lib/container/*.cjs",
-      "default": "./es/container/*.js"
+      "default": "./esm/container/*.js"
     },
     "./devtools": {
-      "types": "./es/devtools/index.d.ts",
-      "import": "./es/devtools/index.js",
+      "types": "./esm/devtools/index.d.ts",
+      "import": "./esm/devtools/index.js",
       "require": "./lib/devtools/index.cjs",
-      "default": "./es/devtools/index.js"
+      "default": "./esm/devtools/index.js"
     },
     "./devtools/*": {
-      "types": "./es/devtools/*.d.ts",
-      "import": "./es/devtools/*.js",
+      "types": "./esm/devtools/*.d.ts",
+      "import": "./esm/devtools/*.js",
       "require": "./lib/devtools/*.cjs",
-      "default": "./es/devtools/*.js"
+      "default": "./esm/devtools/*.js"
     },
     "./engine": {
-      "types": "./es/engine/index.d.ts",
-      "import": "./es/engine/index.js",
+      "types": "./esm/engine/index.d.ts",
+      "import": "./esm/engine/index.js",
       "require": "./lib/engine/index.cjs",
-      "default": "./es/engine/index.js"
+      "default": "./esm/engine/index.js"
     },
     "./engine/*": {
-      "types": "./es/engine/*.d.ts",
-      "import": "./es/engine/*.js",
+      "types": "./esm/engine/*.d.ts",
+      "import": "./esm/engine/*.js",
       "require": "./lib/engine/*.cjs",
-      "default": "./es/engine/*.js"
+      "default": "./esm/engine/*.js"
     },
     "./errors": {
-      "types": "./es/errors/index.d.ts",
-      "import": "./es/errors/index.js",
+      "types": "./esm/errors/index.d.ts",
+      "import": "./esm/errors/index.js",
       "require": "./lib/errors/index.cjs",
-      "default": "./es/errors/index.js"
+      "default": "./esm/errors/index.js"
     },
     "./errors/*": {
-      "types": "./es/errors/*.d.ts",
-      "import": "./es/errors/*.js",
+      "types": "./esm/errors/*.d.ts",
+      "import": "./esm/errors/*.js",
       "require": "./lib/errors/*.cjs",
-      "default": "./es/errors/*.js"
+      "default": "./esm/errors/*.js"
     },
     "./event": {
-      "types": "./es/event/index.d.ts",
-      "import": "./es/event/index.js",
+      "types": "./esm/event/index.d.ts",
+      "import": "./esm/event/index.js",
       "require": "./lib/event/index.cjs",
-      "default": "./es/event/index.js"
+      "default": "./esm/event/index.js"
     },
     "./event/*": {
-      "types": "./es/event/*.d.ts",
-      "import": "./es/event/*.js",
+      "types": "./esm/event/*.d.ts",
+      "import": "./esm/event/*.js",
       "require": "./lib/event/*.cjs",
-      "default": "./es/event/*.js"
+      "default": "./esm/event/*.js"
     },
     "./examples/*": {
-      "types": "./es/examples/*.d.ts",
-      "import": "./es/examples/*.js",
+      "types": "./esm/examples/*.d.ts",
+      "import": "./esm/examples/*.js",
       "require": "./lib/examples/*.cjs",
-      "default": "./es/examples/*.js"
+      "default": "./esm/examples/*.js"
     },
     "./lifecycle": {
-      "types": "./es/lifecycle/index.d.ts",
-      "import": "./es/lifecycle/index.js",
+      "types": "./esm/lifecycle/index.d.ts",
+      "import": "./esm/lifecycle/index.js",
       "require": "./lib/lifecycle/index.cjs",
-      "default": "./es/lifecycle/index.js"
+      "default": "./esm/lifecycle/index.js"
     },
     "./lifecycle/*": {
-      "types": "./es/lifecycle/*.d.ts",
-      "import": "./es/lifecycle/*.js",
+      "types": "./esm/lifecycle/*.d.ts",
+      "import": "./esm/lifecycle/*.js",
       "require": "./lib/lifecycle/*.cjs",
-      "default": "./es/lifecycle/*.js"
+      "default": "./esm/lifecycle/*.js"
     },
     "./memory/*": {
-      "types": "./es/memory/*.d.ts",
-      "import": "./es/memory/*.js",
+      "types": "./esm/memory/*.d.ts",
+      "import": "./esm/memory/*.js",
       "require": "./lib/memory/*.cjs",
-      "default": "./es/memory/*.js"
+      "default": "./esm/memory/*.js"
     },
     "./middleware": {
-      "types": "./es/middleware/index.d.ts",
-      "import": "./es/middleware/index.js",
+      "types": "./esm/middleware/index.d.ts",
+      "import": "./esm/middleware/index.js",
       "require": "./lib/middleware/index.cjs",
-      "default": "./es/middleware/index.js"
+      "default": "./esm/middleware/index.js"
     },
     "./middleware/*": {
-      "types": "./es/middleware/*.d.ts",
-      "import": "./es/middleware/*.js",
+      "types": "./esm/middleware/*.d.ts",
+      "import": "./esm/middleware/*.js",
       "require": "./lib/middleware/*.cjs",
-      "default": "./es/middleware/*.js"
+      "default": "./esm/middleware/*.js"
     },
     "./monitor/*": {
-      "types": "./es/monitor/*.d.ts",
-      "import": "./es/monitor/*.js",
+      "types": "./esm/monitor/*.d.ts",
+      "import": "./esm/monitor/*.js",
       "require": "./lib/monitor/*.cjs",
-      "default": "./es/monitor/*.js"
+      "default": "./esm/monitor/*.js"
     },
     "./performance": {
-      "types": "./es/performance/index.d.ts",
-      "import": "./es/performance/index.js",
+      "types": "./esm/performance/index.d.ts",
+      "import": "./esm/performance/index.js",
       "require": "./lib/performance/index.cjs",
-      "default": "./es/performance/index.js"
+      "default": "./esm/performance/index.js"
     },
     "./performance/*": {
-      "types": "./es/performance/*.d.ts",
-      "import": "./es/performance/*.js",
+      "types": "./esm/performance/*.d.ts",
+      "import": "./esm/performance/*.js",
       "require": "./lib/performance/*.cjs",
-      "default": "./es/performance/*.js"
+      "default": "./esm/performance/*.js"
     },
     "./plugin": {
-      "types": "./es/plugin/index.d.ts",
-      "import": "./es/plugin/index.js",
+      "types": "./esm/plugin/index.d.ts",
+      "import": "./esm/plugin/index.js",
       "require": "./lib/plugin/index.cjs",
-      "default": "./es/plugin/index.js"
+      "default": "./esm/plugin/index.js"
     },
     "./plugin/*": {
-      "types": "./es/plugin/*.d.ts",
-      "import": "./es/plugin/*.js",
+      "types": "./esm/plugin/*.d.ts",
+      "import": "./esm/plugin/*.js",
       "require": "./lib/plugin/*.cjs",
-      "default": "./es/plugin/*.js"
+      "default": "./esm/plugin/*.js"
     },
     "./state": {
-      "types": "./es/state/index.d.ts",
-      "import": "./es/state/index.js",
+      "types": "./esm/state/index.d.ts",
+      "import": "./esm/state/index.js",
       "require": "./lib/state/index.cjs",
-      "default": "./es/state/index.js"
+      "default": "./esm/state/index.js"
     },
     "./state/*": {
-      "types": "./es/state/*.d.ts",
-      "import": "./es/state/*.js",
+      "types": "./esm/state/*.d.ts",
+      "import": "./esm/state/*.js",
       "require": "./lib/state/*.cjs",
-      "default": "./es/state/*.js"
+      "default": "./esm/state/*.js"
     },
     "./types": {
-      "types": "./es/types/index.d.ts",
-      "import": "./es/types/index.js",
+      "types": "./esm/types/index.d.ts",
+      "import": "./esm/types/index.js",
       "require": "./lib/types/index.cjs",
-      "default": "./es/types/index.js"
+      "default": "./esm/types/index.js"
     },
     "./types/*": {
-      "types": "./es/types/*.d.ts",
-      "import": "./es/types/*.js",
+      "types": "./esm/types/*.d.ts",
+      "import": "./esm/types/*.js",
       "require": "./lib/types/*.cjs",
-      "default": "./es/types/*.js"
+      "default": "./esm/types/*.js"
     },
     "./utils/*": {
-      "types": "./es/utils/*.d.ts",
-      "import": "./es/utils/*.js",
+      "types": "./esm/utils/*.d.ts",
+      "import": "./esm/utils/*.js",
       "require": "./lib/utils/*.cjs",
-      "default": "./es/utils/*.js"
+      "default": "./esm/utils/*.js"
     },
     "./package.json": "./package.json"
   },
   "main": "./lib/index.cjs",
-  "module": "./es/index.js",
-  "types": "./es/index.d.ts",
-  "unpkg": "./dist/index.js",
-  "jsdelivr": "./dist/index.js",
+  "module": "./esm/index.js",
+  "types": "./esm/index.d.ts",
+  "unpkg": "./dist/index.min.js",
+  "jsdelivr": "./dist/index.min.js",
   "files": [
     "README.md",
     "LICENSE",
     "CHANGELOG.md",
-    "es",
+    "esm",
     "lib",
     "dist"
   ],
@@ -229,6 +235,6 @@
     "typescript": "^5.7.3",
     "vitest": "^4.0.13"
   },
-  "typings": "./es/index.d.ts",
+  "typings": "./esm/index.d.ts",
   "browser": "./dist/index.js"
 }

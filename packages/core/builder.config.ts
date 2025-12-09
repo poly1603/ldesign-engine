@@ -1,22 +1,18 @@
+/**
+ * @ldesign/engine-core 构建配置
+ */
 import { defineConfig } from '@ldesign/builder'
 
 export default defineConfig({
-  output: {
-    esm: {
-      enabled: true,
-      dir: 'es',
-    },
-    cjs: {
-      enabled: true,
-      dir: 'lib',
-      extension: '.cjs',
-    },
-    umd: {
-      enabled: true,
-      name: 'LDesignEngineCore',
-      input: 'src/index.ts',
-      minify: true,
-    },
-  },
+  input: 'src/index.ts',
+  output: [
+    { format: 'esm', dir: 'es', preserveModules: true, preserveModulesRoot: 'src' },
+    { format: 'esm', dir: 'esm', preserveModules: true, preserveModulesRoot: 'src' },
+    { format: 'cjs', dir: 'lib', preserveModules: true, preserveModulesRoot: 'src' },
+    { format: 'umd', dir: 'dist', name: 'LDesignEngineCore' },
+  ],
+  external: [],
+  dts: true,
+  clean: true,
 })
 
