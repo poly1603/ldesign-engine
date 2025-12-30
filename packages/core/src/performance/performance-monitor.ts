@@ -56,8 +56,14 @@ export interface PerformanceMonitorConfig {
   sampleRate?: number
   /** 是否自动清理 */
   autoCleanup?: boolean
-  /** 清理间隔（毫秒） */
+  /** 清理间隔(毫秒) */
   cleanupInterval?: number
+  /** 是否启用警告 */
+  enableWarnings?: boolean
+  /** 慢操作阈值(毫秒) */
+  slowOperationThreshold?: number
+  /** 是否调试模式 */
+  debug?: boolean
 }
 
 /**
@@ -115,6 +121,9 @@ export class PerformanceMonitor {
       sampleRate: config.sampleRate ?? 1.0,
       autoCleanup: config.autoCleanup ?? true,
       cleanupInterval: config.cleanupInterval ?? 60000, // 1分钟
+      enableWarnings: config.enableWarnings ?? true,
+      slowOperationThreshold: config.slowOperationThreshold ?? 1000, // 1秒
+      debug: config.debug ?? false,
     }
 
     if (this.config.autoCleanup) {
@@ -175,6 +184,23 @@ export class PerformanceMonitor {
 
     // 存储完成的指标
     this.storeMetric(metric)
+
+    // 性能警告
+    if (
+      this.config.enableWarnings &&
+      metric.duration > this.config.slowOperationThreshold!
+    ) {
+      console.warn(
+        `[PerformanceMonitor] Slow operation detected: "${metric.name}" took ${metric.duration.toFixed(2)}ms`
+      )
+    }
+
+    // 调试输出
+    if (this.config.debug) {
+      console.log(
+        `[PerformanceMonitor] ${metric.name}: ${metric.duration.toFixed(2)}ms`
+      )
+    }
 
     return metric.duration
   }
@@ -262,6 +288,84 @@ export class PerformanceMonitor {
     }
 
     return allStats
+  }
+
+  /**
+   * 获取慢操作报告
+   * 
+   * @param threshold - 阈值(毫秒)
+   * @returns 慢操作列表
+   */
+  getSlowOperations(threshold?: number): Array<{
+    name: string
+    avgDuration: number
+    maxDuration: number
+    count: number
+  }> {
+    const slowThreshold = threshold ?? this.config.slowOperationThreshold ?? 1000
+    const result: Array<{
+      name: string
+      avgDuration: number
+      maxDuration: number
+      count: number
+    }> = []
+
+    for (const name of this.completedMetrics.keys()) {
+      const stats = this.getStats(name)
+      if (stats && stats.avgDuration > slowThreshold) {
+        result.push({
+          name,
+          avgDuration: stats.avgDuration,
+          maxDuration: stats.maxDuration,
+          count: stats.count,
+        })
+      }
+    }
+
+    // 按平均耗时排序
+    return result.sort((a, b) => b.avgDuration - a.avgDuration)
+  }
+
+  /**
+   * 获取性能总览
+   * 
+   * @returns 性能总览信息
+   */
+  getPerformanceOverview(): {
+    totalMetrics: number
+    totalOperations: number
+    slowOperations: number
+    avgDuration: number
+    topSlowest: Array<{ name: string; avgDuration: number }>
+  } {
+    const allStats = Array.from(this.getAllStats().entries())
+    let totalOps = 0
+    let totalDuration = 0
+    let slowOps = 0
+
+    for (const [_, stats] of allStats) {
+      totalOps += stats.count
+      totalDuration += stats.totalDuration
+      if (stats.avgDuration > (this.config.slowOperationThreshold ?? 1000)) {
+        slowOps++
+      }
+    }
+
+    const topSlowest = allStats
+      .sort((a, b) => b[1].avgDuration - a[1].avgDuration)
+      .slice(0, 10)
+      .map(([name, stats]) => ({
+        name,
+        avgDuration: stats.avgDuration,
+      }))
+
+    return {
+      totalMetrics: allStats.length,
+      totalOperations: totalOps,
+      slowOperations: slowOps,
+      avgDuration: totalOps > 0 ? totalDuration / totalOps : 0,
+      topSlowest,
+    }
   }
 
   /**

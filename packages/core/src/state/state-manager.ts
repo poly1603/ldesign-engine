@@ -42,7 +42,7 @@ import type { StateManager, StateChangeListener, Unsubscribe } from '../types'
  */
 export class CoreStateManager implements StateManager {
   /** 状态存储 - 使用 Map 提供 O(1) 的读写性能 */
-  private state = new Map<string, any>()
+  private state = new Map<string, unknown>()
 
   /** 监听器存储 - 每个状态键对应一组监听器 */
   private watchers = new Map<string, Set<StateChangeListener>>()
@@ -51,13 +51,23 @@ export class CoreStateManager implements StateManager {
   private batching = false
 
   /** 批量更新队列 - 存储待触发的监听器 */
-  private batchQueue = new Map<string, { value: any; oldValue: any }>()
+  private batchQueue = new Map<string, { value: unknown; oldValue: unknown }>()
 
   /** 浅比较模式标记 - 标记哪些键使用浅比较 */
   private shallowKeys = new Set<string>()
 
   /** 深度比较最大深度 - 防止栈溢出 */
   private maxDepth = 10
+
+  /** 性能优化:状态更新计数器,用于性能监控 */
+  private updateCount = new Map<string, number>()
+
+  /** 性能优化:批量更新性能统计 */
+  private batchUpdateStats = {
+    totalBatches: 0,
+    totalUpdates: 0,
+    savedNotifications: 0,
+  }
 
   /**
    * 设置状态值
@@ -79,7 +89,7 @@ export class CoreStateManager implements StateManager {
    * stateManager.setShallow('bigObject', largeData)
    * ```
    */
-  set<T = any>(key: string, value: T): void {
+  set<T = unknown>(key: string, value: T): void {
     const oldValue = this.state.get(key)
 
     // 性能优化: 根据键的比较模式选择比较方式
@@ -90,6 +100,10 @@ export class CoreStateManager implements StateManager {
     if (isEqual) {
       return
     }
+
+    // 统计更新次数
+    const count = this.updateCount.get(key) || 0
+    this.updateCount.set(key, count + 1)
 
     this.state.set(key, value)
 
@@ -117,7 +131,7 @@ export class CoreStateManager implements StateManager {
    * stateManager.setShallow('largeData', bigObject)
    * ```
    */
-  setShallow<T = any>(key: string, value: T): void {
+  setShallow<T = unknown>(key: string, value: T): void {
     this.shallowKeys.add(key)
     this.set(key, value)
   }
@@ -134,8 +148,8 @@ export class CoreStateManager implements StateManager {
    * const user = stateManager.get<User>('user')
    * ```
    */
-  get<T = any>(key: string): T | undefined {
-    return this.state.get(key)
+  get<T = unknown>(key: string): T | undefined {
+    return this.state.get(key) as T | undefined
   }
 
   /**
@@ -217,7 +231,7 @@ export class CoreStateManager implements StateManager {
    * unwatch()
    * ```
    */
-  watch<T = any>(key: string, listener: StateChangeListener<T>): Unsubscribe {
+  watch<T = unknown>(key: string, listener: StateChangeListener<T>): Unsubscribe {
     if (!this.watchers.has(key)) {
       this.watchers.set(key, new Set())
     }
@@ -269,10 +283,18 @@ export class CoreStateManager implements StateManager {
     this.batching = true
     this.batchQueue.clear()
 
+    const startSize = this.batchQueue.size
+
     try {
       fn()
     } finally {
       this.batching = false
+
+      // 统计批量更新性能
+      const updateCount = this.batchQueue.size
+      this.batchUpdateStats.totalBatches++
+      this.batchUpdateStats.totalUpdates += updateCount
+      this.batchUpdateStats.savedNotifications += Math.max(0, updateCount - startSize)
 
       // 批量触发所有监听器
       this.batchQueue.forEach(({ value, oldValue }, key) => {
@@ -335,7 +357,7 @@ export class CoreStateManager implements StateManager {
    * })
    * ```
    */
-  setAll(states: Record<string, any>): void {
+  setAll(states: Record<string, unknown>): void {
     this.batch(() => {
       Object.entries(states).forEach(([key, value]) => {
         this.set(key, value)
@@ -423,7 +445,7 @@ export class CoreStateManager implements StateManager {
    * @param oldValue - 旧值
    * @private
    */
-  private notifyWatchers(key: string, value: any, oldValue: any): void {
+  private notifyWatchers(key: string, value: unknown, oldValue: unknown): void {
     const listeners = this.watchers.get(key)
 
     // 性能优化: 没有监听器时直接返回
@@ -458,7 +480,7 @@ export class CoreStateManager implements StateManager {
    * @returns 是否相等
    * @private
    */
-  private deepEqual(a: any, b: any, depth = 0): boolean {
+  private deepEqual(a: unknown, b: unknown, depth = 0): boolean {
     // 修复：防止无限递归和栈溢出 - 使用 JSON.stringify 作为降级策略
     if (depth > this.maxDepth) {
       console.warn('[StateManager] Deep equal reached max depth, using JSON comparison as fallback')
@@ -556,7 +578,7 @@ export class CoreStateManager implements StateManager {
    * @returns 是否为简单对象
    * @private
    */
-  private isSimpleObject(obj: any): boolean {
+  private isSimpleObject(obj: unknown): boolean {
     if (obj === null || typeof obj !== 'object') {
       return false
     }
@@ -576,6 +598,52 @@ export class CoreStateManager implements StateManager {
   }
 
   /**
+   * 获取状态更新统计信息
+   *
+   * @returns 统计信息对象
+   *
+   * @example
+   * ```typescript
+   * const stats = stateManager.getUpdateStats()
+   * console.log('总更新次数:', stats.totalUpdates)
+   * console.log('批量更新效率:', stats.batchEfficiency)
+   * ```
+   */
+  getUpdateStats(): {
+    totalUpdates: number
+    hotKeys: Array<{ key: string; count: number }>
+    batchStats: {
+      totalBatches: number
+      totalUpdates: number
+      savedNotifications: number
+      avgUpdatesPerBatch: number
+    }
+  } {
+    const totalUpdates = Array.from(this.updateCount.values()).reduce(
+      (sum, count) => sum + count,
+      0
+    )
+
+    const hotKeys = Array.from(this.updateCount.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([key, count]) => ({ key, count }))
+
+    return {
+      totalUpdates,
+      hotKeys,
+      batchStats: {
+        ...this.batchUpdateStats,
+        avgUpdatesPerBatch:
+          this.batchUpdateStats.totalBatches > 0
+            ? this.batchUpdateStats.totalUpdates /
+            this.batchUpdateStats.totalBatches
+            : 0,
+      },
+    }
+  }
+
+  /**
    * 设置深度比较的最大深度
    *
    * @param depth - 最大深度
@@ -588,6 +656,417 @@ export class CoreStateManager implements StateManager {
   setMaxDepth(depth: number): void {
     this.maxDepth = Math.max(1, Math.min(depth, 50)) // 限制在 1-50 之间
   }
+
+  /**
+   * 重置统计信息
+   *
+   * @example
+   * ```typescript
+   * stateManager.resetStats()
+   * ```
+   */
+  resetStats(): void {
+    this.updateCount.clear()
+    this.batchUpdateStats = {
+      totalBatches: 0,
+      totalUpdates: 0,
+      savedNotifications: 0,
+    }
+  }
+}
+
+/**
+ * 选择器缓存配置
+ */
+export interface SelectorCacheConfig {
+  /** 最大缓存大小 */
+  maxSize?: number
+  /** 缓存过期时间（毫秒，0 表示不过期） */
+  ttl?: number
+}
+
+/**
+ * 选择器函数类型
+ */
+export type Selector<T, R> = (state: T) => R
+
+/**
+ * 带缓存的状态选择器
+ *
+ * 性能优化：缓存选择器结果，避免重复计算
+ *
+ * @example
+ * ```typescript
+ * const selector = createCachedSelector(
+ *   stateManager,
+ *   (state) => state.users?.filter(u => u.active)
+ * )
+ *
+ * // 第一次调用会计算
+ * const activeUsers = selector.select('users')
+ *
+ * // 如果 users 未变化，直接返回缓存结果
+ * const activeUsers2 = selector.select('users')
+ * ```
+ */
+export class CachedSelector<T = unknown, R = unknown> {
+  private cache = new Map<string, { value: R; deps: unknown[]; timestamp: number }>()
+  private config: Required<SelectorCacheConfig>
+
+  constructor(
+    private stateManager: StateManager,
+    private selector: Selector<T, R>,
+    config: SelectorCacheConfig = {}
+  ) {
+    this.config = {
+      maxSize: config.maxSize ?? 100,
+      ttl: config.ttl ?? 0
+    }
+  }
+
+  /**
+   * 执行选择器
+   *
+   * @param keys - 依赖的状态键
+   * @returns 选择器结果
+   */
+  select(...keys: string[]): R {
+    const cacheKey = keys.join(':')
+    const deps = keys.map(k => this.stateManager.get(k))
+    const cached = this.cache.get(cacheKey)
+
+    // 检查缓存是否有效
+    if (cached) {
+      const isValid = this.isCacheValid(cached, deps)
+      if (isValid) {
+        return cached.value
+      }
+    }
+
+    // 计算新值
+    const state = this.buildState(keys) as T
+    const value = this.selector(state)
+
+    // 更新缓存
+    this.updateCache(cacheKey, value, deps)
+
+    return value
+  }
+
+  /**
+   * 清除缓存
+   */
+  clear(): void {
+    this.cache.clear()
+  }
+
+  /**
+   * 获取缓存大小
+   */
+  get size(): number {
+    return this.cache.size
+  }
+
+  /**
+   * 检查缓存是否有效
+   */
+  private isCacheValid(
+    cached: { value: R; deps: unknown[]; timestamp: number },
+    currentDeps: unknown[]
+  ): boolean {
+    // 检查 TTL
+    if (this.config.ttl > 0) {
+      if (Date.now() - cached.timestamp > this.config.ttl) {
+        return false
+      }
+    }
+
+    // 检查依赖是否变化
+    if (cached.deps.length !== currentDeps.length) {
+      return false
+    }
+
+    for (let i = 0; i < cached.deps.length; i++) {
+      if (cached.deps[i] !== currentDeps[i]) {
+        return false
+      }
+    }
+
+    return true
+  }
+
+  /**
+   * 更新缓存
+   */
+  private updateCache(key: string, value: R, deps: unknown[]): void {
+    // 检查缓存大小
+    if (this.cache.size >= this.config.maxSize) {
+      // 删除最旧的条目
+      const firstKey = this.cache.keys().next().value
+      if (firstKey) {
+        this.cache.delete(firstKey)
+      }
+    }
+
+    this.cache.set(key, {
+      value,
+      deps,
+      timestamp: Date.now()
+    })
+  }
+
+  /**
+   * 构建状态对象
+   */
+  private buildState(keys: string[]): Record<string, unknown> {
+    const state: Record<string, unknown> = {}
+    for (const key of keys) {
+      state[key] = this.stateManager.get(key)
+    }
+    return state
+  }
+}
+
+/**
+ * 创建带缓存的选择器
+ *
+ * @param stateManager - 状态管理器
+ * @param selector - 选择器函数
+ * @param config - 缓存配置
+ * @returns 缓存选择器实例
+ */
+export function createCachedSelector<T = unknown, R = unknown>(
+  stateManager: StateManager,
+  selector: Selector<T, R>,
+  config?: SelectorCacheConfig
+): CachedSelector<T, R> {
+  return new CachedSelector(stateManager, selector, config)
+}
+
+/**
+ * 防抖批量更新管理器
+ *
+ * 将短时间内的多次更新合并为一次
+ *
+ * @example
+ * ```typescript
+ * const debounced = new DebouncedBatchUpdater(stateManager, 16) // 16ms
+ *
+ * // 这些更新会被合并
+ * debounced.set('a', 1)
+ * debounced.set('b', 2)
+ * debounced.set('a', 3) // 覆盖之前的值
+ *
+ * // 16ms 后统一应用
+ * ```
+ */
+export class DebouncedBatchUpdater {
+  private pendingUpdates = new Map<string, unknown>()
+  private timer?: ReturnType<typeof setTimeout>
+  private flushCallbacks: Array<() => void> = []
+
+  constructor(
+    private stateManager: StateManager,
+    private delay: number = 16
+  ) {}
+
+  /**
+   * 设置状态（延迟应用）
+   *
+   * @param key - 状态键
+   * @param value - 状态值
+   */
+  set<T = unknown>(key: string, value: T): void {
+    this.pendingUpdates.set(key, value)
+    this.scheduleFlush()
+  }
+
+  /**
+   * 立即应用所有待处理的更新
+   */
+  flush(): void {
+    if (this.timer) {
+      clearTimeout(this.timer)
+      this.timer = undefined
+    }
+
+    if (this.pendingUpdates.size === 0) {
+      return
+    }
+
+    // 复制待处理更新
+    const updates = new Map(this.pendingUpdates)
+    this.pendingUpdates.clear()
+
+    // 批量应用更新
+    if ('batch' in this.stateManager && typeof (this.stateManager as any).batch === 'function') {
+      (this.stateManager as any).batch(() => {
+        updates.forEach((value, key) => {
+          this.stateManager.set(key, value)
+        })
+      })
+    } else {
+      updates.forEach((value, key) => {
+        this.stateManager.set(key, value)
+      })
+    }
+
+    // 触发回调
+    const callbacks = this.flushCallbacks.slice()
+    this.flushCallbacks.length = 0
+    callbacks.forEach(cb => cb())
+  }
+
+  /**
+   * 等待下一次刷新
+   */
+  onFlush(callback: () => void): void {
+    this.flushCallbacks.push(callback)
+  }
+
+  /**
+   * 获取待处理更新数量
+   */
+  get pendingCount(): number {
+    return this.pendingUpdates.size
+  }
+
+  /**
+   * 取消所有待处理的更新
+   */
+  cancel(): void {
+    if (this.timer) {
+      clearTimeout(this.timer)
+      this.timer = undefined
+    }
+    this.pendingUpdates.clear()
+    this.flushCallbacks.length = 0
+  }
+
+  /**
+   * 调度刷新
+   */
+  private scheduleFlush(): void {
+    if (this.timer) {
+      return
+    }
+
+    this.timer = setTimeout(() => {
+      this.timer = undefined
+      this.flush()
+    }, this.delay)
+  }
+}
+
+/**
+ * 创建防抖批量更新器
+ *
+ * @param stateManager - 状态管理器
+ * @param delay - 延迟时间（毫秒）
+ * @returns 防抖批量更新器实例
+ */
+export function createDebouncedUpdater(
+  stateManager: StateManager,
+  delay?: number
+): DebouncedBatchUpdater {
+  return new DebouncedBatchUpdater(stateManager, delay)
+}
+
+/**
+ * 计算状态类
+ *
+ * 基于其他状态自动计算派生值
+ *
+ * @example
+ * ```typescript
+ * const computed = new ComputedState(
+ *   stateManager,
+ *   ['users', 'filter'],
+ *   ({ users, filter }) => users?.filter(u => u.name.includes(filter))
+ * )
+ *
+ * // 当 users 或 filter 变化时自动重新计算
+ * const value = computed.get()
+ * ```
+ */
+export class ComputedState<T = unknown> {
+  private cachedValue: T | undefined
+  private cachedDeps: unknown[] = []
+  private subscriptions: Array<() => void> = []
+  private dirty = true
+
+  constructor(
+    private stateManager: StateManager,
+    private dependencies: string[],
+    private compute: (deps: Record<string, unknown>) => T
+  ) {
+    // 监听依赖变化
+    for (const key of dependencies) {
+      const unsubscribe = stateManager.watch(key, () => {
+        this.dirty = true
+      })
+      this.subscriptions.push(unsubscribe)
+    }
+  }
+
+  /**
+   * 获取计算值
+   */
+  get(): T {
+    if (this.dirty) {
+      this.recalculate()
+    }
+    return this.cachedValue as T
+  }
+
+  /**
+   * 强制重新计算
+   */
+  invalidate(): void {
+    this.dirty = true
+  }
+
+  /**
+   * 销毁计算状态，释放订阅
+   */
+  dispose(): void {
+    for (const unsubscribe of this.subscriptions) {
+      unsubscribe()
+    }
+    this.subscriptions.length = 0
+    this.cachedValue = undefined
+    this.cachedDeps.length = 0
+  }
+
+  /**
+   * 重新计算值
+   */
+  private recalculate(): void {
+    const deps: Record<string, unknown> = {}
+    for (const key of this.dependencies) {
+      deps[key] = this.stateManager.get(key)
+    }
+
+    this.cachedValue = this.compute(deps)
+    this.cachedDeps = Object.values(deps)
+    this.dirty = false
+  }
+}
+
+/**
+ * 创建计算状态
+ *
+ * @param stateManager - 状态管理器
+ * @param dependencies - 依赖的状态键
+ * @param compute - 计算函数
+ * @returns 计算状态实例
+ */
+export function createComputedState<T = unknown>(
+  stateManager: StateManager,
+  dependencies: string[],
+  compute: (deps: Record<string, unknown>) => T
+): ComputedState<T> {
+  return new ComputedState(stateManager, dependencies, compute)
 }
 
 /**

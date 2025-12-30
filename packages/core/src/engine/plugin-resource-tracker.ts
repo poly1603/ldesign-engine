@@ -19,7 +19,7 @@ class AggregateErrorPolyfill extends Error {
 // Use native AggregateError if available, otherwise use polyfill
 const AggregateErrorImpl = (typeof globalThis !== 'undefined' &&
   'AggregateError' in globalThis)
-  ? (globalThis as any).AggregateError
+  ? (globalThis as unknown as { AggregateError: typeof AggregateErrorPolyfill }).AggregateError
   : AggregateErrorPolyfill;
 
 export interface PluginResources {
@@ -242,7 +242,7 @@ export class PluginResourceTracker {
     hooks: number;
     total: number;
   }> {
-    const stats: Record<string, any> = {};
+    const stats: Record<string, { eventListeners: number; timers: number; domListeners: number; customResources: number; hooks: number; total: number }> = {};
 
     for (const [pluginName, resources] of this.resources) {
       const stat = {
@@ -290,11 +290,11 @@ export class PluginResourceTracker {
 /**
  * 创建带资源追踪的插件上下文 Proxy
  */
-export function createTrackedPluginContext(
+export function createTrackedPluginContext<T extends object>(
   pluginName: string,
   tracker: PluginResourceTracker,
-  originalContext: any
-): any {
+  originalContext: T
+): T {
   tracker.initPlugin(pluginName);
 
   return new Proxy(originalContext, {
@@ -319,7 +319,7 @@ export function createTrackedPluginContext(
 
       // 拦截定时器方法
       if (prop === 'setTimeout') {
-        return (callback: Function, delay: number, ...args: any[]) => {
+        return (callback: Function, delay: number, ...args: unknown[]) => {
           const timerId = setTimeout(callback, delay, ...args);
           tracker.trackTimer(pluginName, timerId, 'timeout');
           return timerId;
@@ -327,7 +327,7 @@ export function createTrackedPluginContext(
       }
 
       if (prop === 'setInterval') {
-        return (callback: Function, delay: number, ...args: any[]) => {
+        return (callback: Function, delay: number, ...args: unknown[]) => {
           const timerId = setInterval(callback, delay, ...args);
           tracker.trackTimer(pluginName, timerId, 'interval');
           return timerId;

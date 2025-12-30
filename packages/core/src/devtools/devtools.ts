@@ -271,8 +271,9 @@ export class DevTools {
   private trackPerformance(): void {
     // 追踪插件安装
     this.engine.events.on('plugin:before-install', (data: UnknownRecord) => {
+      const pluginData = data as { plugin?: { name?: string } }
       const record: PerformanceRecord = {
-        name: (data as any).plugin?.name || 'unknown',
+        name: pluginData.plugin?.name || 'unknown',
         startTime: Date.now(),
         type: 'plugin',
       }
@@ -280,8 +281,9 @@ export class DevTools {
     })
 
     this.engine.events.on('plugin:installed', (data: UnknownRecord) => {
+      const pluginData = data as { plugin?: { name?: string } }
       const record = this.performanceRecords.find(
-        r => r.name === ((data as any).plugin?.name || 'unknown') && !r.endTime
+        r => r.name === (pluginData.plugin?.name || 'unknown') && !r.endTime
       )
       if (record) {
         record.endTime = Date.now()
@@ -448,7 +450,7 @@ export class DevTools {
         }
       }
 
-      const typeStat = stats[record.type] as any
+      const typeStat = stats[record.type] as { count: number; totalDuration: number; avgDuration: number; maxDuration: number }
       typeStat.count++
       typeStat.totalDuration += record.duration
       typeStat.avgDuration = typeStat.totalDuration / typeStat.count

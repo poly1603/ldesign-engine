@@ -24,12 +24,12 @@ import { METADATA_KEY } from './types'
  * ```
  */
 export function Injectable(): ClassDecorator {
-  return function (target: any) {
-    Reflect.defineMetadata(METADATA_KEY.INJECTABLE, true, target)
+  return function <TFunction extends Function>(target: TFunction): TFunction {
+    (Reflect as any).defineMetadata(METADATA_KEY.INJECTABLE, true, target)
     
     // 保存构造函数参数类型
-    const paramTypes = Reflect.getMetadata('design:paramtypes', target) || []
-    Reflect.defineMetadata(METADATA_KEY.PARAM_TYPES, paramTypes, target)
+    const paramTypes = (Reflect as any).getMetadata('design:paramtypes', target) || []
+    ;(Reflect as any).defineMetadata(METADATA_KEY.PARAM_TYPES, paramTypes, target)
     
     return target
   }
@@ -54,10 +54,10 @@ export function Injectable(): ClassDecorator {
  * ```
  */
 export function Inject(identifier: ServiceIdentifier): ParameterDecorator {
-  return function (target: any, propertyKey: string | symbol | undefined, parameterIndex: number) {
+  return function (target: object, propertyKey: string | symbol | undefined, parameterIndex: number) {
     // 获取现有的注入元数据
     const existingMetadata: InjectMetadata[] = 
-      Reflect.getMetadata(METADATA_KEY.INJECT, target) || []
+      (Reflect as any).getMetadata(METADATA_KEY.INJECT, target) || []
     
     // 添加新的注入元数据
     existingMetadata.push({
@@ -67,7 +67,7 @@ export function Inject(identifier: ServiceIdentifier): ParameterDecorator {
     })
     
     // 保存元数据
-    Reflect.defineMetadata(METADATA_KEY.INJECT, existingMetadata, target)
+    ;(Reflect as any).defineMetadata(METADATA_KEY.INJECT, existingMetadata, target)
   }
 }
 
@@ -89,10 +89,10 @@ export function Inject(identifier: ServiceIdentifier): ParameterDecorator {
  * ```
  */
 export function Optional(identifier: ServiceIdentifier): ParameterDecorator {
-  return function (target: any, propertyKey: string | symbol | undefined, parameterIndex: number) {
+  return function (target: object, propertyKey: string | symbol | undefined, parameterIndex: number) {
     // 获取现有的注入元数据
     const existingMetadata: InjectMetadata[] = 
-      Reflect.getMetadata(METADATA_KEY.INJECT, target) || []
+      (Reflect as any).getMetadata(METADATA_KEY.INJECT, target) || []
     
     // 添加新的注入元数据
     existingMetadata.push({
@@ -102,7 +102,7 @@ export function Optional(identifier: ServiceIdentifier): ParameterDecorator {
     })
     
     // 保存元数据
-    Reflect.defineMetadata(METADATA_KEY.INJECT, existingMetadata, target)
+    ;(Reflect as any).defineMetadata(METADATA_KEY.INJECT, existingMetadata, target)
   }
 }
 
@@ -119,8 +119,8 @@ export function Optional(identifier: ServiceIdentifier): ParameterDecorator {
  * }
  * ```
  */
-export function isInjectable(target: any): boolean {
-  return Reflect.getMetadata(METADATA_KEY.INJECTABLE, target) === true
+export function isInjectable(target: object): boolean {
+  return (Reflect as any).getMetadata(METADATA_KEY.INJECTABLE, target) === true
 }
 
 /**
@@ -135,8 +135,8 @@ export function isInjectable(target: any): boolean {
  * // [Database, Logger]
  * ```
  */
-export function getParamTypes(target: any): any[] {
-  return Reflect.getMetadata(METADATA_KEY.PARAM_TYPES, target) || []
+export function getParamTypes(target: object): unknown[] {
+  return (Reflect as any).getMetadata(METADATA_KEY.PARAM_TYPES, target) || []
 }
 
 /**
@@ -151,6 +151,6 @@ export function getParamTypes(target: any): any[] {
  * // [{ index: 0, identifier: 'database', optional: false }]
  * ```
  */
-export function getInjectMetadata(target: any): InjectMetadata[] {
-  return Reflect.getMetadata(METADATA_KEY.INJECT, target) || []
+export function getInjectMetadata(target: object): InjectMetadata[] {
+  return (Reflect as any).getMetadata(METADATA_KEY.INJECT, target) || []
 }

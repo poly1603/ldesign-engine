@@ -95,7 +95,7 @@ export class EngineError extends Error {
   readonly recoverable: boolean
   
   /** 错误详情 */
-  readonly details?: Record<string, any>
+  readonly details?: Record<string, unknown>
   
   /** 原始错误 */
   readonly cause?: Error
@@ -110,7 +110,7 @@ export class EngineError extends Error {
       category?: ErrorCategory
       severity?: ErrorSeverity
       recoverable?: boolean
-      details?: Record<string, any>
+      details?: Record<string, unknown>
       cause?: Error
     }
   ) {
@@ -131,7 +131,7 @@ export class EngineError extends Error {
   /**
    * 转换为 JSON 对象
    */
-  toJSON(): Record<string, any> {
+  toJSON(): Record<string, unknown> {
     return {
       name: this.name,
       message: this.message,
@@ -180,7 +180,7 @@ export class PluginError extends EngineError {
     options?: {
       severity?: ErrorSeverity
       recoverable?: boolean
-      details?: Record<string, any>
+      details?: Record<string, unknown>
       cause?: Error
     }
   ) {
@@ -206,7 +206,7 @@ export class StateError extends EngineError {
     options?: {
       severity?: ErrorSeverity
       recoverable?: boolean
-      details?: Record<string, any>
+      details?: Record<string, unknown>
       cause?: Error
     }
   ) {
@@ -232,7 +232,7 @@ export class EventError extends EngineError {
     options?: {
       severity?: ErrorSeverity
       recoverable?: boolean
-      details?: Record<string, any>
+      details?: Record<string, unknown>
       cause?: Error
     }
   ) {
@@ -258,7 +258,7 @@ export class MiddlewareError extends EngineError {
     options?: {
       severity?: ErrorSeverity
       recoverable?: boolean
-      details?: Record<string, any>
+      details?: Record<string, unknown>
       cause?: Error
     }
   ) {
@@ -284,7 +284,7 @@ export class LifecycleError extends EngineError {
     options?: {
       severity?: ErrorSeverity
       recoverable?: boolean
-      details?: Record<string, any>
+      details?: Record<string, unknown>
       cause?: Error
     }
   ) {
@@ -402,7 +402,7 @@ export function createErrorManager(): ErrorManager {
  * @param errorType - 错误类型
  * @returns 包装后的函数
  */
-export function wrapError<T extends any[], R>(
+export function wrapError<T extends unknown[], R>(
   fn: (...args: T) => R,
   errorType: typeof EngineError = EngineError
 ): (...args: T) => R {
@@ -432,7 +432,7 @@ export function wrapError<T extends any[], R>(
  * @param errorType - 错误类型
  * @returns 包装后的异步函数
  */
-export function wrapAsyncError<T extends any[], R>(
+export function wrapAsyncError<T extends unknown[], R>(
   fn: (...args: T) => Promise<R>,
   errorType: typeof EngineError = EngineError
 ): (...args: T) => Promise<R> {
@@ -482,7 +482,7 @@ export interface RecoveryOptions {
   /** 重试延迟 (毫秒, 仅用于 RETRY 策略) */
   retryDelay?: number
   /** 默认值 (仅用于 USE_DEFAULT 策略) */
-  defaultValue?: any
+  defaultValue?: unknown
   /** 自定义恢复函数 */
   customRecover?: () => void | Promise<void>
 }

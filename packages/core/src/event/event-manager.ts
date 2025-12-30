@@ -9,6 +9,75 @@
 import type { EventManager, EventHandler, Unsubscribe, EventPayload } from '../types'
 
 /**
+ * 节流/防抖处理器选项
+ */
+export interface ThrottleOptions {
+  /** 延迟时间（毫秒） */
+  delay: number
+  /** 是否在前沿触发（throttle 模式） */
+  leading?: boolean
+  /** 是否在后沿触发（throttle 模式） */
+  trailing?: boolean
+}
+
+/**
+ * 对象池配置
+ */
+export interface ObjectPoolConfig {
+  /** 初始池大小 */
+  initialSize?: number
+  /** 最大池大小 */
+  maxSize?: number
+}
+
+/**
+ * 通用对象池实现
+ * 用于减少频繁创建销毁对象的开销
+ * @private
+ */
+class ObjectPool<T> {
+  private pool: T[] = []
+  private factory: () => T
+  private reset: (obj: T) => void
+  private maxSize: number
+
+  constructor(
+    factory: () => T,
+    reset: (obj: T) => void,
+    config: ObjectPoolConfig = {}
+  ) {
+    this.factory = factory
+    this.reset = reset
+    this.maxSize = config.maxSize ?? 100
+
+    // 预创建对象
+    const initialSize = config.initialSize ?? 10
+    for (let i = 0; i < initialSize; i++) {
+      this.pool.push(factory())
+    }
+  }
+
+  acquire(): T {
+    return this.pool.length > 0 ? this.pool.pop()! : this.factory()
+  }
+
+  release(obj: T): void {
+    if (this.pool.length < this.maxSize) {
+      this.reset(obj)
+      this.pool.push(obj)
+    }
+  }
+
+  clear(): void {
+    this.pool.length = 0
+  }
+
+  get size(): number {
+    return this.pool.length
+  }
+}
+
+/**
  * 一次性事件处理器包装器
  * 用于标识和管理 once 监听器,防止内存泄漏
  * @private
@@ -219,10 +288,41 @@ export class CoreEventManager implements EventManager {
   private pendingCleanup = new Set<string>()
 
   /** 清理定时器 */
-  private cleanupTimer?: NodeJS.Timeout
+  private cleanupTimer?: ReturnType<typeof setTimeout>
 
-  /** 修复：待清理队列的最大大小限制，防止内存泄漏 */
+  /** 修复:待清理队列的最大大小限制,防止内存泄漏 */
   private readonly maxPendingCleanup = 100
+
+  /** 性能优化:事件触发计数器,用于统计和性能分析 */
+  private eventTriggerCount = new Map<string, number>()
+
+  /** 性能优化:最后一次清理时间 */
+  private lastCleanupTime = Date.now()
+
+  /** 节流处理器存储 */
+  private throttledHandlers = new Map<string, Map<EventHandler<EventPayload>, {
+    wrapper: EventHandler<EventPayload>
+    timer?: ReturnType<typeof setTimeout>
+    lastCall: number
+    pending?: EventPayload
+  }>>()
+
+  /** 防抖处理器存储 */
+  private debouncedHandlers = new Map<string, Map<EventHandler<EventPayload>, {
+    wrapper: EventHandler<EventPayload>
+    timer?: ReturnType<typeof setTimeout>
+  }>>()
+
+  /** 事件处理器数组池 - 减少数组创建开销 */
+  private handlerArrayPool = new ObjectPool<PriorityEventHandler<EventPayload>[]>(
+    () => [],
+    (arr) => { arr.length = 0 },
+    { initialSize: 20, maxSize: 50 }
+  )
+
+  /** 微任务队列 - 延迟执行优化 */
+  private microTaskQueue: Array<{ event: string; payload: EventPayload }> = []
+  private microTaskScheduled = false
 
   /**
    * 触发事件
@@ -247,11 +347,15 @@ export class CoreEventManager implements EventManager {
    * ```
    */
   emit<T = EventPayload>(event: string, payload?: T): void {
-    // 1. 触发精确匹配的监听器（按优先级排序）
+    // 性能优化:统计事件触发次数
+    const count = this.eventTriggerCount.get(event) || 0
+    this.eventTriggerCount.set(event, count + 1)
+
+    // 1. 触发精确匹配的监听器(按优先级排序)
     const handlers = this.events.get(event)
 
     if (handlers && handlers.length > 0) {
-      // 按优先级执行（已排序，直接遍历）
+      // 按优先级执行(已排序,直接遍历)
       for (const { handler } of handlers) {
         try {
           handler(payload)
@@ -265,7 +369,7 @@ export class CoreEventManager implements EventManager {
     // 2. 触发模式匹配的监听器（优化版本：使用前缀索引）
     if (this.patternPrefixIndex.size > 0) {
       const relevantListeners = this.getRelevantPatternListeners(event)
-      
+
       relevantListeners.forEach(({ regex, handler }) => {
         if (regex.test(event)) {
           try {
@@ -289,13 +393,13 @@ export class CoreEventManager implements EventManager {
    */
   private getRelevantPatternListeners(event: string): Set<PatternListener> {
     const relevant = new Set<PatternListener>()
-    
+
     // 1. 添加全局监听器 (*)
     const globalListeners = this.patternPrefixIndex.get('*')
     if (globalListeners) {
       globalListeners.forEach(listener => relevant.add(listener))
     }
-    
+
     // 2. 提取事件前缀（冒号分隔）
     const parts = event.split(':')
     for (let i = 0; i < parts.length; i++) {
@@ -305,13 +409,13 @@ export class CoreEventManager implements EventManager {
         prefixListeners.forEach(listener => relevant.add(listener))
       }
     }
-    
+
     // 3. 添加精确匹配前缀的监听器
     const exactListeners = this.patternPrefixIndex.get(event)
     if (exactListeners) {
       exactListeners.forEach(listener => relevant.add(listener))
     }
-    
+
     return relevant
   }
 
@@ -470,13 +574,13 @@ export class CoreEventManager implements EventManager {
     }
 
     const handlers = this.events.get(event)!
-    
+
     // 创建优先级处理器
     const priorityHandler: PriorityEventHandler<EventPayload> = {
       handler: handler as EventHandler<EventPayload>,
       priority
     }
-    
+
     // 按优先级插入（降序排列）
     const insertIndex = handlers.findIndex(h => h.priority < priority)
     if (insertIndex === -1) {
@@ -636,6 +740,33 @@ export class CoreEventManager implements EventManager {
       clearTimeout(this.cleanupTimer)
       this.cleanupTimer = undefined
     }
+
+    // 清理统计数据
+    this.eventTriggerCount.clear()
+
+    // 清理节流和防抖处理器
+    this.throttledHandlers.forEach(handlers => {
+      handlers.forEach(h => {
+        if (h.timer) clearTimeout(h.timer)
+      })
+      handlers.clear()
+    })
+    this.throttledHandlers.clear()
+
+    this.debouncedHandlers.forEach(handlers => {
+      handlers.forEach(h => {
+        if (h.timer) clearTimeout(h.timer)
+      })
+      handlers.clear()
+    })
+    this.debouncedHandlers.clear()
+
+    // 清理对象池
+    this.handlerArrayPool.clear()
+
+    // 清理微任务队列
+    this.microTaskQueue.length = 0
+    this.microTaskScheduled = false
   }
 
   /**
@@ -757,7 +888,7 @@ export class CoreEventManager implements EventManager {
   private indexPatternListener(pattern: string, listener: PatternListener): void {
     // 提取模式前缀（通配符之前的部分）
     const prefix = pattern.split('*')[0]
-    
+
     // 如果是全局监听器 (*)
     if (prefix === '' || prefix === '*') {
       if (!this.patternPrefixIndex.has('*')) {
@@ -769,7 +900,7 @@ export class CoreEventManager implements EventManager {
 
     // 移除末尾的冒号
     const cleanPrefix = prefix.endsWith(':') ? prefix.slice(0, -1) : prefix
-    
+
     if (!this.patternPrefixIndex.has(cleanPrefix)) {
       this.patternPrefixIndex.set(cleanPrefix, new Set())
     }
@@ -785,11 +916,11 @@ export class CoreEventManager implements EventManager {
    */
   private unindexPatternListener(pattern: string, listener: PatternListener): void {
     const prefix = pattern.split('*')[0]
-    
+
     const key = (prefix === '' || prefix === '*')
       ? '*'
       : (prefix.endsWith(':') ? prefix.slice(0, -1) : prefix)
-    
+
     const indexSet = this.patternPrefixIndex.get(key)
     if (indexSet) {
       indexSet.delete(listener)
@@ -815,14 +946,16 @@ export class CoreEventManager implements EventManager {
     totalEvents: number
     totalListeners: number
     totalPatternListeners: number
-    events: Array<{ name: string; listenerCount: number }>
+    events: Array<{ name: string; listenerCount: number; triggerCount?: number }>
+    topTriggeredEvents: Array<{ name: string; count: number }>
   } {
-    const events: Array<{ name: string; listenerCount: number }> = []
+    const events: Array<{ name: string; listenerCount: number; triggerCount?: number }> = []
     let totalListeners = 0
 
     this.events.forEach((handlers, name) => {
       const count = handlers.length
-      events.push({ name, listenerCount: count })
+      const triggerCount = this.eventTriggerCount.get(name)
+      events.push({ name, listenerCount: count, triggerCount })
       totalListeners += count
     })
 
@@ -831,11 +964,18 @@ export class CoreEventManager implements EventManager {
       totalPatternListeners += listeners.size
     })
 
+    // 获取触发次数最多的事件
+    const topTriggered = Array.from(this.eventTriggerCount.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([name, count]) => ({ name, count }))
+
     return {
       totalEvents: this.events.size,
       totalListeners,
       totalPatternListeners,
       events: events.sort((a, b) => b.listenerCount - a.listenerCount),
+      topTriggeredEvents: topTriggered,
     }
   }
 
@@ -929,6 +1069,189 @@ export class CoreEventManager implements EventManager {
       }
     })
     this.pendingCleanup.clear()
+  }
+
+  /**
+   * 带节流的事件监听
+   *
+   * 性能优化: 限制处理器的调用频率
+   *
+   * @param event - 事件名称
+   * @param handler - 事件处理器
+   * @param options - 节流选项
+   * @returns 取消监听的函数
+   *
+   * @example
+   * ```typescript
+   * // 最多每100ms触发一次
+   * eventManager.onThrottled('scroll', handleScroll, { delay: 100 })
+   *
+   * // 前沿触发（立即执行第一次）
+   * eventManager.onThrottled('resize', handleResize, {
+   *   delay: 200,
+   *   leading: true,
+   *   trailing: false
+   * })
+   * ```
+   */
+  onThrottled<T = EventPayload>(
+    event: string,
+    handler: EventHandler<T>,
+    options: ThrottleOptions
+  ): Unsubscribe {
+    const { delay, leading = true, trailing = true } = options
+
+    if (!this.throttledHandlers.has(event)) {
+      this.throttledHandlers.set(event, new Map())
+    }
+
+    const throttledWrapper: EventHandler<EventPayload> = (payload) => {
+      const handlerData = this.throttledHandlers.get(event)?.get(handler as EventHandler<EventPayload>)
+      if (!handlerData) return
+
+      const now = Date.now()
+      const timeSinceLastCall = now - handlerData.lastCall
+
+      if (timeSinceLastCall >= delay) {
+        // 可以立即执行
+        if (leading || handlerData.lastCall !== 0) {
+          handlerData.lastCall = now
+          handler(payload as T)
+        }
+      } else if (trailing) {
+        // 保存待执行的负载
+        handlerData.pending = payload
+
+        // 设置延迟执行
+        if (!handlerData.timer) {
+          handlerData.timer = setTimeout(() => {
+            handlerData.timer = undefined
+            if (handlerData.pending !== undefined) {
+              handlerData.lastCall = Date.now()
+              handler(handlerData.pending as T)
+              handlerData.pending = undefined
+            }
+          }, delay - timeSinceLastCall)
+        }
+      }
+    }
+
+    this.throttledHandlers.get(event)!.set(handler as EventHandler<EventPayload>, {
+      wrapper: throttledWrapper,
+      lastCall: 0
+    })
+
+    // 注册包装后的处理器
+    return this.on(event, throttledWrapper)
+  }
+
+  /**
+   * 带防抖的事件监听
+   *
+   * 性能优化: 延迟执行，直到事件停止触发
+   *
+   * @param event - 事件名称
+   * @param handler - 事件处理器
+   * @param delay - 延迟时间（毫秒）
+   * @returns 取消监听的函数
+   *
+   * @example
+   * ```typescript
+   * // 输入停止 300ms 后触发
+   * eventManager.onDebounced('input', handleInput, 300)
+   * ```
+   */
+  onDebounced<T = EventPayload>(
+    event: string,
+    handler: EventHandler<T>,
+    delay: number
+  ): Unsubscribe {
+    if (!this.debouncedHandlers.has(event)) {
+      this.debouncedHandlers.set(event, new Map())
+    }
+
+    const debouncedWrapper: EventHandler<EventPayload> = (payload) => {
+      const handlerData = this.debouncedHandlers.get(event)?.get(handler as EventHandler<EventPayload>)
+      if (!handlerData) return
+
+      // 清除之前的定时器
+      if (handlerData.timer) {
+        clearTimeout(handlerData.timer)
+      }
+
+      // 设置新的定时器
+      handlerData.timer = setTimeout(() => {
+        handlerData.timer = undefined
+        handler(payload as T)
+      }, delay)
+    }
+
+    this.debouncedHandlers.get(event)!.set(handler as EventHandler<EventPayload>, {
+      wrapper: debouncedWrapper
+    })
+
+    // 注册包装后的处理器
+    return this.on(event, debouncedWrapper)
+  }
+
+  /**
+   * 延迟触发事件（微任务队列）
+   *
+   * 性能优化: 将事件触发延迟到微任务中执行，
+   * 可以合并同一帧内的多次触发
+   *
+   * @param event - 事件名称
+   * @param payload - 事件数据
+   *
+   * @example
+   * ```typescript
+   * // 延迟到微任务中执行
+   * eventManager.emitDeferred('update', data)
+   * eventManager.emitDeferred('update', data2) // 会合并执行
+   * ```
+   */
+  emitDeferred<T = EventPayload>(event: string, payload?: T): void {
+    this.microTaskQueue.push({ event, payload })
+
+    if (!this.microTaskScheduled) {
+      this.microTaskScheduled = true
+      queueMicrotask(() => this.flushMicroTaskQueue())
+    }
+  }
+
+  /**
+   * 刷新微任务队列
+   *
+   * @private
+   */
+  private flushMicroTaskQueue(): void {
+    this.microTaskScheduled = false
+
+    // 复制队列并清空
+    const queue = this.microTaskQueue.slice()
+    this.microTaskQueue.length = 0
+
+    // 使用 Map 去重，保留最后一次的 payload
+    const eventMap = new Map<string, EventPayload>()
+    for (const item of queue) {
+      eventMap.set(item.event, item.payload)
+    }
+
+    // 按顺序触发去重后的事件
+    for (const [event, payload] of eventMap) {
+      this.emit(event, payload)
+    }
+  }
+
+  /**
+   * 获取对象池统计信息
+   *
+   * @returns 对象池统计
+   */
+  getPoolStats(): { handlerArrayPoolSize: number } {
+    return {
+      handlerArrayPoolSize: this.handlerArrayPool.size
+    }
   }
 }
 

@@ -64,6 +64,12 @@ export class ServiceContainerImpl implements ServiceContainer {
   /** 解析路径栈（用于检测间接循环依赖） */
   private resolvingStack: ServiceIdentifier[] = []
 
+  /** 性能优化:服务解析计数器,用于性能监控 */
+  private resolveCount = new Map<ServiceIdentifier, number>()
+
+  /** 性能优化:服务解析时间统计 */
+  private resolveTimeStats = new Map<ServiceIdentifier, { totalTime: number; count: number }>()
+
   /**
    * 构造函数
    * 
@@ -167,8 +173,16 @@ export class ServiceContainerImpl implements ServiceContainer {
     this.resolving.add(identifier)
     this.resolvingStack.push(identifier)
 
+    // 性能监控:记录解析开始时间
+    const startTime = performance.now()
+
     try {
-      return this.resolveDescriptor(descriptor, options) as T
+      const result = this.resolveDescriptor(descriptor, options) as T
+
+      // 性能监控:统计解析次数和时间
+      this.updateResolveStats(identifier, startTime)
+
+      return result
     } finally {
       // 解析完成，移除标记
       this.resolving.delete(identifier)
@@ -271,6 +285,70 @@ export class ServiceContainerImpl implements ServiceContainer {
     this.singletons.clear()
     this.scopedInstances.clear()
     this.resolving.clear()
+    this.resolveCount.clear()
+    this.resolveTimeStats.clear()
+  }
+
+  /**
+   * 获取服务解析统计信息
+   *
+   * @returns 统计信息对象
+   *
+   * @example
+   * ```typescript
+   * const stats = container.getResolveStats()
+   * console.log('总解析次数:', stats.totalResolves)
+   * console.log('最热门服务:', stats.topServices)
+   * ```
+   */
+  getResolveStats(): {
+    totalResolves: number
+    topServices: Array<{ identifier: string; count: number; avgTime: number }>
+    slowestServices: Array<{ identifier: string; avgTime: number; count: number }>
+  } {
+    let totalResolves = 0
+    const services: Array<{ identifier: string; count: number; avgTime: number }> = []
+
+    // 统计所有服务的解析次数和平均时间
+    this.resolveCount.forEach((count, identifier) => {
+      totalResolves += count
+      const timeStats = this.resolveTimeStats.get(identifier)
+      const avgTime = timeStats ? timeStats.totalTime / timeStats.count : 0
+      services.push({
+        identifier: String(identifier),
+        count,
+        avgTime,
+      })
+    })
+
+    // 按解析次数排序获取最热门服务
+    const topServices = [...services]
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10)
+
+    // 按平均时间排序获取最慢服务
+    const slowestServices = [...services]
+      .sort((a, b) => b.avgTime - a.avgTime)
+      .slice(0, 10)
+
+    return {
+      totalResolves,
+      topServices,
+      slowestServices,
+    }
+  }
+
+  /**
+   * 重置解析统计信息
+   *
+   * @example
+   * ```typescript
+   * container.resetResolveStats()
+   * ```
+   */
+  resetResolveStats(): void {
+    this.resolveCount.clear()
+    this.resolveTimeStats.clear()
   }
 
   /**
@@ -490,7 +568,8 @@ export class ServiceContainerImpl implements ServiceContainer {
   private isConstructor(fn: unknown): boolean {
     try {
       // 尝试获取原型
-      return !!(fn as any).prototype && !!(fn as any).prototype.constructor
+      const fnWithPrototype = fn as { prototype?: { constructor?: unknown } }
+      return !!fnWithPrototype.prototype && !!fnWithPrototype.prototype.constructor
     } catch {
       return false
     }
@@ -525,6 +604,33 @@ export class ServiceContainerImpl implements ServiceContainer {
     cycle.push(identifier)
 
     return cycle
+  }
+
+  /**
+   * 更新服务解析统计信息
+   *
+   * @private
+   * @param identifier - 服务标识
+   * @param startTime - 解析开始时间
+   */
+  private updateResolveStats(identifier: ServiceIdentifier, startTime: number): void {
+    // 更新解析计数
+    const count = this.resolveCount.get(identifier) || 0
+    this.resolveCount.set(identifier, count + 1)
+
+    // 更新时间统计
+    const duration = performance.now() - startTime
+    const timeStats = this.resolveTimeStats.get(identifier)
+
+    if (timeStats) {
+      timeStats.totalTime += duration
+      timeStats.count += 1
+    } else {
+      this.resolveTimeStats.set(identifier, {
+        totalTime: duration,
+        count: 1,
+      })
+    }
   }
 }
 

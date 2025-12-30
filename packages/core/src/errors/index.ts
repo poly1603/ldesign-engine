@@ -89,15 +89,15 @@ export interface ErrorContext {
   /** 错误发生的操作 */
   operation?: string;
   /** 相关数据 */
-  data?: any;
+  data?: unknown;
   /** 堆栈信息 */
   stack?: string;
   /** 时间戳 */
   timestamp?: number;
   /** 用户信息 */
-  user?: any;
+  user?: unknown;
   /** 环境信息 */
-  env?: any;
+  env?: unknown;
 }
 
 /**
@@ -331,7 +331,7 @@ export class HttpError extends LDesignError {
   /** HTTP 状态码 */
   public readonly statusCode?: number;
   /** 响应数据 */
-  public readonly response?: any;
+  public readonly response?: unknown;
 
   constructor(
     code: ErrorCode,
@@ -339,7 +339,7 @@ export class HttpError extends LDesignError {
     options: Omit<ConstructorParameters<typeof LDesignError>[2], 'context'> & {
       context?: Omit<ErrorContext, 'module'>;
       statusCode?: number;
-      response?: any;
+      response?: unknown;
     } = {}
   ) {
     super(code, message, {

@@ -70,6 +70,15 @@ export class CorePluginManager implements PluginManager {
   /** 修复：正在热重载的插件集合，防止热重载时的竞态条件 */
   private reloadingPlugins = new Set<string>()
 
+  /** 性能优化:插件安装时间统计 */
+  private installTimeStats = new Map<string, { totalTime: number; count: number }>()
+
+  /** 性能优化:插件卸载时间统计 */
+  private uninstallTimeStats = new Map<string, { totalTime: number; count: number }>()
+
+  /** 性能优化:插件热重载时间统计 */
+  private hotReloadTimeStats = new Map<string, { totalTime: number; count: number }>()
+
   /**
    * 构造函数
    *
@@ -112,6 +121,9 @@ export class CorePluginManager implements PluginManager {
       version: plugin.version,
       hasDependencies: !!(plugin.dependencies && plugin.dependencies.length > 0),
     })
+
+    // 性能监控:记录开始时间
+    const startTime = performance.now()
 
     logger.info('PluginManager', 'install', `Starting plugin installation: ${plugin.name}`, {
       version: plugin.version,
@@ -204,9 +216,13 @@ export class CorePluginManager implements PluginManager {
 
       // 保存安装 Promise
       this.installMutex.set(plugin.name, installPromise)
-      
+
       // 等待安装完成
       await installPromise
+
+      // 性能监控:统计安装时间
+      this.updateInstallTimeStats(plugin.name, startTime)
+
       tracker.end(perfId)
     } catch (error) {
       tracker.end(perfId)
@@ -239,6 +255,9 @@ export class CorePluginManager implements PluginManager {
   async uninstall(name: string, force = false): Promise<boolean> {
     const tracker = getPerformanceTracker()
     const perfId = tracker.start('uninstall', 'PluginManager', { plugin: name, force })
+
+    // 性能监控:记录开始时间
+    const startTime = performance.now()
 
     logger.info('PluginManager', 'uninstall', `Starting plugin uninstallation: ${name}`, { force })
 
@@ -291,6 +310,11 @@ export class CorePluginManager implements PluginManager {
 
       if (this.context.config?.debug && result) {
         console.log(`Plugin "${name}" uninstalled successfully`)
+      }
+
+      // 性能监控:统计卸载时间
+      if (result) {
+        this.updateUninstallTimeStats(name, startTime)
       }
 
       tracker.end(perfId)
@@ -369,6 +393,9 @@ export class CorePluginManager implements PluginManager {
     this.installing.clear()
     this.dependencyGraph.clear()
     this.reverseDependencyGraph.clear()
+    this.installTimeStats.clear()
+    this.uninstallTimeStats.clear()
+    this.hotReloadTimeStats.clear()
   }
 
   /**
@@ -542,6 +569,9 @@ export class CorePluginManager implements PluginManager {
     const tracker = getPerformanceTracker()
     const perfId = tracker.start('hotReload', 'PluginManager', { plugin: name })
 
+    // 性能监控:记录开始时间
+    const startTime = performance.now()
+
     logger.info('PluginManager', 'hotReload', `Starting hot reload for plugin: ${name}`)
 
     // 修复：检查是否已经在热重载中
@@ -613,6 +643,9 @@ export class CorePluginManager implements PluginManager {
         if (this.context.config?.debug) {
           console.log(`Plugin "${name}" hot reloaded successfully`)
         }
+
+        // 性能监控:统计热重载时间
+        this.updateHotReloadTimeStats(name, startTime)
 
         tracker.end(perfId)
         return true
@@ -692,6 +725,167 @@ export class CorePluginManager implements PluginManager {
 
     // 插件必须实现 uninstall 方法才能支持热重载
     return typeof plugin.uninstall === 'function'
+  }
+
+  /**
+   * 获取插件性能统计信息
+   *
+   * @returns 统计信息对象
+   *
+   * @example
+   * ```typescript
+   * const stats = pluginManager.getPluginStats()
+   * console.log('总安装次数:', stats.totalInstalls)
+   * console.log('最慢安装:', stats.slowestInstalls)
+   * ```
+   */
+  getPluginStats(): {
+    totalPlugins: number
+    totalInstalls: number
+    totalUninstalls: number
+    totalHotReloads: number
+    slowestInstalls: Array<{ name: string; avgTime: number; count: number }>
+    slowestUninstalls: Array<{ name: string; avgTime: number; count: number }>
+    slowestHotReloads: Array<{ name: string; avgTime: number; count: number }>
+  } {
+    let totalInstalls = 0
+    let totalUninstalls = 0
+    let totalHotReloads = 0
+
+    // 统计安装次数
+    this.installTimeStats.forEach(stat => {
+      totalInstalls += stat.count
+    })
+
+    // 统计卸载次数
+    this.uninstallTimeStats.forEach(stat => {
+      totalUninstalls += stat.count
+    })
+
+    // 统计热重载次数
+    this.hotReloadTimeStats.forEach(stat => {
+      totalHotReloads += stat.count
+    })
+
+    // 按平均时间排序获取最慢安装
+    const slowestInstalls = Array.from(this.installTimeStats.entries())
+      .map(([name, stat]) => ({
+        name,
+        avgTime: stat.totalTime / stat.count,
+        count: stat.count,
+      }))
+      .sort((a, b) => b.avgTime - a.avgTime)
+      .slice(0, 10)
+
+    // 按平均时间排序获取最慢卸载
+    const slowestUninstalls = Array.from(this.uninstallTimeStats.entries())
+      .map(([name, stat]) => ({
+        name,
+        avgTime: stat.totalTime / stat.count,
+        count: stat.count,
+      }))
+      .sort((a, b) => b.avgTime - a.avgTime)
+      .slice(0, 10)
+
+    // 按平均时间排序获取最慢热重载
+    const slowestHotReloads = Array.from(this.hotReloadTimeStats.entries())
+      .map(([name, stat]) => ({
+        name,
+        avgTime: stat.totalTime / stat.count,
+        count: stat.count,
+      }))
+      .sort((a, b) => b.avgTime - a.avgTime)
+      .slice(0, 10)
+
+    return {
+      totalPlugins: this.plugins.size,
+      totalInstalls,
+      totalUninstalls,
+      totalHotReloads,
+      slowestInstalls,
+      slowestUninstalls,
+      slowestHotReloads,
+    }
+  }
+
+  /**
+   * 重置插件统计信息
+   *
+   * @example
+   * ```typescript
+   * pluginManager.resetPluginStats()
+   * ```
+   */
+  resetPluginStats(): void {
+    this.installTimeStats.clear()
+    this.uninstallTimeStats.clear()
+    this.hotReloadTimeStats.clear()
+  }
+
+  /**
+   * 更新插件安装时间统计
+   *
+   * @private
+   * @param name - 插件名称
+   * @param startTime - 安装开始时间
+   */
+  private updateInstallTimeStats(name: string, startTime: number): void {
+    const duration = performance.now() - startTime
+    const stat = this.installTimeStats.get(name)
+
+    if (stat) {
+      stat.totalTime += duration
+      stat.count += 1
+    } else {
+      this.installTimeStats.set(name, {
+        totalTime: duration,
+        count: 1,
+      })
+    }
+  }
+
+  /**
+   * 更新插件卸载时间统计
+   *
+   * @private
+   * @param name - 插件名称
+   * @param startTime - 卸载开始时间
+   */
+  private updateUninstallTimeStats(name: string, startTime: number): void {
+    const duration = performance.now() - startTime
+    const stat = this.uninstallTimeStats.get(name)
+
+    if (stat) {
+      stat.totalTime += duration
+      stat.count += 1
+    } else {
+      this.uninstallTimeStats.set(name, {
+        totalTime: duration,
+        count: 1,
+      })
+    }
+  }
+
+  /**
+   * 更新插件热重载时间统计
+   *
+   * @private
+   * @param name - 插件名称
+   * @param startTime - 热重载开始时间
+   */
+  private updateHotReloadTimeStats(name: string, startTime: number): void {
+    const duration = performance.now() - startTime
+    const stat = this.hotReloadTimeStats.get(name)
+
+    if (stat) {
+      stat.totalTime += duration
+      stat.count += 1
+    } else {
+      this.hotReloadTimeStats.set(name, {
+        totalTime: duration,
+        count: 1,
+      })
+    }
   }
 }
 

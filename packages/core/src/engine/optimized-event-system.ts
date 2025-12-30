@@ -99,7 +99,7 @@ export class OptimizedEventEmitter {
   /**
    * 触发事件
    */
-  emit(event: string, ...args: any[]): boolean {
+  emit(event: string, ...args: unknown[]): boolean {
     const handlers = this.events.get(event);
     if (!handlers || handlers.length === 0) {
       return false;
@@ -163,7 +163,7 @@ export class OptimizedEventEmitter {
   /**
    * 异步触发事件（所有处理器并行执行）
    */
-  async emitAsync(event: string, ...args: any[]): Promise<void> {
+  async emitAsync(event: string, ...args: unknown[]): Promise<void> {
     const handlers = this.events.get(event);
     if (!handlers || handlers.length === 0) {
       return;
@@ -293,7 +293,7 @@ export class OptimizedEventEmitter {
   /**
    * 处理错误
    */
-  private handleError(event: string, error: any): void {
+  private handleError(event: string, error: unknown): void {
     console.error(`Error in event handler for '${event}':`, error);
 
     // 触发错误事件

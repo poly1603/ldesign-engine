@@ -289,7 +289,7 @@ export class EngineCoreImpl implements CoreEngine {
    * })
    * ```
    */
-  async use<T = any>(plugin: Plugin<T>, options?: T): Promise<void> {
+  async use<T = unknown>(plugin: Plugin<T>, options?: T): Promise<void> {
     await this.plugins.use(plugin, options)
   }
 

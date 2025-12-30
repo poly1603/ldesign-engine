@@ -213,9 +213,9 @@ export class CoreLifecycleManager implements LifecycleManager {
       // 修复：正确的参数顺序 (message, code, options) 和属性名称
       const error = new EngineError(
         `${errors.length} error(s) occurred in lifecycle hook "${hook}": ${errorMessages}`,
-        6000 as any, // ErrorCode.LIFECYCLE_HOOK_ERROR
+        6000, // ErrorCode.LIFECYCLE_HOOK_ERROR
         {
-          severity: 'high' as any,
+          severity: 'high',
           recoverable: false,
           details: {
             hook,
@@ -230,7 +230,7 @@ export class CoreLifecycleManager implements LifecycleManager {
       )
       
       // 添加上下文信息作为错误对象的属性
-      ;(error as any).context = {
+      ;(error as EngineError & { context?: Record<string, unknown> }).context = {
         operation: `lifecycle:${hook}`,
         data: {
           hook,
