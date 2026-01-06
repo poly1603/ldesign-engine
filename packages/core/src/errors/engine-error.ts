@@ -73,7 +73,11 @@ export enum ErrorCode {
   MIDDLEWARE_CHAIN_BROKEN = 5001,
   
   // 生命周期错误 (6000-6999)
-  LIFECYCLE_HOOK_ERROR = 6000
+  LIFECYCLE_HOOK_ERROR = 6000,
+  
+  // 资源错误 (7000-7999)
+  RESOURCE_EXHAUSTED = 7000,
+  RESOURCE_NOT_AVAILABLE = 7001
 }
 
 /**
@@ -468,7 +472,9 @@ export enum RecoveryStrategy {
   /** 跳过该操作 */
   SKIP = 'skip',
   /** 终止执行 */
-  ABORT = 'abort'
+  ABORT = 'abort',
+  /** 失败 */
+  FAIL = 'fail'
 }
 
 /**

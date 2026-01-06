@@ -348,4 +348,414 @@ export interface PersistenceConfig {
   saveDelay?: number
   /** 是否在加载时自动恢复 */
   autoRestore?: boolean
+  /** 是否启用压缩 */
+  compress?: boolean
+  /** 当前版本号 */
+  version?: number
+  /** 版本迁移函数 */
+  migrate?: StateMigration[]
+}
+
+/**
+ * 状态迁移定义
+ */
+export interface StateMigration {
+  /** 源版本 */
+  fromVersion: number
+  /** 目标版本 */
+  toVersion: number
+  /** 迁移函数 */
+  migrate: (state: Record<string, unknown>) => Record<string, unknown>
+}
+
+/**
+ * 压缩存储适配器
+ *
+ * 使用 LZ-based 压缩算法减小存储空间
+ *
+ * @example
+ * ```typescript
+ * const adapter = new CompressedStorageAdapter(
+ *   new LocalStoragePersistence('myapp'),
+ *   { compressionLevel: 'default' }
+ * )
+ * ```
+ */
+export class CompressedStorageAdapter implements PersistenceAdapter {
+  constructor(
+    private baseAdapter: PersistenceAdapter,
+    private options: { compressionLevel?: 'fast' | 'default' | 'best' } = {}
+  ) {}
+
+  async save(key: string, value: unknown): Promise<void> {
+    const serialized = JSON.stringify(value)
+    const compressed = this.compress(serialized)
+    await this.baseAdapter.save(key, { __compressed: true, data: compressed })
+  }
+
+  async load(key: string): Promise<unknown> {
+    const stored = await this.baseAdapter.load(key)
+    if (!stored) return undefined
+
+    if (stored.__compressed && stored.data) {
+      const decompressed = this.decompress(stored.data)
+      return JSON.parse(decompressed)
+    }
+
+    return stored
+  }
+
+  async remove(key: string): Promise<void> {
+    await this.baseAdapter.remove(key)
+  }
+
+  async clear(): Promise<void> {
+    await this.baseAdapter.clear?.()
+  }
+
+  async keys(): Promise<string[]> {
+    return await this.baseAdapter.keys?.() ?? []
+  }
+
+  /**
+   * 简单的 LZW 压缩实现
+   */
+  private compress(str: string): string {
+    if (str.length < 100) return str // 短字符串不压缩
+
+    const dict: Map<string, number> = new Map()
+    let data = (str + '').split('')
+    let out: number[] = []
+    let currChar: string
+    let phrase = data[0]
+    let code = 256
+
+    for (let i = 0; i < 256; i++) {
+      dict.set(String.fromCharCode(i), i)
+    }
+
+    for (let i = 1; i < data.length; i++) {
+      currChar = data[i]
+      if (dict.has(phrase + currChar)) {
+        phrase += currChar
+      } else {
+        out.push(dict.get(phrase)!)
+        dict.set(phrase + currChar, code)
+        code++
+        phrase = currChar
+      }
+    }
+    out.push(dict.get(phrase)!)
+
+    // 转换为 Base64 字符串
+    const bytes = new Uint16Array(out)
+    let binary = ''
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i])
+    }
+    return btoa(binary)
+  }
+
+  /**
+   * LZW 解压缩
+   */
+  private decompress(compressed: string): string {
+    if (!compressed.startsWith('AA')) {
+      // 非压缩数据
+      return compressed
+    }
+
+    try {
+      const binary = atob(compressed)
+      const bytes = new Uint16Array(binary.length)
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i)
+      }
+      const data = Array.from(bytes)
+
+      const dict: Map<number, string> = new Map()
+      for (let i = 0; i < 256; i++) {
+        dict.set(i, String.fromCharCode(i))
+      }
+
+      let currChar = String.fromCharCode(data[0])
+      let oldPhrase = currChar
+      let out = [currChar]
+      let code = 256
+      let phrase: string
+
+      for (let i = 1; i < data.length; i++) {
+        let currCode = data[i]
+        if (currCode < 256) {
+          phrase = String.fromCharCode(currCode)
+        } else {
+          phrase = dict.has(currCode) ? dict.get(currCode)! : oldPhrase + currChar
+        }
+        out.push(phrase)
+        currChar = phrase.charAt(0)
+        dict.set(code, oldPhrase + currChar)
+        code++
+        oldPhrase = phrase
+      }
+      return out.join('')
+    } catch {
+      return compressed
+    }
+  }
+}
+
+/**
+ * 版本化存储适配器
+ *
+ * 支持状态版本迁移
+ *
+ * @example
+ * ```typescript
+ * const adapter = new VersionedStorageAdapter(
+ *   new LocalStoragePersistence('myapp'),
+ *   {
+ *     currentVersion: 2,
+ *     migrations: [
+ *       {
+ *         fromVersion: 1,
+ *         toVersion: 2,
+ *         migrate: (state) => ({
+ *           ...state,
+ *           newField: state.oldField ?? 'default'
+ *         })
+ *       }
+ *     ]
+ *   }
+ * )
+ * ```
+ */
+export class VersionedStorageAdapter implements PersistenceAdapter {
+  constructor(
+    private baseAdapter: PersistenceAdapter,
+    private options: {
+      currentVersion: number
+      migrations?: StateMigration[]
+    }
+  ) {}
+
+  async save(key: string, value: unknown): Promise<void> {
+    const wrapped = {
+      __version: this.options.currentVersion,
+      __timestamp: Date.now(),
+      data: value
+    }
+    await this.baseAdapter.save(key, wrapped)
+  }
+
+  async load(key: string): Promise<unknown> {
+    const stored = await this.baseAdapter.load(key)
+    if (!stored) return undefined
+
+    // 检查是否是版本化数据
+    if (stored.__version !== undefined) {
+      let data = stored.data
+      let version = stored.__version
+
+      // 运行迁移
+      if (version < this.options.currentVersion && this.options.migrations) {
+        data = this.runMigrations(data, version, this.options.currentVersion)
+
+        // 保存迁移后的数据
+        await this.save(key, data)
+      }
+
+      return data
+    }
+
+    // 旧格式数据，返回原始值
+    return stored
+  }
+
+  async remove(key: string): Promise<void> {
+    await this.baseAdapter.remove(key)
+  }
+
+  async clear(): Promise<void> {
+    await this.baseAdapter.clear?.()
+  }
+
+  async keys(): Promise<string[]> {
+    return await this.baseAdapter.keys?.() ?? []
+  }
+
+  /**
+   * 运行迁移
+   */
+  private runMigrations(
+    data: Record<string, unknown>,
+    fromVersion: number,
+    toVersion: number
+  ): Record<string, unknown> {
+    if (!this.options.migrations) return data
+
+    let currentData = data
+    let currentVersion = fromVersion
+
+    // 按版本顺序排序迁移
+    const sortedMigrations = [...this.options.migrations].sort(
+      (a, b) => a.fromVersion - b.fromVersion
+    )
+
+    for (const migration of sortedMigrations) {
+      if (
+        migration.fromVersion >= currentVersion &&
+        migration.toVersion <= toVersion
+      ) {
+        try {
+          console.log(
+            `[VersionedStorage] Running migration v${migration.fromVersion} -> v${migration.toVersion}`
+          )
+          currentData = migration.migrate(currentData)
+          currentVersion = migration.toVersion
+        } catch (error) {
+          console.error(
+            `[VersionedStorage] Migration failed v${migration.fromVersion} -> v${migration.toVersion}:`,
+            error
+          )
+          throw error
+        }
+      }
+    }
+
+    return currentData
+  }
+}
+
+/**
+ * 选择性持久化适配器
+ *
+ * 只持久化指定的键
+ *
+ * @example
+ * ```typescript
+ * const adapter = new SelectivePersistenceAdapter(
+ *   new LocalStoragePersistence('myapp'),
+ *   {
+ *     include: ['user', 'settings'],
+ *     exclude: ['temp', /^cache:/]
+ *   }
+ * )
+ * ```
+ */
+export class SelectivePersistenceAdapter implements PersistenceAdapter {
+  constructor(
+    private baseAdapter: PersistenceAdapter,
+    private options: {
+      include?: (string | RegExp)[]
+      exclude?: (string | RegExp)[]
+    } = {}
+  ) {}
+
+  private shouldPersist(key: string): boolean {
+    // 检查排除列表
+    if (this.options.exclude) {
+      for (const pattern of this.options.exclude) {
+        if (typeof pattern === 'string') {
+          if (key === pattern) return false
+        } else {
+          if (pattern.test(key)) return false
+        }
+      }
+    }
+
+    // 检查包含列表（如果有定义）
+    if (this.options.include && this.options.include.length > 0) {
+      for (const pattern of this.options.include) {
+        if (typeof pattern === 'string') {
+          if (key === pattern) return true
+        } else {
+          if (pattern.test(key)) return true
+        }
+      }
+      return false
+    }
+
+    return true
+  }
+
+  async save(key: string, value: unknown): Promise<void> {
+    if (!this.shouldPersist(key)) return
+    await this.baseAdapter.save(key, value)
+  }
+
+  async load(key: string): Promise<unknown> {
+    if (!this.shouldPersist(key)) return undefined
+    return await this.baseAdapter.load(key)
+  }
+
+  async remove(key: string): Promise<void> {
+    await this.baseAdapter.remove(key)
+  }
+
+  async clear(): Promise<void> {
+    await this.baseAdapter.clear?.()
+  }
+
+  async keys(): Promise<string[]> {
+    const allKeys = await this.baseAdapter.keys?.() ?? []
+    return allKeys.filter(key => this.shouldPersist(key))
+  }
+}
+
+/**
+ * 创建增强的持久化适配器
+ *
+ * 组合压缩、版本化和选择性持久化功能
+ *
+ * @param baseAdapter - 基础适配器
+ * @param options - 配置选项
+ * @returns 增强后的适配器
+ *
+ * @example
+ * ```typescript
+ * const adapter = createEnhancedPersistence(
+ *   new LocalStoragePersistence('myapp'),
+ *   {
+ *     compress: true,
+ *     version: 2,
+ *     migrations: [{ fromVersion: 1, toVersion: 2, migrate: ... }],
+ *     include: ['user', 'settings']
+ *   }
+ * )
+ * ```
+ */
+export function createEnhancedPersistence(
+  baseAdapter: PersistenceAdapter,
+  options: {
+    compress?: boolean
+    version?: number
+    migrations?: StateMigration[]
+    include?: (string | RegExp)[]
+    exclude?: (string | RegExp)[]
+  } = {}
+): PersistenceAdapter {
+  let adapter: PersistenceAdapter = baseAdapter
+
+  // 应用选择性持久化
+  if (options.include || options.exclude) {
+    adapter = new SelectivePersistenceAdapter(adapter, {
+      include: options.include,
+      exclude: options.exclude
+    })
+  }
+
+  // 应用版本化
+  if (options.version) {
+    adapter = new VersionedStorageAdapter(adapter, {
+      currentVersion: options.version,
+      migrations: options.migrations
+    })
+  }
+
+  // 应用压缩
+  if (options.compress) {
+    adapter = new CompressedStorageAdapter(adapter)
+  }
+
+  return adapter
 }

@@ -314,16 +314,26 @@ export class VueEngine extends EngineCoreImpl {
 
   /**
    * 使用 Vue 插件
-   * 
-   * @param plugin - Vue 插件
+   *
+   * @param plugin - Vue 插件（Vue Plugin 或带有 install 方法的对象）
    * @param options - 插件选项
+   * @returns this - 支持链式调用
+   *
+   * @example
+   * ```typescript
+   * engine.useVuePlugin(VueRouter, { routes })
+   *        .useVuePlugin(Pinia)
+   * ```
    */
-  useVuePlugin(plugin: any, options?: any): this {
+  useVuePlugin<Options extends unknown[] = unknown[]>(
+    plugin: { install: (app: App, ...options: Options) => unknown } | { (app: App, ...options: Options): unknown },
+    ...options: Options
+  ): this {
     if (!this.app) {
       throw new Error('Vue app not created. Call createVueApp() first.')
     }
 
-    this.app.use(plugin, options)
+    this.app.use(plugin, ...options)
     return this
   }
 

@@ -567,3 +567,17 @@ export function throwI18nError(
 export function getErrorManager(): ErrorManager {
   return ErrorManager.getInstance();
 }
+
+// Re-export from engine-error
+export * from './engine-error'
+
+// Export recovery module
+export {
+  recoverableOperation,
+  PluginRecoveryManager,
+  safeInstallPlugin,
+  batchOperationWithRecovery,
+  CircuitBreaker,
+  type RecoveryOptions as EnhancedRecoveryOptions,
+  type RecoveryResult
+} from './recovery'
