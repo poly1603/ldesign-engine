@@ -306,6 +306,24 @@ export interface PluginAPIMap {
   color: ColorPluginAPI
   size: SizePluginAPI
   device: DevicePluginAPI
+  validate: PluginAPI
+  event: PluginAPI
+  storage: PluginAPI
+  websocket: PluginAPI
+  config: PluginAPI
+  theme: PluginAPI
+  auth: PluginAPI
+  logger: PluginAPI
+  cache: PluginAPI
+  store: PluginAPI
+  notification: PluginAPI
+  tracker: PluginAPI
+  permission: PluginAPI
+  error: PluginAPI
+  bookmark: PluginAPI
+  breadcrumb: PluginAPI
+  menu: PluginAPI
+  http: PluginAPI
 }
 
 /**

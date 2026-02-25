@@ -117,6 +117,82 @@ export const StateKeys = {
   ROUTER_BASE: 'router:base' as const,
   /** 路由预设 */
   ROUTER_PRESET: 'router:preset' as const,
+
+  // Validate 相关状态
+  /** 校验引擎实例 */
+  VALIDATE_ENGINE: 'validate:engine' as const,
+
+  // Event 相关状态
+  /** 事件总线实例 */
+  EVENT_BUS: 'event:bus' as const,
+
+  // Storage 相关状态
+  /** 存储管理器实例 */
+  STORAGE_MANAGER: 'storage:manager' as const,
+
+  // WebSocket 相关状态
+  /** WebSocket 客户端实例 */
+  WEBSOCKET_CLIENT: 'websocket:client' as const,
+  /** WebSocket 连接状态 */
+  WEBSOCKET_STATE: 'websocket:state' as const,
+
+  // Config 相关状态
+  /** 配置管理器实例 */
+  CONFIG_MANAGER: 'config:manager' as const,
+
+  // Theme 相关状态
+  /** 主题管理器实例 */
+  THEME_MANAGER: 'theme:manager' as const,
+  /** 主题模式 */
+  THEME_MODE: 'theme:mode' as const,
+  /** 设计令牌 */
+  THEME_TOKENS: 'theme:tokens' as const,
+
+  // Auth 相关状态
+  AUTH_MANAGER: 'auth:manager' as const,
+  AUTH_USER: 'auth:user' as const,
+  AUTH_TOKEN: 'auth:token' as const,
+  AUTH_AUTHENTICATED: 'auth:authenticated' as const,
+
+  // Logger 相关状态
+  LOGGER_INSTANCE: 'logger:instance' as const,
+
+  // Cache 相关状态
+  CACHE_MANAGER: 'cache:manager' as const,
+
+  // Store 相关状态
+  STORE_BUS: 'store:bus' as const,
+
+  // Notification 相关状态
+  NOTIFICATION_MANAGER: 'notification:manager' as const,
+  NOTIFICATION_TOAST: 'notification:toast' as const,
+  NOTIFICATION_MESSAGE: 'notification:message' as const,
+
+  // Tracker 相关状态
+  TRACKER_COLLECTOR: 'tracker:collector' as const,
+
+  // Permission 相关状态
+  PERMISSION_MANAGER: 'permission:manager' as const,
+
+  // Error 相关状态
+  ERROR_CATCHER: 'error:catcher' as const,
+  ERROR_REPORTER: 'error:reporter' as const,
+
+  // Size 相关状态
+  SIZE_MANAGER: 'size:manager' as const,
+
+  // Device 相关状态
+  DEVICE_DETECTOR: 'device:detector' as const,
+  DEVICE_INFO: 'device:info' as const,
+
+  // Bookmark 相关状态
+  BOOKMARK_MANAGER: 'bookmark:manager' as const,
+
+  // Breadcrumb 相关状态
+  BREADCRUMB_MANAGER: 'breadcrumb:manager' as const,
+
+  // Menu 相关状态
+  MENU_MANAGER: 'menu:manager' as const,
 } as const
 
 /**
@@ -178,6 +254,119 @@ export const EventKeys = {
   ROUTER_AFTER_NAVIGATE: 'router:afterNavigate' as const,
   /** Router 插件卸载 */
   ROUTER_UNINSTALLED: 'router:uninstalled' as const,
+
+  // Validate 事件
+  /** Validate 插件安装完成 */
+  VALIDATE_INSTALLED: 'validate:installed' as const,
+  /** 校验完成 */
+  VALIDATE_VALIDATED: 'validate:validated' as const,
+  /** Validate 插件卸载 */
+  VALIDATE_UNINSTALLED: 'validate:uninstalled' as const,
+
+  // Event 事件
+  /** Event 插件安装完成 */
+  EVENT_INSTALLED: 'event:installed' as const,
+  /** Event 插件卸载 */
+  EVENT_UNINSTALLED: 'event:uninstalled' as const,
+
+  // Storage 事件
+  /** Storage 插件安装完成 */
+  STORAGE_INSTALLED: 'storage:installed' as const,
+  /** Storage 插件卸载 */
+  STORAGE_UNINSTALLED: 'storage:uninstalled' as const,
+
+  // WebSocket 事件
+  /** WebSocket 插件安装完成 */
+  WEBSOCKET_INSTALLED: 'websocket:installed' as const,
+  /** WebSocket 连接成功 */
+  WEBSOCKET_CONNECTED: 'websocket:connected' as const,
+  /** WebSocket 连接断开 */
+  WEBSOCKET_DISCONNECTED: 'websocket:disconnected' as const,
+  /** WebSocket 插件卸载 */
+  WEBSOCKET_UNINSTALLED: 'websocket:uninstalled' as const,
+
+  // Config 事件
+  /** Config 插件安装完成 */
+  CONFIG_INSTALLED: 'config:installed' as const,
+  /** 配置变更 */
+  CONFIG_CHANGED: 'config:changed' as const,
+  /** Config 插件卸载 */
+  CONFIG_UNINSTALLED: 'config:uninstalled' as const,
+
+  // Theme 事件
+  /** Theme 插件安装完成 */
+  THEME_INSTALLED: 'theme:installed' as const,
+  /** 主题模式变更 */
+  THEME_MODE_CHANGED: 'theme:modeChanged' as const,
+  /** 设计令牌变更 */
+  THEME_TOKENS_CHANGED: 'theme:tokensChanged' as const,
+  /** Theme 插件卸载 */
+  THEME_UNINSTALLED: 'theme:uninstalled' as const,
+
+  // Auth 事件
+  AUTH_INSTALLED: 'auth:installed' as const,
+  AUTH_UNINSTALLED: 'auth:uninstalled' as const,
+  AUTH_LOGIN: 'auth:login' as const,
+  AUTH_LOGOUT: 'auth:logout' as const,
+  AUTH_TOKEN_REFRESHED: 'auth:tokenRefreshed' as const,
+
+  // Logger 事件
+  LOGGER_INSTALLED: 'logger:installed' as const,
+  LOGGER_UNINSTALLED: 'logger:uninstalled' as const,
+
+  // Cache 事件
+  CACHE_INSTALLED: 'cache:installed' as const,
+  CACHE_UNINSTALLED: 'cache:uninstalled' as const,
+
+  // Store 事件
+  STORE_INSTALLED: 'store:installed' as const,
+  STORE_UNINSTALLED: 'store:uninstalled' as const,
+
+  // Notification 事件
+  NOTIFICATION_INSTALLED: 'notification:installed' as const,
+  NOTIFICATION_UNINSTALLED: 'notification:uninstalled' as const,
+  NOTIFICATION_NOTIFY: 'notification:notify' as const,
+
+  // Tracker 事件
+  TRACKER_INSTALLED: 'tracker:installed' as const,
+  TRACKER_UNINSTALLED: 'tracker:uninstalled' as const,
+  TRACKER_TRACK: 'tracker:track' as const,
+
+  // Permission 事件
+  PERMISSION_INSTALLED: 'permission:installed' as const,
+  PERMISSION_UNINSTALLED: 'permission:uninstalled' as const,
+  PERMISSION_CHANGED: 'permission:changed' as const,
+
+  // Error 事件
+  ERROR_INSTALLED: 'error:installed' as const,
+  ERROR_UNINSTALLED: 'error:uninstalled' as const,
+  ERROR_CAUGHT: 'error:caught' as const,
+
+  // Size 事件
+  SIZE_INSTALLED: 'size:installed' as const,
+  SIZE_UNINSTALLED: 'size:uninstalled' as const,
+  SIZE_CHANGED: 'size:changed' as const,
+
+  // Device 事件
+  DEVICE_INSTALLED: 'device:installed' as const,
+  DEVICE_UNINSTALLED: 'device:uninstalled' as const,
+  DEVICE_CHANGED: 'device:changed' as const,
+
+  // Bookmark 事件
+  BOOKMARK_INSTALLED: 'bookmark:installed' as const,
+  BOOKMARK_UNINSTALLED: 'bookmark:uninstalled' as const,
+  BOOKMARK_ADDED: 'bookmark:added' as const,
+  BOOKMARK_REMOVED: 'bookmark:removed' as const,
+
+  // Breadcrumb 事件
+  BREADCRUMB_INSTALLED: 'breadcrumb:installed' as const,
+  BREADCRUMB_UNINSTALLED: 'breadcrumb:uninstalled' as const,
+  BREADCRUMB_CHANGED: 'breadcrumb:changed' as const,
+
+  // Menu 事件
+  MENU_INSTALLED: 'menu:installed' as const,
+  MENU_UNINSTALLED: 'menu:uninstalled' as const,
+  MENU_CHANGED: 'menu:changed' as const,
 } as const
 
 /**
@@ -213,6 +402,101 @@ export interface EventPayloadMap {
   [EventKeys.ROUTER_BEFORE_NAVIGATE]: { to: import('./common').RouteLocation; from: import('./common').RouteLocation }
   [EventKeys.ROUTER_AFTER_NAVIGATE]: { to: import('./common').RouteLocation; from: import('./common').RouteLocation }
   [EventKeys.ROUTER_UNINSTALLED]: Record<string, never>
+
+  // Validate 事件
+  [EventKeys.VALIDATE_INSTALLED]: { name: string }
+  [EventKeys.VALIDATE_VALIDATED]: { schema: string; valid: boolean }
+  [EventKeys.VALIDATE_UNINSTALLED]: Record<string, never>
+
+  // Event 事件
+  [EventKeys.EVENT_INSTALLED]: { name: string }
+  [EventKeys.EVENT_UNINSTALLED]: Record<string, never>
+
+  // Storage 事件
+  [EventKeys.STORAGE_INSTALLED]: { name: string }
+  [EventKeys.STORAGE_UNINSTALLED]: Record<string, never>
+
+  // WebSocket 事件
+  [EventKeys.WEBSOCKET_INSTALLED]: { name: string }
+  [EventKeys.WEBSOCKET_CONNECTED]: Record<string, never>
+  [EventKeys.WEBSOCKET_DISCONNECTED]: Record<string, never>
+  [EventKeys.WEBSOCKET_UNINSTALLED]: Record<string, never>
+
+  // Config 事件
+  [EventKeys.CONFIG_INSTALLED]: { name: string }
+  [EventKeys.CONFIG_CHANGED]: { key: string; oldValue: unknown; newValue: unknown; source: string }
+  [EventKeys.CONFIG_UNINSTALLED]: Record<string, never>
+
+  // Theme 事件
+  [EventKeys.THEME_INSTALLED]: { name: string; mode: string }
+  [EventKeys.THEME_MODE_CHANGED]: { mode: string; resolvedMode: string }
+  [EventKeys.THEME_TOKENS_CHANGED]: { tokens: unknown }
+  [EventKeys.THEME_UNINSTALLED]: Record<string, never>
+
+  // Auth 事件
+  [EventKeys.AUTH_INSTALLED]: { name: string }
+  [EventKeys.AUTH_UNINSTALLED]: Record<string, never>
+  [EventKeys.AUTH_LOGIN]: { user: unknown }
+  [EventKeys.AUTH_LOGOUT]: Record<string, never>
+  [EventKeys.AUTH_TOKEN_REFRESHED]: { token: string }
+
+  // Logger 事件
+  [EventKeys.LOGGER_INSTALLED]: { name: string }
+  [EventKeys.LOGGER_UNINSTALLED]: Record<string, never>
+
+  // Cache 事件
+  [EventKeys.CACHE_INSTALLED]: { name: string }
+  [EventKeys.CACHE_UNINSTALLED]: Record<string, never>
+
+  // Store 事件
+  [EventKeys.STORE_INSTALLED]: { name: string }
+  [EventKeys.STORE_UNINSTALLED]: Record<string, never>
+
+  // Notification 事件
+  [EventKeys.NOTIFICATION_INSTALLED]: { name: string }
+  [EventKeys.NOTIFICATION_UNINSTALLED]: Record<string, never>
+  [EventKeys.NOTIFICATION_NOTIFY]: { type: string; message: string }
+
+  // Tracker 事件
+  [EventKeys.TRACKER_INSTALLED]: { name: string }
+  [EventKeys.TRACKER_UNINSTALLED]: Record<string, never>
+  [EventKeys.TRACKER_TRACK]: { event: string; data?: unknown }
+
+  // Permission 事件
+  [EventKeys.PERMISSION_INSTALLED]: { name: string }
+  [EventKeys.PERMISSION_UNINSTALLED]: Record<string, never>
+  [EventKeys.PERMISSION_CHANGED]: { permissions: unknown }
+
+  // Error 事件
+  [EventKeys.ERROR_INSTALLED]: { name: string }
+  [EventKeys.ERROR_UNINSTALLED]: Record<string, never>
+  [EventKeys.ERROR_CAUGHT]: { error: unknown; source: string }
+
+  // Size 事件
+  [EventKeys.SIZE_INSTALLED]: { name: string }
+  [EventKeys.SIZE_UNINSTALLED]: Record<string, never>
+  [EventKeys.SIZE_CHANGED]: { size: unknown }
+
+  // Device 事件
+  [EventKeys.DEVICE_INSTALLED]: { name: string }
+  [EventKeys.DEVICE_UNINSTALLED]: Record<string, never>
+  [EventKeys.DEVICE_CHANGED]: { info: unknown }
+
+  // Bookmark 事件
+  [EventKeys.BOOKMARK_INSTALLED]: { name: string }
+  [EventKeys.BOOKMARK_UNINSTALLED]: Record<string, never>
+  [EventKeys.BOOKMARK_ADDED]: { id: string; title: string }
+  [EventKeys.BOOKMARK_REMOVED]: { id: string }
+
+  // Breadcrumb 事件
+  [EventKeys.BREADCRUMB_INSTALLED]: { name: string }
+  [EventKeys.BREADCRUMB_UNINSTALLED]: Record<string, never>
+  [EventKeys.BREADCRUMB_CHANGED]: { items: unknown[] }
+
+  // Menu 事件
+  [EventKeys.MENU_INSTALLED]: { name: string }
+  [EventKeys.MENU_UNINSTALLED]: Record<string, never>
+  [EventKeys.MENU_CHANGED]: { items: unknown[] }
 }
 
 /**
