@@ -56,7 +56,7 @@ export function useEngineStateReadonly<T = any>(
     unwatch()
   })
   
-  return state
+  return state as any
 }
 
 /**

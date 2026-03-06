@@ -523,7 +523,7 @@ export class ShortCircuitMiddlewareManager extends CoreMiddlewareManager {
     let index = 0
     let shortCircuited = false
 
-    const dispatch = async (): Promise<unknown> => {
+    const dispatch = async (): Promise<void> => {
       if (context.cancelled || shortCircuited) {
         return
       }
@@ -535,15 +535,13 @@ export class ShortCircuitMiddlewareManager extends CoreMiddlewareManager {
       const middleware = sortedMiddlewares[index++]
 
       try {
-        const result = await middleware.execute(context, dispatch)
+        await middleware.execute(context, dispatch)
 
-        // 检查短路标记
-        if (result === SHORT_CIRCUIT) {
+        // 检查短路标记 via context
+        if (context.cancelled) {
           shortCircuited = true
           return
         }
-
-        return result
       } catch (error) {
         if (middleware.onError) {
           try {

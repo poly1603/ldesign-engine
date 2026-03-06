@@ -551,7 +551,7 @@ export function onEvent<T = EventPayload>(
     return engine.events.once(event, handler as EventHandler<EventPayload>)
   }
 
-  return engine.events.on(event, handler as EventHandler<EventPayload>, priority)
+  return engine.events.on(event, handler as EventHandler<EventPayload>)
 }
 
 /**
@@ -577,7 +577,8 @@ export function onLifecycle(
   hook: string,
   callback: LifecycleCallback
 ): Unsubscribe {
-  return engine.lifecycle.on(hook, callback)
+  engine.lifecycle.on(hook, callback)
+  return () => engine.lifecycle.off(hook, callback)
 }
 
 /**
@@ -600,7 +601,8 @@ export function onLifecycleOnce(
   hook: string,
   callback: LifecycleCallback
 ): Unsubscribe {
-  return engine.lifecycle.once(hook, callback)
+  engine.lifecycle.once(hook, callback)
+  return () => engine.lifecycle.off(hook, callback)
 }
 
 /**

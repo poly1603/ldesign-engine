@@ -167,7 +167,7 @@ export function useConfigValue<T = any>(key: string, defaultValue?: T): Ref<T> {
     unwatch()
   })
 
-  return value
+  return value as any
 }
 
 /**
@@ -196,7 +196,7 @@ export function useEngineState<T = any>(
   defaultValue?: T
 ): [Ref<T>, (value: T) => void] {
   const engine = useEngine()
-  const state = ref<T>(engine.state.get(key) ?? defaultValue)
+  const state = ref<T>(engine.state.get(key) ?? defaultValue as any) as Ref<T>
 
   // 监听状态变化
   const unwatch = engine.state.watch(key, (newValue) => {
@@ -255,7 +255,8 @@ export function useEngineEvent<T = any>(
  * 生命周期钩子处理器类型
  * 支持同步和异步处理器
  */
-export type LifecycleHandler = (...args: unknown[]) => void | Promise<void>
+/** @deprecated Use LifecycleHandler from @ldesign/engine-core instead */
+export type VueLifecycleHandler = (...args: unknown[]) => void | Promise<void>
 
 /**
  * 使用引擎生命周期
@@ -277,7 +278,7 @@ export type LifecycleHandler = (...args: unknown[]) => void | Promise<void>
  */
 export function useEngineLifecycle(
   hook: string,
-  handler: LifecycleHandler
+  handler: VueLifecycleHandler
 ): void {
   const engine = useEngine()
 
@@ -315,13 +316,14 @@ export function usePlugin<T = any>(name: string): T | undefined {
  * 中间件上下文类型
  * 包含中间件执行所需的上下文信息
  */
-export interface MiddlewareContext {
-  /** 上下文类型 */
-  type: string
+/** @deprecated Use MiddlewareContext from @ldesign/engine-core instead */
+export interface VueMiddlewareContext<T = unknown> {
   /** 上下文数据 */
-  data?: unknown
-  /** 额外的上下文属性 */
-  [key: string]: unknown
+  data: T
+  /** 元数据 */
+  metadata?: Record<string, unknown>
+  /** 是否已取消 */
+  cancelled?: boolean
 }
 
 /**
@@ -346,7 +348,7 @@ export interface MiddlewareContext {
 export function useMiddleware() {
   const engine = useEngine()
 
-  return async (context: MiddlewareContext) => {
+  return async (context: VueMiddlewareContext) => {
     return await engine.middleware.execute(context)
   }
 }

@@ -216,7 +216,7 @@ export class EngineError extends LDesignError {
   constructor(
     code: ErrorCode,
     message: string,
-    options: Omit<ConstructorParameters<typeof LDesignError>[2], 'context'> & {
+    options: Omit<NonNullable<ConstructorParameters<typeof LDesignError>[2]>, 'context'> & {
       context?: Omit<ErrorContext, 'module'>;
     } = {}
   ) {
@@ -239,7 +239,7 @@ export class RouterError extends LDesignError {
   constructor(
     code: ErrorCode,
     message: string,
-    options: Omit<ConstructorParameters<typeof LDesignError>[2], 'context'> & {
+    options: Omit<NonNullable<ConstructorParameters<typeof LDesignError>[2]>, 'context'> & {
       context?: Omit<ErrorContext, 'module'>;
     } = {}
   ) {
@@ -262,7 +262,7 @@ export class I18nError extends LDesignError {
   constructor(
     code: ErrorCode,
     message: string,
-    options: Omit<ConstructorParameters<typeof LDesignError>[2], 'context'> & {
+    options: Omit<NonNullable<ConstructorParameters<typeof LDesignError>[2]>, 'context'> & {
       context?: Omit<ErrorContext, 'module'>;
     } = {}
   ) {
@@ -285,7 +285,7 @@ export class ColorError extends LDesignError {
   constructor(
     code: ErrorCode,
     message: string,
-    options: Omit<ConstructorParameters<typeof LDesignError>[2], 'context'> & {
+    options: Omit<NonNullable<ConstructorParameters<typeof LDesignError>[2]>, 'context'> & {
       context?: Omit<ErrorContext, 'module'>;
     } = {}
   ) {
@@ -308,7 +308,7 @@ export class SizeError extends LDesignError {
   constructor(
     code: ErrorCode,
     message: string,
-    options: Omit<ConstructorParameters<typeof LDesignError>[2], 'context'> & {
+    options: Omit<NonNullable<ConstructorParameters<typeof LDesignError>[2]>, 'context'> & {
       context?: Omit<ErrorContext, 'module'>;
     } = {}
   ) {
@@ -336,7 +336,7 @@ export class HttpError extends LDesignError {
   constructor(
     code: ErrorCode,
     message: string,
-    options: Omit<ConstructorParameters<typeof LDesignError>[2], 'context'> & {
+    options: Omit<NonNullable<ConstructorParameters<typeof LDesignError>[2]>, 'context'> & {
       context?: Omit<ErrorContext, 'module'>;
       statusCode?: number;
       response?: unknown;

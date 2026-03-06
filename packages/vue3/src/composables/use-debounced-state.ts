@@ -40,7 +40,7 @@ export function useDebouncedEngineState<T = any>(
 ): [Ref<T>, (value: T) => void] {
   const engine = useEngine()
   
-  const state = ref<T>(engine.state.get(key) ?? defaultValue) as Ref<T>
+  const state = ref<T>(engine.state.get(key) ?? defaultValue as any) as Ref<T>
   let timeoutId: NodeJS.Timeout | null = null
 
   // 设置函数（防抖）
@@ -153,7 +153,7 @@ export function useThrottledEngineState<T = any>(
 ): [Ref<T>, (value: T) => void] {
   const engine = useEngine()
   
-  const state = ref<T>(engine.state.get(key) ?? defaultValue) as Ref<T>
+  const state = ref<T>(engine.state.get(key) ?? defaultValue as any) as Ref<T>
   let lastTime = 0
   let pendingValue: T | null = null
   let timeoutId: NodeJS.Timeout | null = null

@@ -80,7 +80,7 @@ export function createRouterPlugin(config: RouterPluginConfig = {}): VueEnginePl
         const routerEnginePlugin = createRouterEnginePlugin(finalConfig)
 
         // 委托安装
-        await routerEnginePlugin.install(ctx, finalConfig)
+        await routerEnginePlugin.install(ctx as any, finalConfig)
 
         if (engine.config.debug) {
           console.log('[RouterPlugin] Router plugin installed via @ldesign/router-vue')

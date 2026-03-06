@@ -109,8 +109,8 @@ export class VueEngine extends EngineCoreImpl {
 
     // 创建配置管理器
     this.configManager = createConfigManager({
-      environment: config.environment || 'development',
-      defaults: config.defaults,
+      environment: (config.environment as string) || 'development',
+      defaults: config.defaults as any,
     })
 
     // 注册核心服务
@@ -118,7 +118,7 @@ export class VueEngine extends EngineCoreImpl {
 
     // 自动安装配置中的插件
     if (config.plugins && config.plugins.length > 0) {
-      this.lifecycle.on('beforeMount', async () => {
+      this.lifecycle.once('beforeMount', async () => {
         for (const plugin of config.plugins!) {
           await this.use(plugin)
         }
@@ -333,7 +333,7 @@ export class VueEngine extends EngineCoreImpl {
       throw new Error('Vue app not created. Call createVueApp() first.')
     }
 
-    this.app.use(plugin, ...options)
+    this.app.use(plugin as any, ...options)
     return this
   }
 
@@ -415,7 +415,7 @@ export class VueEngine extends EngineCoreImpl {
     }
 
     // 调用父类的 use 方法，传入增强的上下文
-    await this.plugins.use(plugin, options, enhancedContext)
+    await this.plugins.use(plugin, options, enhancedContext as any)
   }
 
   /**

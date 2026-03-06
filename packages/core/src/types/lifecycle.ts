@@ -40,5 +40,11 @@ export interface LifecycleManager {
   clear: () => void
   /** 获取钩子处理函数列表 */
   getHandlers: (hook: LifecycleHook) => LifecycleHandler[]
+  /** 获取钩子处理器数量 */
+  getHandlerCount: (hook: LifecycleHook) => number
+  /** 获取钩子触发次数 */
+  getTriggerCount: (hook: LifecycleHook) => number
+  /** 获取所有钩子名称 */
+  getHookNames: () => LifecycleHook[]
 }
 

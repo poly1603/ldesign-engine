@@ -210,39 +210,26 @@ export class CoreLifecycleManager implements LifecycleManager {
         e === null || e === undefined ? 'Unknown error' : (e instanceof Error ? e.message : String(e))
       ).join('; ')
       
-      // 修复：正确的参数顺序 (message, code, options) 和属性名称
       const error = new EngineError(
+        ErrorCode.ENGINE_LIFECYCLE_ERROR,
         `${errors.length} error(s) occurred in lifecycle hook "${hook}": ${errorMessages}`,
-        6000, // ErrorCode.LIFECYCLE_HOOK_ERROR
         {
-          severity: 'high',
           recoverable: false,
-          details: {
-            hook,
-            errorCount: errors.length,
-            errors: errors.map(e => ({
-              message: e === null || e === undefined ? 'Unknown error' : (e instanceof Error ? e.message : String(e)),
-              stack: e instanceof Error ? e.stack : undefined
-            }))
+          context: {
+            operation: `lifecycle:${hook}`,
+            data: {
+              hook,
+              errorCount: errors.length,
+              errors: errors.map(e => ({
+                message: e === null || e === undefined ? 'Unknown error' : (e instanceof Error ? e.message : String(e)),
+                stack: e instanceof Error ? e.stack : undefined
+              }))
+            },
+            timestamp: Date.now()
           },
-          cause: errors[0] instanceof Error ? errors[0] : undefined
+          originalError: errors[0] instanceof Error ? errors[0] : undefined
         }
       )
-      
-      // 添加上下文信息作为错误对象的属性
-      ;(error as EngineError & { context?: Record<string, unknown> }).context = {
-        operation: `lifecycle:${hook}`,
-        data: {
-          hook,
-          errorCount: errors.length,
-          errors: errors.map(e => ({
-            message: e === null || e === undefined ? 'Unknown error' : (e instanceof Error ? e.message : String(e)),
-            stack: e instanceof Error ? e.stack : undefined
-          }))
-        },
-        module: 'engine',
-        timestamp: Date.now()
-      }
       
       throw error
     }

@@ -48,8 +48,53 @@ export * from './performance'
 // 导出开发工具
 export * from './devtools'
 
-// 导出 Hooks 系统
-export * from './hooks'
+// 导出 Hooks 系统 (exclude createComputedState — already exported from ./state)
+export {
+  createStateRef,
+  createReadonlyStateRef,
+  watchState,
+  createAsyncState,
+  createDebouncedState,
+  createThrottledState,
+  onEvent,
+  onLifecycle,
+  onLifecycleOnce,
+  batchUpdates,
+  createStateHistory,
+} from './hooks/core-hooks'
+export * from './hooks/types'
+
+// 导出错误处理系统
+export * from './errors'
+
+// 导出工具模块
+export { logger, LogLevel } from './utils/logger'
+export {
+  type Disposable,
+  type DisposeCallback,
+  CompositeDisposable,
+  LeakDetector,
+  LazyDisposable,
+  RefCountedDisposable,
+  ResourceScope,
+  createDisposable,
+  using,
+  usingAll,
+  withScope,
+} from './utils/disposable'
+
+// 导出内存检测
+export * from './memory/memory-leak-detector'
+
+// 导出性能监控系统
+export {
+  // PerformanceMetric excluded — already exported from ./performance
+  PerformanceMonitorSystem,
+  type PerformanceAlert,
+  type ThresholdConfig,
+  type MetricType,
+} from './monitor/performance-monitor-system'
+export * from './monitor/performance-tracker'
 
 // 引擎版本
 export const ENGINE_VERSION = '0.3.0'

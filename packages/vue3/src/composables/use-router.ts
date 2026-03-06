@@ -8,7 +8,15 @@
 
 import { computed, ref, Ref, onUnmounted } from 'vue'
 import { useService, useEngine, useEngineState } from './use-engine'
-import type { RouterService } from '../plugins/router-plugin'
+/** Router service interface for type-safe usage */
+export interface RouterService {
+  push(to: string | Record<string, any>): Promise<void>
+  replace(to: string | Record<string, any>): Promise<void>
+  back(): void
+  forward(): void
+  go(n: number): void
+  [key: string]: any
+}
 
 /**
  * 使用路由服务
@@ -104,8 +112,8 @@ export function useRouteHistory(): Ref<any[]> {
 export function useRouteTabs() {
   const engine = useEngine()
   const router = useRouterService()
-  const [tabs, setTabs] = useEngineState('router:tabs', [])
-  const [activeTab, setActiveTab] = useEngineState('router:activeTab', '')
+  const [tabs, setTabs] = useEngineState<any[]>('router:tabs', [])
+  const [activeTab, setActiveTab] = useEngineState<string>('router:activeTab', '')
 
   /**
    * 关闭标签

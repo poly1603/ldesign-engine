@@ -8,6 +8,14 @@ export * from './middleware'
 export * from './lifecycle'
 export * from './event'
 export * from './state'
-export * from './adapter'
+export type {
+  FrameworkFeatures,
+  ReactiveState,
+  StateAdapter,
+  EventAdapter,
+  LifecycleHookMap,
+  AppCreateOptions,
+  FrameworkAdapter,
+} from './adapter'
 export * from './engine'
 

@@ -563,7 +563,7 @@ export class CoreStateManager implements StateManager {
       if (!Object.prototype.hasOwnProperty.call(b, key)) {
         return false
       }
-      if (!this.deepEqual(a[key], b[key], depth + 1)) {
+      if (!this.deepEqual((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key], depth + 1)) {
         return false
       }
     }

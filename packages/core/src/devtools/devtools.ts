@@ -356,7 +356,7 @@ export class DevTools {
     const plugins = this.engine.plugins.getAll()
     return plugins.map(plugin => ({
       name: plugin.name,
-      version: plugin.version,
+      version: plugin.version ?? '0.0.0',
       installedAt: Date.now(), // 实际应该从插件管理器获取
       status: 'active' as const,
       dependencies: plugin.dependencies || [],

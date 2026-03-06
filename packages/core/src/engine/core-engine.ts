@@ -9,6 +9,7 @@
 import type {
   CoreEngine,
   CoreEngineConfig,
+  EngineStats,
   PluginManager,
   MiddlewareManager,
   LifecycleManager,
@@ -362,7 +363,7 @@ export class EngineCoreImpl implements CoreEngine {
     healthy: boolean
     initialized: boolean
     issues: string[]
-    stats: ReturnType<typeof this.getStats>
+    stats: EngineStats
   } {
     const issues: string[] = []
 
@@ -373,13 +374,9 @@ export class EngineCoreImpl implements CoreEngine {
 
     // 检查性能监控
     if (this.performance) {
-      const perfStats = this.performance.getStats()
-      if (Array.isArray(perfStats)) {
-        // 检查是否有性能警告
-        const slowOps = perfStats.filter(s => s.avgDuration > 1000)
-        if (slowOps.length > 0) {
-          issues.push(`检测到 ${slowOps.length} 个慢操作 (平均耗时 >1s)`)
-        }
+      const slowOps = this.performance.getSlowOperations(1000)
+      if (slowOps.length > 0) {
+        issues.push(`检测到 ${slowOps.length} 个慢操作 (平均耗时 >1s)`)
       }
     }
 
@@ -428,7 +425,7 @@ export class EngineCoreImpl implements CoreEngine {
    * ```
    */
   measureSync<T>(name: string, fn: () => T): T {
-    return this.performance.measureSync(name, fn)
+    return this.performance.measure(name, fn)
   }
 
   /**

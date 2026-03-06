@@ -204,7 +204,7 @@ export function useAsyncState<T>(
   })
 
   return {
-    data,
+    data: data as any,
     loading,
     error,
     isReady,
